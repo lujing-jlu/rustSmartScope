@@ -5,13 +5,9 @@
         <file>main_simple.qml</file>
 
         <!-- 组件 -->
-        <file>components/StatusBarComponent.qml</file>
-        <file>components/NavigationBarComponent.qml</file>
-        <file>components/ToolBarComponent.qml</file>
-        <file>components/NavigationButton.qml</file>
-        <file>components/ToolButton.qml</file>
         <file>components/StatusIndicator.qml</file>
         <file>components/CameraPreview.qml</file>
+        <file>components/NavigationButton.qml</file>
 
         <!-- 页面 -->
         <file>pages/HomePage.qml</file>
@@ -20,5 +16,32 @@
         <file>pages/PreviewPage.qml</file>
         <file>pages/ReportPage.qml</file>
         <file>pages/DebugPage.qml</file>
+
+        <!-- 图标资源 -->
+        <file alias="icons/EDDYSUN-logo.png">../resources/icons/EDDYSUN-logo.png</file>
+        <file alias="icons/home.svg">../resources/icons/home.svg</file>
+        <file alias="icons/setting.svg">../resources/icons/setting.svg</file>
+        <file alias="icons/camera.svg">../resources/icons/camera.svg</file>
+        <file alias="icons/camera_active.svg">../resources/icons/camera_active.svg</file>
+        <file alias="icons/preview.svg">../resources/icons/preview.svg</file>
+        <file alias="icons/report.svg">../resources/icons/report.svg</file>
+        <file alias="icons/AI.svg">../resources/icons/AI.svg</file>
+        <file alias="icons/3D.svg">../resources/icons/3D.svg</file>
+        <file alias="icons/config.svg">../resources/icons/config.svg</file>
+
+        <!-- 测量图标 -->
+        <file alias="icons/measurement/length.svg">../resources/icons/measurement/length.svg</file>
+        <file alias="icons/measurement/area.svg">../resources/icons/measurement/area.svg</file>
+        <file alias="icons/measurement/depth.svg">../resources/icons/measurement/depth.svg</file>
+
+        <!-- 工具图标 -->
+        <file alias="icons/record_start.svg">../resources/icons/record_start.svg</file>
+        <file alias="icons/recording.svg">../resources/icons/recording.svg</file>
+        <file alias="icons/zoom_in.svg">../resources/icons/zoom_in.svg</file>
+        <file alias="icons/zoom_out.svg">../resources/icons/zoom_out.svg</file>
+        <file alias="icons/brightness.svg">../resources/icons/brightness.svg</file>
+        <file alias="icons/back.svg">../resources/icons/back.svg</file>
+
+        <!-- 字体文件已移动到fonts.qrc -->
     </qresource>
 </RCC>

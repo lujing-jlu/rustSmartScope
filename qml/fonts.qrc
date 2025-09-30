@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/fonts">
+        <!-- 只保留必需的字体文件 -->
+        <file alias="Inter-Regular.ttf">../resources/fonts/extras/ttf/Inter-Regular.ttf</file>
+        <file alias="Inter-Medium.ttf">../resources/fonts/extras/ttf/Inter-Medium.ttf</file>
+
+        <!-- 只保留一个中文字体 - 思源黑体Regular -->
+        <file alias="SourceHanSansSC-Regular.otf">../resources/fonts/extras/otf/SourceHanSansSC-Regular.otf</file>
+    </qresource>
+</RCC>

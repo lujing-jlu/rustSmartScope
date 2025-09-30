@@ -64,3 +64,12 @@ cd build/bin
 - [ ] 立体校正算法
 - [ ] 立体匹配处理
 - [ ] 3D点云生成
+
+## 📚 文档
+
+详细的技术文档和指南请参考 `docs/` 目录：
+
+- [**架构设计**](docs/ARCHITECTURE.md) - 系统架构和模块设计
+- [**开发指南**](docs/CLAUDE.md) - Claude Code 开发环境指南
+- [**项目状态**](docs/PROJECT_STATUS.md) - 当前开发进度和里程碑
+- [**脚本说明**](docs/SCRIPTS_USAGE.md) - 构建和运行脚本使用说明

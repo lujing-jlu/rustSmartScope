@@ -40,8 +40,8 @@ check_scripts() {
 
     local missing_scripts=()
 
-    if [ ! -f "build.sh" ]; then
-        missing_scripts+=("build.sh")
+    if [ ! -f "build_incremental.sh" ]; then
+        missing_scripts+=("build_incremental.sh")
     fi
 
     if [ ! -f "run.sh" ]; then
@@ -57,9 +57,9 @@ check_scripts() {
     fi
 
     # 检查脚本可执行权限
-    if [ ! -x "build.sh" ]; then
-        chmod +x "build.sh"
-        print_info "修复build.sh执行权限"
+    if [ ! -x "build_incremental.sh" ]; then
+        chmod +x "build_incremental.sh"
+        print_info "修复build_incremental.sh执行权限"
     fi
 
     if [ ! -x "run.sh" ]; then
@@ -147,13 +147,13 @@ execute_build() {
     print_step "开始构建阶段..."
     echo -e "${YELLOW}═══════════════════════════════════════════════${NC}"
 
-    # 执行构建脚本
+    # 使用快速增量编译脚本
     if [ ${#build_args[@]} -eq 0 ]; then
-        print_info "执行: ./build.sh"
-        ./build.sh
+        print_info "执行: ./build_incremental.sh (快速增量编译)"
+        ./build_incremental.sh
     else
-        print_info "执行: ./build.sh ${build_args[*]}"
-        ./build.sh "${build_args[@]}"
+        print_info "执行: ./build_incremental.sh ${build_args[*]}"
+        ./build_incremental.sh "${build_args[@]}"
     fi
 
     print_success "构建阶段完成"

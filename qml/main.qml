@@ -3,11 +3,35 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
 import QtGraphicalEffects 1.15
+import "pages"
+import "components"
 
 ApplicationWindow {
     id: mainWindow
     visible: true
     title: "SmartScope Industrial"
+
+    // 字体加载器
+    FontLoader {
+        id: interRegular
+        source: "qrc:/fonts/Inter-Regular.ttf"
+    }
+
+    FontLoader {
+        id: interMedium
+        source: "qrc:/fonts/Inter-Medium.ttf"
+    }
+
+    // 中文字体加载器 - 思源黑体（只保留一个）
+    FontLoader {
+        id: sourceHanRegular
+        source: "qrc:/fonts/SourceHanSansSC-Regular.otf"
+    }
+
+    // 简化的混合字体方案：英文使用Inter，中文使用思源黑体
+    property string mixedFontRegular: sourceHanRegular.name + ", " + interRegular.name
+    property string mixedFontMedium: sourceHanRegular.name + ", " + interMedium.name
+    property string mixedFontBold: sourceHanRegular.name + ", " + interMedium.name
 
     // 目标分辨率 - 7寸1920x1200屏幕
     property int targetWidth: 1920
@@ -41,23 +65,36 @@ ApplicationWindow {
     // 最终尺寸调整系数
     property real sizeAdjustment: screenRatio * hiDPIAdjustment
 
-    // Apple风格毛玻璃深色主题
-    property color backgroundColor: "#0F0F0F"
-    property color glassBackground: "#1A1A1A"
-    property color surfaceColor: "#1E1E1E"
-    property color cardColor: "#2D2D2D"
-    property color accentColor: "#007AFF"
-    property color accentSecondary: "#34C759"
-    property color warningColor: "#FF9F0A"
-    property color errorColor: "#FF453A"
+    // 2024现代化设计系统 - 受启发于iOS 17 & Material You
+    property color backgroundColor: "#0A0A0F"
+    property color backgroundSecondary: "#121218"
+    property color backgroundTertiary: "#1C1C24"
+    property color surfaceColor: "#1E1E28"
+    property color surfaceElevated: "#2A2A36"
+    property color cardColor: "#242432"
+
+    // 现代化红色主题色系统
+    property color accentPrimary: "#0EA5E9"       // 专业蓝色 - 工业感
+    property color accentSecondary: "#38BDF8"     // 亮蓝色 - 现代感
+    property color accentTertiary: "#67E8F9"      // 青色 - 科技感
+    property color accentSuccess: "#10B981"       // 保持绿色表示成功
+    property color accentWarning: "#F59E0B"       // 保持橙色表示警告
+    property color accentError: "#DC2626"         // 深红色表示错误
+
+    // 文字色彩系统
     property color textPrimary: "#FFFFFF"
-    property color textSecondary: "#EBEBF5"
-    property color textTertiary: "#EBEBF599"
-    property color separatorColor: "#545458"
+    property color textSecondary: "#E2E8F0"
+    property color textTertiary: "#94A3B8"
+    property color textMuted: "#64748B"
+
+    // 边框和分割线
+    property color borderPrimary: "#334155"
+    property color borderSecondary: "#1E293B"
+    property color separatorColor: "#475569"
 
     // HiDPI自适应百分比布局
-    property real baseStatusBarRatio: 0.05          // 基础状态栏比例
-    property real baseNavigationBarRatio: 0.08      // 基础导航栏比例
+    property real baseStatusBarRatio: 0.05          // 减小状态栏比例
+    property real baseNavigationBarRatio: 0.10      // 基础导航栏比例
     property real baseButtonRatio: 0.04             // 基础按钮比例
     property real baseIconRatio: 0.025              // 基础图标比例
     property real baseFontRatio: 0.016              // 基础字体比例
@@ -65,6 +102,21 @@ ApplicationWindow {
     property real baseSpacingRatio: 0.01            // 基础间距比例
     property real baseMarginsRatio: 0.015           // 基础边距比例
     property real baseCornerRatio: 0.012            // 基础圆角比例
+
+    // 固定单排导航布局计算
+    property int totalButtons: 6  // 主页、预览、报告、设置、3D测量、退出
+    property real availableNavWidth: Math.min(width - margins * 4, 1400)
+    property real buttonMaxWidth: 180  // 限制按钮最大宽度
+    property real buttonMinWidth: 120  // 确保文字显示完整的最小宽度
+
+    // 计算实际按钮宽度，优先保证文字完整显示
+    property real dynamicButtonWidth: Math.max(
+        buttonMinWidth,
+        Math.min(
+            buttonMaxWidth,
+            (availableNavWidth - (totalButtons - 1) * spacing) / totalButtons
+        )
+    )
 
     // DPI调整后的响应式比例
     property real statusBarHeightRatio: baseStatusBarRatio * sizeAdjustment
@@ -77,31 +129,113 @@ ApplicationWindow {
     property real marginsRatio: baseMarginsRatio * sizeAdjustment
     property real cornerRadiusRatio: baseCornerRatio * sizeAdjustment
 
-    // 计算实际尺寸 - 适配HiDPI
-    property int statusBarHeight: Math.max(40, height * statusBarHeightRatio)
-    property int navigationBarHeight: Math.max(60, height * navigationBarHeightRatio)
-    property int buttonHeight: Math.max(32, height * buttonHeightRatio)
-    property int iconSize: Math.max(16, Math.min(width, height) * iconSizeRatio)
-    property int fontSize: Math.max(12, Math.min(width, height) * fontSizeRatio)
-    property int titleSize: Math.max(16, Math.min(width, height) * titleSizeRatio)
-    property int spacing: Math.max(6, Math.min(width, height) * spacingRatio)
-    property int margins: Math.max(8, Math.min(width, height) * marginsRatio)
-    property int cornerRadius: Math.max(4, Math.min(width, height) * cornerRadiusRatio)
+    // 现代化尺寸系统 - 适配HiDPI
+    property int statusBarHeight: Math.max(50, height * statusBarHeightRatio)
+    property int navigationBarHeight: Math.max(100, height * navigationBarHeightRatio)
+    property int buttonHeight: Math.max(56, height * buttonHeightRatio)
+    property int iconSize: Math.max(36, Math.min(width, height) * iconSizeRatio * 1.8)
+    property int fontSize: Math.max(18, Math.min(width, height) * fontSizeRatio * 1.4)
+    property int titleSize: Math.max(20, Math.min(width, height) * titleSizeRatio * 1.2)
+    property int spacing: Math.max(16, Math.min(width, height) * spacingRatio * 2)
+    property int margins: Math.max(12, Math.min(width, height) * marginsRatio * 1.5)
+    property int cornerRadius: Math.max(16, Math.min(width, height) * cornerRadiusRatio * 2)
+    property int shadowRadius: Math.max(8, Math.min(width, height) * cornerRadiusRatio)
+    property int elevationLow: 4
+    property int elevationMedium: 8
+    property int elevationHigh: 16
 
     // 毛玻璃效果属性 - 根据性能调整
     property real glassOpacity: devicePixelRatio > 2.0 ? 0.7 : 0.8
     property real blurRadius: devicePixelRatio > 2.0 ? 30 : 40
     property real glassBlur: devicePixelRatio > 2.0 ? 45 : 60
 
-    // 动态背景渐变
+    // 基础时间和电池状态
+    property string currentTime: Qt.formatTime(new Date(), "HH:mm")
+    property string currentDate: Qt.formatDate(new Date(), "MM/dd")
+    property int batteryLevel: 85  // 85% 电量
+    property bool isCharging: false  // 充电状态
+
+    // 实时更新时间的Timer
+    Timer {
+        id: timeUpdateTimer
+        interval: 1000  // 每秒更新
+        running: true
+        repeat: true
+
+        onTriggered: {
+            var now = new Date()
+            currentTime = Qt.formatTime(now, "HH:mm")
+            currentDate = Qt.formatDate(now, "MM/dd")
+        }
+    }
+
+    // 2024现代化动态背景
     Rectangle {
         id: backgroundGradient
         anchors.fill: parent
+
+        // 主渐变背景
         gradient: Gradient {
+            orientation: Gradient.Vertical
             GradientStop { position: 0.0; color: backgroundColor }
-            GradientStop { position: 0.3; color: "#151515" }
-            GradientStop { position: 0.7; color: "#1A1A1A" }
-            GradientStop { position: 1.0; color: backgroundColor }
+            GradientStop { position: 0.25; color: backgroundSecondary }
+            GradientStop { position: 0.75; color: backgroundTertiary }
+            GradientStop { position: 1.0; color: surfaceColor }
+        }
+
+        // 现代化装饰光理
+        Rectangle {
+            id: accentGlow1
+            width: 600
+            height: 600
+            radius: width / 2
+            x: parent.width * 0.05
+            y: parent.height * 0.1
+            opacity: 0.08
+            color: accentPrimary
+
+            PropertyAnimation on scale {
+                running: true
+                loops: Animation.Infinite
+                from: 0.7; to: 1.1
+                duration: 8000
+                easing.type: Easing.InOutSine
+            }
+
+            PropertyAnimation on opacity {
+                running: true
+                loops: Animation.Infinite
+                from: 0.05; to: 0.12
+                duration: 5000
+                easing.type: Easing.InOutSine
+            }
+        }
+
+        Rectangle {
+            id: accentGlow2
+            width: 400
+            height: 400
+            radius: width / 2
+            x: parent.width * 0.75
+            y: parent.height * 0.65
+            opacity: 0.06
+            color: accentSecondary
+
+            PropertyAnimation on scale {
+                running: true
+                loops: Animation.Infinite
+                from: 1.0; to: 0.6
+                duration: 6000
+                easing.type: Easing.InOutSine
+            }
+
+            PropertyAnimation on opacity {
+                running: true
+                loops: Animation.Infinite
+                from: 0.03; to: 0.09
+                duration: 7000
+                easing.type: Easing.InOutSine
+            }
         }
     }
 
@@ -110,588 +244,562 @@ ApplicationWindow {
         anchors.fill: parent
         color: "transparent"
 
-        // 毛玻璃状态栏
-        Rectangle {
-            id: statusBarBackground
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: statusBarHeight
-            color: glassBackground
-            opacity: glassOpacity
-            radius: 0
-        }
-
-        FastBlur {
-            anchors.fill: statusBarBackground
-            source: backgroundGradient
-            radius: blurRadius
-            cached: true
-
-            Rectangle {
-                anchors.fill: parent
-                color: surfaceColor
-                opacity: 0.3
-            }
-        }
-
-        // 状态栏内容
+        // 现代化毛玻璃状态栏
         Rectangle {
             id: statusBar
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             height: statusBarHeight
-            color: "transparent"
+            color: Qt.rgba(0.1, 0.1, 0.15, 0.8)
+            radius: 0
+            z: 100
 
-            // Apple风格分割线
-            Rectangle {
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: 0.5
-                color: separatorColor
-                opacity: 0.6
-            }
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: margins
-                anchors.rightMargin: margins
-                spacing: spacing
-
-                // 系统标题 - Apple风格
-                Text {
-                    text: "SmartScope"
-                    color: textPrimary
-                    font.pixelSize: titleSize
-                    font.weight: Font.DemiBold
-                    font.family: "-apple-system, SF Pro Display"
-                }
-
-                Item { Layout.fillWidth: true }
-
-                // 状态指示器组 - Apple风格
-                Row {
-                    spacing: spacing * 2
-
-                    // 连接状态指示器
-                    Rectangle {
-                        width: iconSize * 0.4
-                        height: iconSize * 0.4
-                        radius: width / 2
-                        color: accentSecondary
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: parent.width * 0.6
-                            height: parent.height * 0.6
-                            radius: width / 2
-                            color: textPrimary
-                            opacity: 0.9
-                        }
-
-                        // Apple风格呼吸动画
-                        PropertyAnimation on scale {
-                            id: breathingAnimation
-                            running: true
-                            loops: Animation.Infinite
-                            from: 1.0
-                            to: 1.2
-                            duration: 4000
-                            easing.type: Easing.InOutSine
-
-                            onRunningChanged: {
-                                if (!running && loops == Animation.Infinite) {
-                                    running = true
-                                }
-                            }
-                        }
-                    }
-
-                    // 时间显示 - Apple风格
-                    Text {
-                        text: Qt.formatTime(new Date(), "HH:mm")
-                        color: textSecondary
-                        font.pixelSize: fontSize
-                        font.weight: Font.Medium
-                        font.family: "-apple-system, SF Pro Display"
-                    }
-
-                    // 电池状态（可选）
-                    Rectangle {
-                        width: fontSize * 1.8
-                        height: fontSize * 0.9
-                        radius: 2
-                        color: "transparent"
-                        border.color: textSecondary
-                        border.width: 1
-
-                        Rectangle {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.margins: 1
-                            width: parent.width * 0.85 // 85% 电量
-                            height: parent.height - 2
-                            radius: 1
-                            color: accentSecondary
-                        }
-
-                        Rectangle {
-                            anchors.left: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 2
-                            height: parent.height * 0.6
-                            radius: 1
-                            color: textSecondary
-                        }
-                    }
-                }
-            }
-        }
-
-        // 主内容区域
-        Rectangle {
-            id: contentArea
-            anchors.top: statusBar.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: navigationBar.top
-            anchors.margins: margins
-            color: "transparent"
-
-            // 毛玻璃主卡片
-            Rectangle {
-                id: mainCardBackground
-                anchors.fill: parent
-                color: glassBackground
-                opacity: 0.7
-                radius: cornerRadius
-            }
-
-            FastBlur {
-                anchors.fill: mainCardBackground
-                source: backgroundGradient
-                radius: glassBlur
-                cached: true
-
-                Rectangle {
-                    anchors.fill: parent
-                    color: cardColor
-                    opacity: 0.2
-                    radius: cornerRadius
-                }
-            }
-
-            // 主内容卡片
+            // 高级毛玻璃效果
             Rectangle {
                 anchors.fill: parent
                 color: "transparent"
-                radius: cornerRadius
-                border.color: separatorColor
-                border.width: 0.5
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.1)
+                radius: parent.radius
+            }
 
-                // 欢迎内容 - Apple风格
-                ColumnLayout {
-                    anchors.centerIn: parent
-                    spacing: mainWindow.spacing * 3
+            // 底部阴影
+            Rectangle {
+                anchors.top: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 1
+                gradient: Gradient {
+                    orientation: Gradient.Vertical
+                    GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.2) }
+                    GradientStop { position: 1.0; color: "transparent" }
+                }
+            }
 
-                    // 主图标 - Apple风格渐变
-                    Rectangle {
-                        Layout.alignment: Qt.AlignHCenter
-                        width: iconSize * 4
-                        height: iconSize * 4
-                        radius: width / 2
-                        gradient: Gradient {
-                            GradientStop { position: 0.0; color: accentColor }
-                            GradientStop { position: 1.0; color: "#0066CC" }
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 10
+                anchors.rightMargin: 10
+                spacing: 0
+
+                // 左侧：Logo区域
+                Rectangle {
+                    Layout.preferredWidth: fontSize * 8
+                    Layout.fillHeight: true
+                    color: "transparent"
+
+                    Image {
+                        id: appIcon
+                        source: "qrc:/icons/EDDYSUN-logo.png"
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        height: parent.height * 0.7
+                        fillMode: Image.PreserveAspectFit
+                        visible: true
+
+                        Component.onCompleted: {
+                            console.log("main.qml 图标组件加载完成, 源: " + source)
+                            console.log("Logo容器尺寸: " + parent.width + "x" + parent.height)
+                            console.log("Logo图片尺寸: " + width + "x" + height)
+                            console.log("Logo原始尺寸: " + implicitWidth + "x" + implicitHeight)
                         }
-                        opacity: 0.15
 
-                        Text {
-                            anchors.centerIn: parent
-                            text: "🔬"
-                            color: accentColor
-                            font.pixelSize: iconSize * 2
-                        }
-
-                        // Apple风格光环效果
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: parent.width * 1.3
-                            height: parent.height * 1.3
-                            radius: width / 2
-                            color: "transparent"
-                            border.color: accentColor
-                            border.width: 1
-                            opacity: 0.3
-
-                            SequentialAnimation on opacity {
-                                id: haloAnimation
-                                running: true
-                                loops: Animation.Infinite
-
-                                PropertyAnimation {
-                                    from: 0.3
-                                    to: 0.0
-                                    duration: 3000
-                                    easing.type: Easing.OutQuart
-                                }
-                                PropertyAnimation {
-                                    from: 0.0
-                                    to: 0.3
-                                    duration: 1000
-                                    easing.type: Easing.InQuart
-                                }
+                        onStatusChanged: {
+                            console.log("main.qml 图标状态: " + status + ", 源: " + source)
+                            if (status === Image.Error) {
+                                console.log("main.qml 图标加载失败: " + source)
+                            } else if (status === Image.Ready) {
+                                console.log("main.qml 图标加载成功: " + source)
                             }
                         }
                     }
+                }
 
-                    // 主标题 - Apple风格
-                    Text {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: "SmartScope Industrial"
-                        color: textPrimary
-                        font.pixelSize: titleSize * 1.5
-                        font.weight: Font.Bold
-                        font.family: "-apple-system, SF Pro Display"
-                    }
+                // 中间：时间区域
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: "transparent"
 
-                    // 子标题
                     Text {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: "专业级深度检测与测量解决方案"
-                        color: textSecondary
-                        font.pixelSize: fontSize * 1.1
+                        text: currentTime
+                        color: "#FFFFFF"
+                        font.pixelSize: fontSize * 1.6
                         font.weight: Font.Medium
-                        font.family: "-apple-system, SF Pro Text"
+                        font.family: mixedFontMedium
+                        anchors.centerIn: parent
                     }
+                }
 
-                    // 状态胶囊 - Apple风格
-                    Rectangle {
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.topMargin: spacing * 2
-                        width: fontSize * 12
-                        height: buttonHeight * 0.7
-                        radius: height / 2
-                        color: accentSecondary
-                        opacity: 0.2
+                // 右侧：电池区域
+                Rectangle {
+                    Layout.preferredWidth: fontSize * 5
+                    Layout.fillHeight: true
+                    color: "transparent"
 
+                    Row {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: fontSize * 0.3
+
+                        // 电池图标
                         Rectangle {
-                            anchors.fill: parent
+                            width: fontSize * 1.5
+                            height: fontSize * 0.8
+                            anchors.verticalCenter: parent.verticalCenter
+                            radius: 2
                             color: "transparent"
-                            radius: parent.radius
-                            border.color: accentSecondary
-                            border.width: 1
+                            border.color: "#FFFFFF"
+                            border.width: 1.5
+
+                            // 电池电量填充
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.margins: 2
+                                width: (parent.width - 4) * (batteryLevel / 100.0)
+                                height: parent.height - 4
+                                radius: 1
+                                color: {
+                                    if (batteryLevel > 50) return accentSuccess
+                                    else if (batteryLevel > 20) return accentWarning
+                                    else return accentError
+                                }
+                            }
+
+                            // 电池正极
+                            Rectangle {
+                                anchors.left: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 2
+                                height: parent.height * 0.5
+                                radius: 1
+                                color: "#FFFFFF"
+                            }
                         }
 
-                        RowLayout {
-                            anchors.centerIn: parent
-                            spacing: spacing
-
-                            Rectangle {
-                                width: fontSize * 0.7
-                                height: fontSize * 0.7
-                                radius: width / 2
-                                color: accentSecondary
-                            }
-
-                            Text {
-                                text: "系统就绪"
-                                color: accentSecondary
-                                font.pixelSize: fontSize
-                                font.weight: Font.Medium
-                                font.family: "-apple-system, SF Pro Text"
-                            }
+                        // 电量百分比
+                        Text {
+                            text: batteryLevel + "%"
+                            color: "#FFFFFF"
+                            font.pixelSize: fontSize * 1.6
+                            font.weight: Font.Medium
+                            font.family: mixedFontMedium
+                            anchors.verticalCenter: parent.verticalCenter
                         }
                     }
                 }
             }
         }
 
-        // 毛玻璃导航栏背景
-        Rectangle {
-            id: navBarBackground
-            anchors.bottom: parent.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: navigationBarHeight
-            color: glassBackground
-            opacity: glassOpacity
-        }
+        // 全屏主内容区域 - 动态页面容器
+        Loader {
+            id: pageLoader
+            anchors.fill: parent
 
-        FastBlur {
-            anchors.fill: navBarBackground
-            source: backgroundGradient
-            radius: blurRadius
-            cached: true
+            // 根据当前页面加载不同的组件
+            source: {
+                switch(currentPage) {
+                    case "home": return "pages/HomePage.qml"
+                    case "preview": return "pages/PreviewPage.qml"
+                    case "measurement": return "pages/MeasurementPage.qml"
+                    case "report": return "pages/ReportPage.qml"
+                    case "settings": return "pages/SettingsPage.qml"
+                    default: return "pages/HomePage.qml"
+                }
+            }
 
-            Rectangle {
-                anchors.fill: parent
-                color: surfaceColor
-                opacity: 0.4
+            // 页面切换动画
+            Behavior on opacity {
+                PropertyAnimation {
+                    duration: 300
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            onLoaded: {
+                console.log("Page loaded:", currentPage)
+            }
+
+            onSourceChanged: {
+                console.log("Loading page:", source)
+                opacity = 0
+                opacity = 1
             }
         }
 
-        // 导航栏内容
-        Rectangle {
-            id: navigationBar
+        // 2024现代化悬浮导航栏
+        Item {
+            id: navigationContainer
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            height: navigationBarHeight
-            color: "transparent"
+            height: navigationBarHeight + margins * 2
+            z: 100
 
-            // Apple风格顶部分割线
-            Rectangle {
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: 0.5
-                color: separatorColor
-                opacity: 0.8
-            }
+            // 透明导航容器
+            Item {
+                id: navigationCard
+                anchors.centerIn: parent
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: margins * 2
+                width: availableNavWidth
+                height: navigationBarHeight
 
-            // 导航按钮布局
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: margins
-                anchors.topMargin: margins * 0.5
-                anchors.bottomMargin: margins * 1.5
-                spacing: 0
+                // 固定单排导航按钮布局
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: margins
+                    spacing: margins
 
-                // 主页按钮 - Apple风格
-                Rectangle {
-                    id: homeButton
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    color: "transparent"
-                    radius: cornerRadius
-
-                    property bool isActive: true
-
-                    MouseArea {
-                        anchors.fill: parent
+                    // 主页按钮
+                    NavigationButton {
+                        id: homeButton
+                        text: "主页"
+                        iconSource: "qrc:/icons/home.svg"
+                        isActive: true
                         onClicked: {
                             console.log("Home clicked")
                             setActiveTab(homeButton)
                         }
-                        onPressed: homeButton.scale = 0.95
-                        onReleased: homeButton.scale = 1.0
                     }
 
-                    Behavior on scale {
-                        PropertyAnimation {
-                            duration: 150
-                            easing.type: Easing.OutQuart
-                        }
-                    }
-
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: spacing * 0.5
-
-                        Rectangle {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: iconSize * 1.4
-                            height: iconSize * 1.4
-                            radius: cornerRadius
-                            color: homeButton.isActive ? accentColor : "transparent"
-                            opacity: homeButton.isActive ? 0.2 : 0
-
-                            Behavior on opacity {
-                                PropertyAnimation { duration: 200 }
-                            }
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "🏠"
-                                color: homeButton.isActive ? accentColor : textTertiary
-                                font.pixelSize: iconSize * 0.9
-                            }
-                        }
-
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "主页"
-                            color: homeButton.isActive ? accentColor : textTertiary
-                            font.pixelSize: fontSize * 0.8
-                            font.weight: homeButton.isActive ? Font.Medium : Font.Normal
-                            font.family: "-apple-system, SF Pro Text"
-                        }
-                    }
-                }
-
-                // 检测按钮
-                Rectangle {
-                    id: detectionButton
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    color: "transparent"
-                    radius: cornerRadius
-
-                    property bool isActive: false
-
-                    MouseArea {
-                        anchors.fill: parent
+                    // 预览按钮
+                    NavigationButton {
+                        id: detectionButton
+                        text: "预览"
+                        iconSource: "qrc:/icons/preview.svg"
+                        activeColor: "#38BDF8"
                         onClicked: {
                             console.log("Detection clicked")
                             setActiveTab(detectionButton)
                         }
-                        onPressed: detectionButton.scale = 0.95
-                        onReleased: detectionButton.scale = 1.0
                     }
 
-                    Behavior on scale {
-                        PropertyAnimation {
-                            duration: 150
-                            easing.type: Easing.OutQuart
+
+                    // 报告按钮
+                    Rectangle {
+                        id: reportButton
+                        Layout.preferredWidth: dynamicButtonWidth
+                        Layout.fillHeight: true
+                        color: reportButton.isActive ?
+                            Qt.rgba(0.2, 0.2, 0.2, 0.8) : Qt.rgba(0.12, 0.12, 0.12, 0.6)
+                        radius: cornerRadius
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.1)
+
+                        property bool isActive: false
+                        property bool hovered: false
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                console.log("Report clicked")
+                                setActiveTab(reportButton)
+                            }
+                            onPressed: reportButton.scale = 0.92
+                            onReleased: reportButton.scale = 1.0
+                            onEntered: reportButton.hovered = true
+                            onExited: reportButton.hovered = false
                         }
-                    }
 
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: spacing * 0.5
+                        Behavior on scale { SpringAnimation { spring: 4; damping: 0.6 } }
+                        Behavior on color { ColorAnimation { duration: 300 } }
 
                         Rectangle {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: iconSize * 1.4
-                            height: iconSize * 1.4
-                            radius: cornerRadius
-                            color: detectionButton.isActive ? accentColor : "transparent"
-                            opacity: detectionButton.isActive ? 0.2 : 0
+                            anchors.fill: parent
+                            color: Qt.rgba(0.31, 0.31, 0.31, 0.7)
+                            radius: parent.radius
+                            opacity: reportButton.hovered ? 1 : 0
+                            Behavior on opacity { PropertyAnimation { duration: 200 } }
+                        }
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: spacing * 0.6
+
+                            Item {
+                                width: iconSize
+                                height: iconSize
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: reportButton.isActive ? accentPrimary : "transparent"
+                                    radius: width / 2
+                                    opacity: reportButton.isActive ? 0.15 : 0
+                                    Behavior on opacity {
+                                        PropertyAnimation { duration: 300 }
+                                    }
+                                }
+
+                                Image {
+                                    id: reportIcon
+                                    source: "qrc:/icons/report.svg"
+                                    anchors.fill: parent
+                                    anchors.margins: parent.width * 0.15
+                                    fillMode: Image.PreserveAspectFit
+                                    visible: false
+                                }
+
+                                ColorOverlay {
+                                    anchors.fill: reportIcon
+                                    source: reportIcon
+                                    color: "#FFFFFF"
+                                    Behavior on color { ColorAnimation { duration: 300 } }
+                                }
+                            }
 
                             Text {
-                                anchors.centerIn: parent
-                                text: "🔍"
-                                color: detectionButton.isActive ? accentColor : textTertiary
-                                font.pixelSize: iconSize * 0.9
+                                text: "报告"
+                                color: "#FFFFFF"
+                                font.pixelSize: 24
+                                font.weight: Font.Medium
+                                font.family: mixedFontRegular
+                                anchors.verticalCenter: parent.verticalCenter
+                                Behavior on color { ColorAnimation { duration: 300 } }
                             }
                         }
-
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "检测"
-                            color: detectionButton.isActive ? accentColor : textTertiary
-                            font.pixelSize: fontSize * 0.8
-                            font.weight: detectionButton.isActive ? Font.Medium : Font.Normal
-                            font.family: "-apple-system, SF Pro Text"
-                        }
-                    }
-                }
-
-                // 测量按钮
-                Rectangle {
-                    id: measurementButton
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    color: "transparent"
-                    radius: cornerRadius
-
-                    property bool isActive: false
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            console.log("Measurement clicked")
-                            setActiveTab(measurementButton)
-                        }
-                        onPressed: measurementButton.scale = 0.95
-                        onReleased: measurementButton.scale = 1.0
                     }
 
-                    Behavior on scale {
-                        PropertyAnimation {
-                            duration: 150
-                            easing.type: Easing.OutQuart
-                        }
-                    }
+                    // 设置按钮
+                    Rectangle {
+                        id: settingsButton
+                        Layout.preferredWidth: dynamicButtonWidth
+                        Layout.fillHeight: true
+                        color: settingsButton.isActive ?
+                            Qt.rgba(0.2, 0.2, 0.2, 0.8) : Qt.rgba(0.12, 0.12, 0.12, 0.6)
+                        radius: cornerRadius
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.1)
 
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: spacing * 0.5
+                        property bool isActive: false
+                        property bool hovered: false
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                console.log("Settings clicked")
+                                setActiveTab(settingsButton)
+                            }
+                            onPressed: settingsButton.scale = 0.92
+                            onReleased: settingsButton.scale = 1.0
+                            onEntered: settingsButton.hovered = true
+                            onExited: settingsButton.hovered = false
+                        }
+
+                        Behavior on scale { SpringAnimation { spring: 4; damping: 0.6 } }
+                        Behavior on color { ColorAnimation { duration: 300 } }
 
                         Rectangle {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: iconSize * 1.4
-                            height: iconSize * 1.4
-                            radius: cornerRadius
-                            color: measurementButton.isActive ? accentColor : "transparent"
-                            opacity: measurementButton.isActive ? 0.2 : 0
+                            anchors.fill: parent
+                            color: Qt.rgba(0.31, 0.31, 0.31, 0.7)
+                            radius: parent.radius
+                            opacity: settingsButton.hovered ? 1 : 0
+                            Behavior on opacity { PropertyAnimation { duration: 200 } }
+                        }
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: spacing * 0.6
+
+                            Item {
+                                width: iconSize
+                                height: iconSize
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: settingsButton.isActive ? accentPrimary : "transparent"
+                                    radius: width / 2
+                                    opacity: settingsButton.isActive ? 0.15 : 0
+                                    Behavior on opacity {
+                                        PropertyAnimation { duration: 300 }
+                                    }
+                                }
+
+                                Image {
+                                    id: settingIcon
+                                    source: "qrc:/icons/setting.svg"
+                                    anchors.fill: parent
+                                    anchors.margins: parent.width * 0.15
+                                    fillMode: Image.PreserveAspectFit
+                                    visible: false
+                                }
+
+                                ColorOverlay {
+                                    anchors.fill: settingIcon
+                                    source: settingIcon
+                                    color: "#FFFFFF"
+                                    Behavior on color { ColorAnimation { duration: 300 } }
+                                }
+                            }
 
                             Text {
-                                anchors.centerIn: parent
-                                text: "📏"
-                                color: measurementButton.isActive ? accentColor : textTertiary
-                                font.pixelSize: iconSize * 0.9
+                                text: "设置"
+                                color: "#FFFFFF"
+                                font.pixelSize: 24
+                                font.weight: Font.Medium
+                                font.family: mixedFontRegular
+                                anchors.verticalCenter: parent.verticalCenter
+                                Behavior on color { ColorAnimation { duration: 300 } }
                             }
                         }
-
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "测量"
-                            color: measurementButton.isActive ? accentColor : textTertiary
-                            font.pixelSize: fontSize * 0.8
-                            font.weight: measurementButton.isActive ? Font.Medium : Font.Normal
-                            font.family: "-apple-system, SF Pro Text"
-                        }
-                    }
-                }
-
-                // 设置按钮
-                Rectangle {
-                    id: settingsButton
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    color: "transparent"
-                    radius: cornerRadius
-
-                    property bool isActive: false
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            console.log("Settings clicked")
-                            setActiveTab(settingsButton)
-                        }
-                        onPressed: settingsButton.scale = 0.95
-                        onReleased: settingsButton.scale = 1.0
                     }
 
-                    Behavior on scale {
-                        PropertyAnimation {
-                            duration: 150
-                            easing.type: Easing.OutQuart
-                        }
-                    }
+                    // 3D测量按钮
+                    Rectangle {
+                        id: measurementButton
+                        Layout.preferredWidth: dynamicButtonWidth
+                        Layout.fillHeight: true
+                        color: measurementButton.isActive ?
+                            Qt.rgba(0.2, 0.2, 0.2, 0.8) : Qt.rgba(0.12, 0.12, 0.12, 0.6)
+                        radius: cornerRadius
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.1)
 
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: spacing * 0.5
+                        property bool isActive: false
+                        property bool hovered: false
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                console.log("Measurement clicked")
+                                setActiveTab(measurementButton)
+                            }
+                            onPressed: measurementButton.scale = 0.92
+                            onReleased: measurementButton.scale = 1.0
+                            onEntered: measurementButton.hovered = true
+                            onExited: measurementButton.hovered = false
+                        }
+
+                        Behavior on scale { SpringAnimation { spring: 4; damping: 0.6 } }
+                        Behavior on color { ColorAnimation { duration: 300 } }
 
                         Rectangle {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: iconSize * 1.4
-                            height: iconSize * 1.4
-                            radius: cornerRadius
-                            color: settingsButton.isActive ? accentColor : "transparent"
-                            opacity: settingsButton.isActive ? 0.2 : 0
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "⚙️"
-                                color: settingsButton.isActive ? accentColor : textTertiary
-                                font.pixelSize: iconSize * 0.9
-                            }
+                            anchors.fill: parent
+                            color: Qt.rgba(0.31, 0.31, 0.31, 0.7)
+                            radius: parent.radius
+                            opacity: measurementButton.hovered ? 1 : 0
+                            Behavior on opacity { PropertyAnimation { duration: 200 } }
                         }
 
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "设置"
-                            color: settingsButton.isActive ? accentColor : textTertiary
-                            font.pixelSize: fontSize * 0.8
-                            font.weight: settingsButton.isActive ? Font.Medium : Font.Normal
-                            font.family: "-apple-system, SF Pro Text"
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: spacing * 0.6
+
+                            Item {
+                                width: iconSize
+                                height: iconSize
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: measurementButton.isActive ? accentPrimary : "transparent"
+                                    radius: width / 2
+                                    opacity: measurementButton.isActive ? 0.15 : 0
+                                    Behavior on opacity {
+                                        PropertyAnimation { duration: 300 }
+                                    }
+                                }
+
+                                Image {
+                                    id: measurementIcon
+                                    source: "qrc:/icons/3D.svg"
+                                    anchors.fill: parent
+                                    anchors.margins: parent.width * 0.15
+                                    fillMode: Image.PreserveAspectFit
+                                    visible: false
+                                }
+
+                                ColorOverlay {
+                                    anchors.fill: measurementIcon
+                                    source: measurementIcon
+                                    color: "#FFFFFF"
+                                    Behavior on color { ColorAnimation { duration: 300 } }
+                                }
+                            }
+
+                            Text {
+                                text: "3D测量"
+                                color: "#FFFFFF"
+                                font.pixelSize: 24
+                                font.weight: Font.Medium
+                                font.family: mixedFontRegular
+                                anchors.verticalCenter: parent.verticalCenter
+                                Behavior on color { ColorAnimation { duration: 300 } }
+                            }
+                        }
+                    }
+
+                    // 退出按钮
+                    Rectangle {
+                        id: exitButton
+                        Layout.preferredWidth: dynamicButtonWidth
+                        Layout.fillHeight: true
+                        color: exitButton.hovered ?
+                            Qt.rgba(0.8, 0.2, 0.2, 0.8) : Qt.rgba(0.6, 0.15, 0.15, 0.6)
+                        radius: cornerRadius
+                        border.width: 1
+                        border.color: Qt.rgba(1, 0.4, 0.4, 0.3)
+
+                        property bool hovered: false
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                console.log("Exit clicked")
+                                exitDialog.visible = true
+                            }
+                            onPressed: exitButton.scale = 0.92
+                            onReleased: exitButton.scale = 1.0
+                            onEntered: exitButton.hovered = true
+                            onExited: exitButton.hovered = false
+                        }
+
+                        Behavior on scale { SpringAnimation { spring: 4; damping: 0.6 } }
+                        Behavior on color { ColorAnimation { duration: 300 } }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            color: Qt.rgba(0.8, 0.3, 0.3, 0.7)
+                            radius: parent.radius
+                            opacity: exitButton.hovered ? 1 : 0
+                            Behavior on opacity { PropertyAnimation { duration: 200 } }
+                        }
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: spacing * 0.6
+
+                            Item {
+                                width: iconSize
+                                height: iconSize
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Text {
+                                    text: "✕"
+                                    color: "#FFFFFF"
+                                    font.pixelSize: iconSize * 0.8
+                                    font.weight: Font.Bold
+                                    anchors.centerIn: parent
+                                }
+                            }
+
+                            Text {
+                                text: "退出"
+                                color: "#FFFFFF"
+                                font.pixelSize: 24
+                                font.weight: Font.Medium
+                                font.family: mixedFontRegular
+                                anchors.verticalCenter: parent.verticalCenter
+                                Behavior on color { ColorAnimation { duration: 300 } }
+                            }
                         }
                     }
                 }
@@ -699,12 +807,132 @@ ApplicationWindow {
         }
     }
 
+    // 退出确认对话框
+    Rectangle {
+        id: exitDialog
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0.7)
+        visible: false
+        z: 200
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: exitDialog.visible = false
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: Math.min(parent.width * 0.8, 600)
+            height: 320
+            radius: cornerRadius * 2
+            color: surfaceElevated
+            border.width: 1
+            border.color: borderPrimary
+
+            Column {
+                anchors.centerIn: parent
+                spacing: spacing * 2
+
+                Text {
+                    text: "确认退出"
+                    color: textPrimary
+                    font.pixelSize: fontSize * 2.2
+                    font.weight: Font.Medium
+                    font.family: mixedFontMedium
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                Text {
+                    text: "确定要退出SmartScope应用吗？"
+                    color: textSecondary
+                    font.pixelSize: fontSize * 1.6
+                    font.family: mixedFontRegular
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: spacing * 2
+
+                    Rectangle {
+                        width: 140
+                        height: buttonHeight * 0.8
+                        radius: cornerRadius
+                        color: accentError
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.2)
+
+                        Text {
+                            text: "退出"
+                            color: "#FFFFFF"
+                            font.pixelSize: fontSize * 1.6
+                            font.weight: Font.Medium
+                            font.family: mixedFontMedium
+                            anchors.centerIn: parent
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                console.log("Application exit confirmed")
+                                Qt.quit()
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: 140
+                        height: buttonHeight * 0.8
+                        radius: cornerRadius
+                        color: "transparent"
+                        border.width: 2
+                        border.color: borderPrimary
+
+                        Text {
+                            text: "取消"
+                            color: textPrimary
+                            font.pixelSize: fontSize * 1.6
+                            font.weight: Font.Medium
+                            font.family: mixedFontMedium
+                            anchors.centerIn: parent
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: exitDialog.visible = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 当前页面状态
+    property string currentPage: "home"
+
+    // 页面路由函数
+    function navigateTo(pageName) {
+        console.log("Navigating to:", pageName)
+        currentPage = pageName
+
+        // 更新按钮状态
+        homeButton.isActive = (pageName === "home")
+        detectionButton.isActive = (pageName === "preview")
+        measurementButton.isActive = (pageName === "measurement")
+        reportButton.isActive = (pageName === "report")
+        settingsButton.isActive = (pageName === "settings")
+
+        // 切换页面内容（稍后实现）
+        // TODO: 实现实际的页面切换逻辑
+    }
+
     // 标签页切换函数
     function setActiveTab(activeButton) {
-        homeButton.isActive = (activeButton === homeButton)
-        detectionButton.isActive = (activeButton === detectionButton)
-        measurementButton.isActive = (activeButton === measurementButton)
-        settingsButton.isActive = (activeButton === settingsButton)
+        if (activeButton === homeButton) navigateTo("home")
+        else if (activeButton === detectionButton) navigateTo("preview")
+        else if (activeButton === measurementButton) navigateTo("measurement")
+        else if (activeButton === reportButton) navigateTo("report")
+        else if (activeButton === settingsButton) navigateTo("settings")
     }
     Component.onCompleted: {
         console.log("=== SmartScope Industrial UI initialized ===")
@@ -725,6 +953,12 @@ ApplicationWindow {
         console.log("Navigation bar height: " + navigationBarHeight + "px")
         console.log("Font size: " + fontSize + "px")
         console.log("Icon size: " + iconSize + "px")
-        console.log("Content area: " + contentArea.width + "x" + contentArea.height)
+        console.log("Page loader area: " + pageLoader.width + "x" + pageLoader.height)
+        console.log("---")
+        console.log("Navigation Layout:")
+        console.log("Available nav width: " + availableNavWidth + "px")
+        console.log("Button max width: " + buttonMaxWidth + "px")
+        console.log("Button min width: " + buttonMinWidth + "px")
+        console.log("Dynamic button width: " + dynamicButtonWidth + "px")
     }
 }
