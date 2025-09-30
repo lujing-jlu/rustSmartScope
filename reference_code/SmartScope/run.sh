@@ -1,0 +1,1 @@
+scripts/root_scripts/run_smartscope.sh

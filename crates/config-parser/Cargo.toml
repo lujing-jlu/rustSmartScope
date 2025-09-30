@@ -1,0 +1,15 @@
+[package]
+name = "config-parser"
+version = "0.1.0"
+edition = "2021"
+description = "Configuration parser module for smart-scope"
+authors = ["eddysun"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+toml = "0.9.4"
+
+[dev-dependencies]
+tempfile = "3.0"

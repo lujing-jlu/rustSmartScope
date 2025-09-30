@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .point { fill: #ffffff; stroke: #5d9cec; stroke-width: 2; }
+    .line { stroke: #5d9cec; stroke-width: 3; stroke-linecap: round; }
+  </style>
+  
+  <!-- 背景 - 保持透明 -->
+  
+  <!-- 连接线 -->
+  <line x1="32" y1="64" x2="96" y2="64" class="line" />
+  
+  <!-- 点 -->
+  <circle cx="32" cy="64" r="6" class="point" />
+  <circle cx="96" cy="64" r="6" class="point" />
+</svg> 

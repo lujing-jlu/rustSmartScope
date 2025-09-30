@@ -1,0 +1,24 @@
+[package]
+name = "rockchip-rga"
+version = "0.1.0"
+edition = "2021"
+description = "Rust bindings for Rockchip RGA 2D accelerator"
+license = "Apache-2.0"
+repository = "https://github.com/rockchip-linux/librga"
+
+[lib]
+name = "rockchip_rga"
+crate-type = ["lib", "staticlib"]
+
+[dependencies]
+libc = "0.2"
+thiserror = "1.0"
+image = "0.24"
+log = "0.4"
+
+[build-dependencies]
+pkg-config = "0.3"
+bindgen = "0.69"
+
+[features]
+default = []

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .point { fill: #5d9cec; stroke: #ffffff; stroke-width: 2; }
+    .line { stroke: #5d9cec; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .center-line { stroke: #ffffff; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .profile-line { stroke: #5d9cec; stroke-width: 1.5; stroke-opacity: 0.8; }
+  </style>
+  
+  <!-- 背景矩形，确保图标有足够大小 -->
+  <rect x="24" y="24" width="80" height="80" rx="16" ry="16" fill="none" />
+  
+  <!-- 左侧垂直线 -->
+  <line x1="33" y1="50" x2="53" y2="90" class="line" />
+  
+  <!-- 右侧垂直线 -->
+  <line x1="78" y1="37" x2="99" y2="77" class="line" />
+  
+  <!-- 中点连线 (剖面线) - 两端直线，中间下凹 -->
+  <path d="M41,67 L55,63 C60,80 70,80 74,58 L87,54" class="center-line" />
+  
+  <!-- 端点 -->
+  <circle cx="33" cy="50" r="4" class="point" />
+  <circle cx="53" cy="90" r="4" class="point" />
+  <circle cx="99" cy="77" r="4" class="point" />
+</svg> 

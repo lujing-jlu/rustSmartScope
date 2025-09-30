@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .point { fill: #ffffff; stroke: #5d9cec; stroke-width: 2; }
+    .line { stroke: #5d9cec; stroke-width: 3; stroke-linecap: round; }
+    .vertical-line { stroke: #5d9cec; stroke-width: 3; }
+  </style>
+  
+  <!-- 主线 -->
+  <line x1="32" y1="80" x2="96" y2="80" class="line" />
+  
+  <!-- 垂直线 -->
+  <line x1="64" y1="48" x2="64" y2="80" class="vertical-line" />
+  
+  <!-- 点 -->
+  <circle cx="32" cy="80" r="5" class="point" />
+  <circle cx="96" cy="80" r="5" class="point" />
+  <circle cx="64" cy="48" r="5" class="point" />
+</svg> 

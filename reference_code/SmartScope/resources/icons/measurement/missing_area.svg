@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .point { fill: #ffffff; stroke: #5d9cec; stroke-width: 2; }
+    .line { stroke: #5d9cec; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .dashed { stroke: #5d9cec; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 4,3; }
+    .intersection { fill: #ff5252; stroke: #ffffff; stroke-width: 2; }
+  </style>
+  
+  <!-- 多边形实线轮廓（缺角部分） -->
+  <line x1="36" y1="96" x2="95" y2="96" class="line" />
+  <line x1="36" y1="40" x2="36" y2="96" class="line" />
+  <line x1="36" y1="40" x2="65" y2="40" class="line" />
+  <line x1="65" y1="40" x2="95" y2="70" class="line" />
+  <line x1="95" y1="70" x2="95" y2="96" class="line" />
+  
+  <!-- 缺角处的虚线补全 -->
+  <line x1="65" y1="40" x2="95" y2="40" class="dashed" />
+  <line x1="95" y1="40" x2="95" y2="70" class="dashed" />
+  
+  <!-- 实体点 -->
+  <circle cx="36" cy="40" r="5" class="point" />
+  <circle cx="36" cy="96" r="5" class="point" />
+  <circle cx="95" cy="96" r="5" class="point" />
+  <circle cx="95" cy="70" r="5" class="point" />
+  <circle cx="65" cy="40" r="5" class="point" />
+  
+  <!-- 补全点（虚拟点） -->
+  <circle cx="95" cy="40" r="5" class="intersection" />
+</svg> 

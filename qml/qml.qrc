@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/">
+        <!-- 主QML文件 -->
+        <file>main.qml</file>
+        <file>main_simple.qml</file>
+
+        <!-- 组件 -->
+        <file>components/StatusBarComponent.qml</file>
+        <file>components/NavigationBarComponent.qml</file>
+        <file>components/ToolBarComponent.qml</file>
+        <file>components/NavigationButton.qml</file>
+        <file>components/ToolButton.qml</file>
+        <file>components/StatusIndicator.qml</file>
+        <file>components/CameraPreview.qml</file>
+
+        <!-- 页面 -->
+        <file>pages/HomePage.qml</file>
+        <file>pages/MeasurementPage.qml</file>
+        <file>pages/SettingsPage.qml</file>
+        <file>pages/PreviewPage.qml</file>
+        <file>pages/ReportPage.qml</file>
+        <file>pages/DebugPage.qml</file>
+    </qresource>
+</RCC>

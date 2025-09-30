@@ -1,0 +1,23 @@
+[package]
+name = "rockchip-mpp"
+version = "0.1.0"
+edition = "2021"
+description = "Rust bindings for Rockchip Media Process Platform (MPP)"
+license = "Apache-2.0"
+repository = "https://github.com/rockchip-linux/mpp"
+
+[lib]
+name = "rockchip_mpp"
+crate-type = ["lib", "staticlib"]
+
+[dependencies]
+libc = "0.2"
+thiserror = "1.0"
+log = "0.4"
+
+[build-dependencies]
+pkg-config = "0.3"
+bindgen = "0.69"
+
+[features]
+default = []

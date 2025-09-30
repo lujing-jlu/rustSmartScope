@@ -1,0 +1,101 @@
+set(UI_SOURCES
+    page_manager.cpp
+    base_page.cpp
+    home_page.cpp
+    measurement_page.cpp
+    debug_page.cpp
+    measurement_menu.cpp
+    clickable_image_label.cpp
+    toast_notification.cpp
+    measurement_type_selection_page.cpp
+    measurement_delete_dialog.cpp
+    utils/dialog_utils.cpp
+    navigation_bar.cpp
+    navigation_button.cpp
+    toolbar.cpp
+    preview_page.cpp
+    preview_selection_page.cpp
+    screenshot_preview_page.cpp
+    video_preview_page.cpp
+    report_page.cpp
+    annotation_page.cpp
+    settings_page.cpp
+    point_cloud_gl_widget.cpp
+    point_cloud_renderer.cpp
+    measurement_renderer.cpp
+    measurement_state_manager.cpp
+    measurement_object.cpp
+    magnifier_manager.cpp
+    magnifier_creator.cpp
+    magnifier_renderer.cpp
+    magnifier_controller.cpp
+    screen_recorder_overlay.cpp
+    profile_chart_dialog.cpp
+    profile_chart_manager.cpp
+    image_interaction_manager.cpp
+    temperature_icon.cpp
+    modern_icons.cpp
+    ../calibration/stereo_calibration_helper.cpp
+)
+
+set(UI_HEADERS
+    ${CMAKE_SOURCE_DIR}/include/app/ui/page_manager.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/base_page.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/home_page.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/measurement_page.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/debug_page.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/measurement_menu.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/clickable_image_label.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/toast_notification.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/measurement_type_selection_page.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/measurement_delete_dialog.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/navigation_bar.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/navigation_button.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/toolbar.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/preview_page.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/preview_selection_page.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/screenshot_preview_page.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/video_preview_page.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/report_page.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/annotation_page.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/settings_page.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/point_cloud_gl_widget.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/point_cloud_renderer.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/measurement_renderer.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/measurement_state_manager.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/measurement_object.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/magnifier_manager.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/magnifier_internal.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/screen_recorder_overlay.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/utils/dialog_utils.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/profile_chart_dialog.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/profile_chart_manager.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/image_interaction_manager.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/temperature_icon.h
+    ${CMAKE_SOURCE_DIR}/include/app/ui/modern_icons.h
+)
+
+add_library(ui STATIC ${UI_SOURCES} ${UI_HEADERS})
+
+target_link_libraries(ui
+    PUBLIC
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::OpenGL
+    infrastructure
+    inference
+    image
+    measurement
+    utils
+    ${PCL_LIBRARIES}
+    ${OpenCV_LIBS}
+)
+
+target_include_directories(ui
+    PUBLIC
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/third_party/qcustomplot
+    ${PCL_INCLUDE_DIRS}
+) 

@@ -1,0 +1,14 @@
+camera0: 1
+camera1: 3
+frame_width: 1280
+frame_height: 720
+mono_calibration_frames: 30
+stereo_calibration_frames: 30
+view_resize: 1
+checkerboard_box_size_scale : 3
+# 0.000746153846153846
+# 0.001292307692307692
+# 0.0034230769230769
+checkerboard_rows: 8
+checkerboard_columns: 11
+cooldown: 100

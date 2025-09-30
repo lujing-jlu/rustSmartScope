@@ -1,0 +1,35 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "crates/smartscope-core",
+    "crates/c-ffi"
+]
+
+exclude = [
+    "reference_code"
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["EDDYSUN <eddysun@example.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/eddysun/rustsmartscope"
+description = "Modular stereo camera 3D reconstruction system built with Rust and C/C++"
+
+[workspace.dependencies]
+# Core dependencies
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Error handling & Logging
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# C FFI support
+cbindgen = "0.26"
+libc = "0.2"

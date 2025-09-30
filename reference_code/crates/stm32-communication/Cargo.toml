@@ -1,0 +1,35 @@
+[package]
+name = "stm32-communication"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "STM32 HID communication library for SmartScope"
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+log.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+hidapi = "2.6.3"
+crossbeam-channel = "0.5.15"
+chrono = { version = "0.4.41", features = ["serde"] }
+
+[lib]
+name = "stm32_communication"
+
+[[example]]
+name = "servo_control"
+required-features = []
+
+[[example]]
+name = "advanced_control"
+required-features = []
+
+[[example]]
+name = "performance_test"
+required-features = []
+
+[dev-dependencies]
+env_logger = "0.11.6"

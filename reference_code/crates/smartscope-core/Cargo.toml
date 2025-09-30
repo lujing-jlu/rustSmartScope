@@ -1,0 +1,28 @@
+[package]
+name = "smartscope-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description.workspace = true
+license.workspace = true
+
+[lib]
+name = "smartscope_core"
+crate-type = ["rlib"]
+
+[dependencies]
+usb-camera = { path = "../usb-camera" }
+camera-correction = { path = "../camera-correction" }
+stereo-rectifier = { path = "../stereo-rectifier" }
+config-parser = { path = "../config-parser" }
+rockchip-rga = { path = "../rockchip-rga" }
+log.workspace = true
+env_logger.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+opencv.workspace = true
+
+

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="100" height="100" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Home</title>
+    <g id="Home" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <path d="M12.5,37.5 L50,8.33 L87.5,37.5 L87.5,91.67 C87.5,95.02 84.85,97.67 81.5,97.67 L18.5,97.67 C15.15,97.67 12.5,95.02 12.5,91.67 L12.5,37.5 Z" stroke="#CCCCCC" stroke-width="8.33" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M37.5,91.67 L37.5,50 L62.5,50 L62.5,91.67" stroke="#CCCCCC" stroke-width="8.33" stroke-linecap="round" stroke-linejoin="round"></path>
+    </g>
+</svg> 

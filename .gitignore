@@ -1,0 +1,51 @@
+# Rust编译结果
+target/
+Cargo.lock
+
+# C++构建结果
+build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# 可执行文件
+rustsmartscope
+*.exe
+*.app
+*.dSYM/
+
+# 日志文件
+logs/
+*.log
+
+# 配置文件（如果包含敏感信息）
+config.toml
+!simple_config.toml
+
+# IDE和编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Qt生成文件
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*.moc
+*_autogen/
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
+
+# 系统文件
+.env
+.env.local

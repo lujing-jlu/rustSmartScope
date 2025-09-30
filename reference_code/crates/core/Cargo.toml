@@ -1,0 +1,15 @@
+[package]
+name = "cxxqt-smartscope-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core 3D mathematics and point cloud algorithms"
+keywords = ["3d", "math", "point-cloud", "graphics"]
+
+[dependencies]
+glam.workspace = true
+rand.workspace = true
+log.workspace = true
+chrono.workspace = true

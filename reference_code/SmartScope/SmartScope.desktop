@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=SmartScope
+Comment=智能内窥镜
+Icon=/home/eddysun/App/Qt/SmartScope/resources/icons/EDDYSUN-logo.png
+Exec=/home/eddysun/projects/SmartScope/scripts/root_scripts/run_smartscope.sh
+Path=/home/eddysun/App/Qt/SmartScope
+Terminal=false
+Categories=Science;Engineering;
+StartupNotify=true 

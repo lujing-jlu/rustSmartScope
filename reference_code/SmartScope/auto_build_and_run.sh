@@ -1,0 +1,1 @@
+scripts/root_scripts/auto_build_run.sh

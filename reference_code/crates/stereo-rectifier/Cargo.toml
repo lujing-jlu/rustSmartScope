@@ -1,0 +1,12 @@
+[package]
+name = "stereo-rectifier"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thiserror = { workspace = true }
+opencv = { workspace = true }
+stereo-calibration-reader = { path = "../stereo-calibration-reader" }
+
+[lib]
+crate-type = ["rlib"]

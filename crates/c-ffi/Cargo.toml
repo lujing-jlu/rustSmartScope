@@ -1,0 +1,20 @@
+[package]
+name = "smartscope-c-ffi"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Minimal C FFI interface for RustSmartScope core"
+
+[lib]
+name = "smartscope"
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+smartscope-core = { path = "../smartscope-core" }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+libc.workspace = true
+
+[build-dependencies]
+cbindgen.workspace = true

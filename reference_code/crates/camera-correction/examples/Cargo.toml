@@ -1,0 +1,14 @@
+[package]
+name = "camera-correction-examples"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "parameter_loader"
+path = "parameter_loader.rs"
+
+[dependencies]
+camera-correction = { path = ".." }
+clap = { version = "4.0", features = ["derive"] }
+log = "0.4"
+env_logger = "0.10"

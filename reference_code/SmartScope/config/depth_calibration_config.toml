@@ -1,0 +1,53 @@
+# 深度校准配置文件
+# 用于调整深度校准参数以改善校准精度
+
+[calibration]
+# 启用改进的深度校准
+enable_improved_calibration = true
+
+# RANSAC参数
+ransac_threshold = 5.0          # 5毫米误差阈值（更严格）
+min_samples = 500               # 最小样本数
+min_inliers_ratio = 30          # 最小内点比例（百分比）
+max_iterations = 100            # 最大迭代次数
+
+# 异常值检测
+enable_outlier_detection = true
+outlier_threshold = 2.0         # 2倍标准差阈值
+
+# 深度范围过滤
+enable_depth_range_filtering = true
+min_depth_mm = 50.0             # 最小深度50mm
+max_depth_mm = 5000.0           # 最大深度5000mm
+
+# 分层校准
+enable_layered_calibration = true
+num_depth_layers = 5            # 深度层数
+
+# 置信度权重参数
+disparity_weight_scale = 50.0   # 视差权重缩放
+depth_weight_scale = 1000.0     # 深度权重缩放
+gradient_weight_scale = 10.0    # 梯度权重缩放
+
+# 测量验证
+enable_measurement_validation = true
+max_reasonable_depth_mm = 10000.0    # 最大合理深度10米
+max_reasonable_length_mm = 10000.0   # 最大合理长度10米
+max_reasonable_area_mm2 = 1000000.0  # 最大合理面积1平方米
+
+# 坐标转换
+enable_improved_coordinate_conversion = true
+depth_scale_correction = false  # 禁用深度缩放修正（之前有bug）
+
+# 相机内参修正
+enable_camera_matrix_correction = true
+roi_offset_correction = true    # 启用ROI偏移修正
+crop_offset_correction = true   # 启用裁剪偏移修正
+
+# 日志级别
+log_level = "info"              # debug, info, warning, error
+enable_detailed_logging = true  # 启用详细日志
+
+# 性能优化
+enable_parallel_processing = true
+max_threads = 4                 # 最大线程数
