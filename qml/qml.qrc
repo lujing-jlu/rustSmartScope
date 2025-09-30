@@ -2,7 +2,6 @@
     <qresource prefix="/">
         <!-- 主QML文件 -->
         <file>main.qml</file>
-        <file>main_simple.qml</file>
 
         <!-- 组件 -->
         <file>components/StatusIndicator.qml</file>
@@ -41,6 +40,7 @@
         <file alias="icons/zoom_out.svg">../resources/icons/zoom_out.svg</file>
         <file alias="icons/brightness.svg">../resources/icons/brightness.svg</file>
         <file alias="icons/back.svg">../resources/icons/back.svg</file>
+        <file alias="icons/close.svg">../resources/icons/close.svg</file>
 
         <!-- 字体文件已移动到fonts.qrc -->
     </qresource>

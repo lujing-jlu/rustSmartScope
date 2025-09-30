@@ -11,6 +11,7 @@ Rectangle {
     property string iconSource: ""
     property bool isActive: false
     property bool isExitButton: false
+    property bool iconOnly: false  // 只显示图标模式
     property color activeColor: "#0EA5E9"
     property color hoverColor: Qt.rgba(0.31, 0.31, 0.31, 0.7)
     property color backgroundColor: isActive ?
@@ -25,11 +26,11 @@ Rectangle {
     property bool hovered: false
 
     // 样式设置
-    Layout.preferredWidth: dynamicButtonWidth
+    Layout.preferredWidth: iconOnly ? height : dynamicButtonWidth
     Layout.fillHeight: true
     color: isExitButton ? exitBackgroundColor : backgroundColor
     radius: cornerRadius
-    border.width: 1
+    border.width: 3
     border.color: isExitButton ?
         Qt.rgba(1, 0.4, 0.4, 0.3) : Qt.rgba(1, 1, 1, 0.1)
 
@@ -68,12 +69,12 @@ Rectangle {
     // 按钮内容
     Row {
         anchors.centerIn: parent
-        spacing: spacing * 0.6
+        spacing: iconOnly ? 0 : spacing * 0.6
 
         // 图标容器
         Item {
-            width: iconSize * 1.4
-            height: iconSize * 1.4
+            width: iconSize
+            height: iconSize
             anchors.verticalCenter: parent.verticalCenter
 
             // 活跃状态背景
@@ -138,14 +139,15 @@ Rectangle {
             }
         }
 
-        // 按钮文字
+        // 按钮文字 (只在非图标模式显示)
         Text {
             text: navButton.text
             color: "#FFFFFF"
-            font.pixelSize: 24
+            font.pixelSize: 38
             font.weight: Font.Medium
             font.family: mixedFontRegular
             anchors.verticalCenter: parent.verticalCenter
+            visible: !iconOnly
             Behavior on color { ColorAnimation { duration: 300 } }
         }
     }
@@ -162,7 +164,7 @@ Rectangle {
         PropertyAnimation {
             target: navButton
             property: "border.width"
-            to: navButton.isActive ? 2 : 1
+            to: navButton.isActive ? 4 : 3
             duration: 200
         }
     }

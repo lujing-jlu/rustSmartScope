@@ -94,20 +94,20 @@ ApplicationWindow {
 
     // HiDPI自适应百分比布局
     property real baseStatusBarRatio: 0.05          // 减小状态栏比例
-    property real baseNavigationBarRatio: 0.10      // 基础导航栏比例
+    property real baseNavigationBarRatio: 0.16      // 基础导航栏比例 (增加1.6倍)
     property real baseButtonRatio: 0.04             // 基础按钮比例
     property real baseIconRatio: 0.025              // 基础图标比例
     property real baseFontRatio: 0.016              // 基础字体比例
     property real baseTitleRatio: 0.02              // 基础标题比例
-    property real baseSpacingRatio: 0.01            // 基础间距比例
+    property real baseSpacingRatio: 0.0052          // 基础间距比例 (10px间距)
     property real baseMarginsRatio: 0.015           // 基础边距比例
-    property real baseCornerRatio: 0.012            // 基础圆角比例
+    property real baseCornerRatio: 0.006            // 基础圆角比例 (减半)
 
     // 固定单排导航布局计算
     property int totalButtons: 6  // 主页、预览、报告、设置、3D测量、退出
     property real availableNavWidth: Math.min(width - margins * 4, 1400)
-    property real buttonMaxWidth: 180  // 限制按钮最大宽度
-    property real buttonMinWidth: 120  // 确保文字显示完整的最小宽度
+    property real buttonMaxWidth: 234  // 限制按钮最大宽度 (1.3倍)
+    property real buttonMinWidth: 156  // 确保文字显示完整的最小宽度 (1.3倍)
 
     // 计算实际按钮宽度，优先保证文字完整显示
     property real dynamicButtonWidth: Math.max(
@@ -441,9 +441,9 @@ ApplicationWindow {
             // 透明导航容器
             Item {
                 id: navigationCard
-                anchors.centerIn: parent
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: margins * 2
+                anchors.bottomMargin: margins * 0.3
+                anchors.horizontalCenter: parent.horizontalCenter
                 width: availableNavWidth
                 height: navigationBarHeight
 
@@ -459,6 +459,7 @@ ApplicationWindow {
                         text: "主页"
                         iconSource: "qrc:/icons/home.svg"
                         isActive: true
+                        iconOnly: true
                         onClicked: {
                             console.log("Home clicked")
                             setActiveTab(homeButton)
@@ -555,7 +556,7 @@ ApplicationWindow {
                             Text {
                                 text: "报告"
                                 color: "#FFFFFF"
-                                font.pixelSize: 24
+                                font.pixelSize: 38
                                 font.weight: Font.Medium
                                 font.family: mixedFontRegular
                                 anchors.verticalCenter: parent.verticalCenter
@@ -641,7 +642,7 @@ ApplicationWindow {
                             Text {
                                 text: "设置"
                                 color: "#FFFFFF"
-                                font.pixelSize: 24
+                                font.pixelSize: 38
                                 font.weight: Font.Medium
                                 font.family: mixedFontRegular
                                 anchors.verticalCenter: parent.verticalCenter
@@ -727,7 +728,7 @@ ApplicationWindow {
                             Text {
                                 text: "3D测量"
                                 color: "#FFFFFF"
-                                font.pixelSize: 24
+                                font.pixelSize: 38
                                 font.weight: Font.Medium
                                 font.family: mixedFontRegular
                                 anchors.verticalCenter: parent.verticalCenter
@@ -737,69 +738,15 @@ ApplicationWindow {
                     }
 
                     // 退出按钮
-                    Rectangle {
+                    NavigationButton {
                         id: exitButton
-                        Layout.preferredWidth: dynamicButtonWidth
-                        Layout.fillHeight: true
-                        color: exitButton.hovered ?
-                            Qt.rgba(0.8, 0.2, 0.2, 0.8) : Qt.rgba(0.6, 0.15, 0.15, 0.6)
-                        radius: cornerRadius
-                        border.width: 1
-                        border.color: Qt.rgba(1, 0.4, 0.4, 0.3)
-
-                        property bool hovered: false
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: {
-                                console.log("Exit clicked")
-                                exitDialog.visible = true
-                            }
-                            onPressed: exitButton.scale = 0.92
-                            onReleased: exitButton.scale = 1.0
-                            onEntered: exitButton.hovered = true
-                            onExited: exitButton.hovered = false
-                        }
-
-                        Behavior on scale { SpringAnimation { spring: 4; damping: 0.6 } }
-                        Behavior on color { ColorAnimation { duration: 300 } }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            color: Qt.rgba(0.8, 0.3, 0.3, 0.7)
-                            radius: parent.radius
-                            opacity: exitButton.hovered ? 1 : 0
-                            Behavior on opacity { PropertyAnimation { duration: 200 } }
-                        }
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: spacing * 0.6
-
-                            Item {
-                                width: iconSize
-                                height: iconSize
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                Text {
-                                    text: "✕"
-                                    color: "#FFFFFF"
-                                    font.pixelSize: iconSize * 0.8
-                                    font.weight: Font.Bold
-                                    anchors.centerIn: parent
-                                }
-                            }
-
-                            Text {
-                                text: "退出"
-                                color: "#FFFFFF"
-                                font.pixelSize: 24
-                                font.weight: Font.Medium
-                                font.family: mixedFontRegular
-                                anchors.verticalCenter: parent.verticalCenter
-                                Behavior on color { ColorAnimation { duration: 300 } }
-                            }
+                        text: "退出"
+                        iconSource: "qrc:/icons/close.svg"
+                        isExitButton: true
+                        iconOnly: true
+                        onClicked: {
+                            console.log("Exit clicked")
+                            exitDialog.visible = true
                         }
                     }
                 }
