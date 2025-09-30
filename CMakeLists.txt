@@ -47,8 +47,13 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/qml/qml.qrc")
     qt5_add_resources(QML_SOURCES qml/qml.qrc)
 endif()
 
+# 图标资源文件
+if(EXISTS "${CMAKE_SOURCE_DIR}/resources/resources.qrc")
+    qt5_add_resources(ICON_SOURCES resources/resources.qrc)
+endif()
+
 # 创建可执行文件
-add_executable(rustsmartscope ${SOURCES} ${QML_SOURCES})
+add_executable(rustsmartscope ${SOURCES} ${QML_SOURCES} ${ICON_SOURCES})
 
 # 链接库
 target_link_libraries(rustsmartscope

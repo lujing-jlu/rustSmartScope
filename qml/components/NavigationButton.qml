@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtGraphicalEffects 1.15
 
 Item {
     id: navButton
@@ -11,7 +12,7 @@ Item {
 
     signal clicked()
 
-    width: 100
+    width: 120
     height: 60
 
     Rectangle {
@@ -32,33 +33,42 @@ Item {
         }
     }
 
-    Column {
+    Row {
         anchors.centerIn: parent
-        spacing: 2
+        spacing: 8
 
-        Text {
-            text: navButton.icon
-            font.pixelSize: 24
-            color: isActive ? "#ECEFF4" : "#D8DEE9"
-            horizontalAlignment: Text.AlignHCenter
-            anchors.horizontalCenter: parent.horizontalCenter
+        Image {
+            source: navButton.icon
+            width: 32
+            height: 32
+            fillMode: Image.PreserveAspectFit
+            anchors.verticalCenter: parent.verticalCenter
+
+            // SVG颜色处理 - 设置为白色
+            ColorOverlay {
+                anchors.fill: parent
+                source: parent
+                color: isActive ? "#FFFFFF" : "#E0E0E0"
+            }
         }
 
-        Text {
-            text: navButton.label
-            font.pixelSize: 10
-            color: isActive ? "#ECEFF4" : "#88C0D0"
-            horizontalAlignment: Text.AlignHCenter
-            anchors.horizontalCenter: parent.horizontalCenter
-        }
+        Column {
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 2
 
-        Text {
-            text: navButton.shortcut
-            font.pixelSize: 8
-            color: "#4C566A"
-            horizontalAlignment: Text.AlignHCenter
-            anchors.horizontalCenter: parent.horizontalCenter
-            visible: shortcut !== ""
+            Text {
+                text: navButton.label
+                font.pixelSize: 12
+                font.bold: true
+                color: isActive ? "#FFFFFF" : "#E0E0E0"
+            }
+
+            Text {
+                text: navButton.shortcut
+                font.pixelSize: 9
+                color: "#A0A0A0"
+                visible: shortcut !== ""
+            }
         }
     }
 

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="100" height="100" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Preview</title>
+    <g id="Preview" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <path d="M4.17,50 C4.17,50 20.83,16.67 50,16.67 C79.17,16.67 95.83,50 95.83,50 C95.83,50 79.17,83.33 50,83.33 C20.83,83.33 4.17,50 4.17,50 Z" stroke="#CCCCCC" stroke-width="8.33" stroke-linecap="round" stroke-linejoin="round"></path>
+        <circle id="Oval" stroke="#CCCCCC" stroke-width="8.33" cx="50" cy="50" r="12.5"></circle>
+    </g>
+</svg>

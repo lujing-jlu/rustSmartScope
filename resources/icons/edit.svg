@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24px" height="24px" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Edit</title>
+    <g id="Edit" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <path d="M11,4 L4,4 C2.89543,4 2,4.89543 2,6 L2,20 C2,21.1046 2.89543,22 4,22 L18,22 C19.1046,22 20,21.1046 20,20 L20,13" stroke="#CCCCCC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M18.5,2.5 C19.3284,1.67157 20.6716,1.67157 21.5,2.5 C22.3284,3.32843 22.3284,4.67157 21.5,5.5 L12,15 L8,16 L9,12 L18.5,2.5 Z" stroke="#CCCCCC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+    </g>
+</svg>

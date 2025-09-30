@@ -1,0 +1,66 @@
+<RCC>
+    <qresource prefix="/">
+        <!-- Main icons -->
+        <file>icons/home.svg</file>
+        <file>icons/setting.svg</file>
+        <file>icons/camera.svg</file>
+        <file>icons/camera_active.svg</file>
+        <file>icons/preview.svg</file>
+        <file>icons/report.svg</file>
+        <file>icons/AI.svg</file>
+        <file>icons/3D.svg</file>
+
+        <!-- Navigation icons -->
+        <file>icons/back.svg</file>
+        <file>icons/close.svg</file>
+        <file>icons/check.svg</file>
+
+        <!-- Tool icons -->
+        <file>icons/record_start.svg</file>
+        <file>icons/recording.svg</file>
+        <file>icons/screenshot.svg</file>
+        <file>icons/save.svg</file>
+        <file>icons/edit.svg</file>
+        <file>icons/delete.svg</file>
+        <file>icons/plus.svg</file>
+
+        <!-- Camera controls -->
+        <file>icons/brightness.svg</file>
+        <file>icons/exposure.svg</file>
+        <file>icons/auto_exposure.svg</file>
+        <file>icons/zoom.svg</file>
+        <file>icons/zoom_in.svg</file>
+        <file>icons/zoom_out.svg</file>
+        <file>icons/zoom_reset.svg</file>
+
+        <!-- Image operations -->
+        <file>icons/rotate.svg</file>
+        <file>icons/turn_left.svg</file>
+        <file>icons/turn_right.svg</file>
+        <file>icons/horizontal_filp.svg</file>
+        <file>icons/vertical_filp.svg</file>
+        <file>icons/invert_color.svg</file>
+        <file>icons/distortion.svg</file>
+
+        <!-- Measurement icons -->
+        <file>icons/measurement/length.svg</file>
+        <file>icons/measurement/area.svg</file>
+        <file>icons/measurement/depth.svg</file>
+        <file>icons/measurement/point_to_line.svg</file>
+        <file>icons/measurement/polyline.svg</file>
+        <file>icons/measurement/profile.svg</file>
+        <file>icons/measurement/region_profile.svg</file>
+        <file>icons/measurement/missing_area.svg</file>
+
+        <!-- UI controls -->
+        <file>icons/down_arrow.svg</file>
+        <file>icons/right_arrow.svg</file>
+        <file>icons/view.svg</file>
+        <file>icons/gallery.svg</file>
+        <file>icons/config.svg</file>
+        <file>icons/advanced_settings.svg</file>
+        <file>icons/temperature.svg</file>
+        <file>icons/undo.svg</file>
+        <file>icons/restore.svg</file>
+    </qresource>
+</RCC>

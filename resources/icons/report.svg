@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="100" height="100" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Report</title>
+    <g id="Report" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <path d="M58.33,8.33 L25,8.33 C20.4,8.33 16.67,12.06 16.67,16.67 L16.67,83.33 C16.67,87.94 20.4,91.67 25,91.67 L75,91.67 C79.6,91.67 83.33,87.94 83.33,83.33 L83.33,33.33 L58.33,8.33 Z" stroke="#CCCCCC" stroke-width="8.33" stroke-linecap="round" stroke-linejoin="round"></path>
+        <polyline id="Path" stroke="#CCCCCC" stroke-width="8.33" stroke-linecap="round" stroke-linejoin="round" points="58.33 8.33 58.33 33.33 83.33 33.33"></polyline>
+        <line x1="66.67" y1="54.17" x2="33.33" y2="54.17" stroke="#CCCCCC" stroke-width="8.33" stroke-linecap="round" stroke-linejoin="round"></line>
+        <line x1="66.67" y1="70.83" x2="33.33" y2="70.83" stroke="#CCCCCC" stroke-width="8.33" stroke-linecap="round" stroke-linejoin="round"></line>
+        <polyline id="Path" stroke="#CCCCCC" stroke-width="8.33" stroke-linecap="round" stroke-linejoin="round" points="41.67 37.5 37.5 37.5 33.33 37.5"></polyline>
+    </g>
+</svg>

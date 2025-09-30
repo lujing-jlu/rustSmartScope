@@ -19,37 +19,37 @@ Rectangle {
     property var navigationItems: [
         {
             id: "home",
-            icon: "🏠",
+            icon: "qrc:/icons/home.svg",
             label: "主页",
             shortcut: "F8"
         },
         {
             id: "measurement",
-            icon: "📏",
+            icon: "qrc:/icons/measurement/length.svg",
             label: "测量",
             shortcut: "F5"
         },
         {
             id: "preview",
-            icon: "🔍",
+            icon: "qrc:/icons/preview.svg",
             label: "预览",
             shortcut: "F3"
         },
         {
             id: "settings",
-            icon: "⚙️",
+            icon: "qrc:/icons/setting.svg",
             label: "设置",
             shortcut: "F2"
         },
         {
             id: "report",
-            icon: "📊",
+            icon: "qrc:/icons/report.svg",
             label: "报告",
             shortcut: ""
         },
         {
             id: "debug",
-            icon: "🐛",
+            icon: "qrc:/icons/config.svg",
             label: "调试",
             shortcut: ""
         }

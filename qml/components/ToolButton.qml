@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtGraphicalEffects 1.15
 
 Item {
     id: toolButton
@@ -51,16 +52,22 @@ Item {
         anchors.centerIn: parent
         spacing: 2
 
-        Text {
-            text: toolButton.iconText
-            font.pixelSize: 20
-            color: {
-                if (!toolButton.enabled) return "#4C566A"
-                if (isToggle && isToggled) return "#2E3440"
-                return "#ECEFF4"
-            }
-            horizontalAlignment: Text.AlignHCenter
+        Image {
+            source: toolButton.iconText
+            width: 20
+            height: 20
+            fillMode: Image.PreserveAspectFit
             anchors.horizontalCenter: parent.horizontalCenter
+
+            ColorOverlay {
+                anchors.fill: parent
+                source: parent
+                color: {
+                    if (!toolButton.enabled) return "#4C566A"
+                    if (isToggle && isToggled) return "#2E3440"
+                    return "#ECEFF4"
+                }
+            }
         }
 
         Text {

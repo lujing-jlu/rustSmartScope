@@ -15,21 +15,21 @@ Rectangle {
     property var toolItems: [
         {
             id: "capture",
-            icon: "📷",
+            icon: "qrc:/icons/camera.svg",
             label: "拍照",
             shortcut: "F9",
             enabled: true
         },
         {
             id: "record",
-            icon: "🎬",
+            icon: "qrc:/icons/record_start.svg",
             label: "录制",
             shortcut: "F10",
             enabled: true
         },
         {
             id: "ai_detection",
-            icon: "🤖",
+            icon: "qrc:/icons/AI.svg",
             label: "AI检测",
             shortcut: "F4",
             enabled: true,
@@ -37,21 +37,21 @@ Rectangle {
         },
         {
             id: "led_control",
-            icon: "💡",
+            icon: "qrc:/icons/brightness.svg",
             label: "灯光",
             shortcut: "F12",
             enabled: true
         },
         {
             id: "zoom_in",
-            icon: "🔍",
+            icon: "qrc:/icons/zoom_in.svg",
             label: "放大",
             shortcut: "+",
             enabled: true
         },
         {
             id: "zoom_out",
-            icon: "🔎",
+            icon: "qrc:/icons/zoom_out.svg",
             label: "缩小",
             shortcut: "-",
             enabled: true
@@ -120,7 +120,7 @@ Rectangle {
         // 额外控制按钮
         ToolButton {
             Component.onCompleted: {
-                iconText = "↩️"
+                iconText = "qrc:/icons/back.svg"
                 label = "返回"
                 shortcut = "F7"
                 toolId = "back"
