@@ -7,6 +7,10 @@
         <file>components/StatusIndicator.qml</file>
         <file>components/CameraPreview.qml</file>
         <file>components/NavigationButton.qml</file>
+        <file>components/ToolBarButton.qml</file>
+
+        <!-- 窗口 -->
+        <file>Measurement3DWindow.qml</file>
 
         <!-- 页面 -->
         <file>pages/HomePage.qml</file>
@@ -41,6 +45,9 @@
         <file alias="icons/brightness.svg">../resources/icons/brightness.svg</file>
         <file alias="icons/back.svg">../resources/icons/back.svg</file>
         <file alias="icons/close.svg">../resources/icons/close.svg</file>
+        <file alias="icons/down_arrow.svg">../resources/icons/down_arrow.svg</file>
+        <file alias="icons/view.svg">../resources/icons/view.svg</file>
+        <file alias="icons/save.svg">../resources/icons/save.svg</file>
 
         <!-- 字体文件已移动到fonts.qrc -->
     </qresource>

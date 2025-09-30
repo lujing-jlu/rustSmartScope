@@ -429,6 +429,81 @@ ApplicationWindow {
             }
         }
 
+        // 右侧工具栏
+        Item {
+            id: toolBarContainer
+            anchors.right: parent.right
+            anchors.top: statusBar.bottom
+            anchors.bottom: navigationContainer.top
+            anchors.margins: margins
+            width: 100
+            z: 90
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: margins
+                spacing: margins
+                anchors.topMargin: margins * 2
+
+                // 相机调整按钮
+                ToolBarButton {
+                    id: adjustButton
+                    text: "画面调整"
+                    iconSource: "qrc:/icons/config.svg"
+                    onClicked: {
+                        console.log("Camera adjust clicked")
+                    }
+                }
+
+                // 双目截图按钮
+                ToolBarButton {
+                    id: captureButton
+                    text: "双目截图"
+                    iconSource: "qrc:/icons/camera.svg"
+                    onClicked: {
+                        console.log("Capture clicked")
+                    }
+                }
+
+                // 屏幕截图按钮
+                ToolBarButton {
+                    id: screenshotButton
+                    text: "屏幕截图"
+                    iconSource: "qrc:/icons/camera_active.svg"
+                    onClicked: {
+                        console.log("Screenshot clicked")
+                    }
+                }
+
+                // LED控制按钮
+                ToolBarButton {
+                    id: ledControlButton
+                    text: "LED控制"
+                    iconSource: "qrc:/icons/brightness.svg"
+                    onClicked: {
+                        console.log("LED control clicked")
+                    }
+                }
+
+                // AI检测按钮
+                ToolBarButton {
+                    id: aiDetectionButton
+                    text: "AI检测"
+                    iconSource: "qrc:/icons/AI.svg"
+                    onClicked: {
+                        console.log("AI detection clicked")
+                        // 切换AI检测状态
+                        aiDetectionButton.isActive = !aiDetectionButton.isActive
+                    }
+                }
+
+                // 弹性填充空间
+                Item {
+                    Layout.fillHeight: true
+                }
+            }
+        }
+
         // 2024现代化悬浮导航栏
         Item {
             id: navigationContainer
@@ -669,8 +744,16 @@ ApplicationWindow {
                             anchors.fill: parent
                             hoverEnabled: true
                             onClicked: {
-                                console.log("Measurement clicked")
-                                setActiveTab(measurementButton)
+                                console.log("3D测量窗口打开")
+                                if (measurement3DWindow.visibility === Window.Hidden || measurement3DWindow.visibility === Window.Minimized) {
+                                    measurement3DWindow.show()
+                                    measurement3DWindow.raise()
+                                    measurement3DWindow.requestActivate()
+                                } else {
+                                    // 如果窗口已经显示，则将其置于前台
+                                    measurement3DWindow.raise()
+                                    measurement3DWindow.requestActivate()
+                                }
                             }
                             onPressed: measurementButton.scale = 0.92
                             onReleased: measurementButton.scale = 1.0
@@ -877,10 +960,15 @@ ApplicationWindow {
     function setActiveTab(activeButton) {
         if (activeButton === homeButton) navigateTo("home")
         else if (activeButton === detectionButton) navigateTo("preview")
-        else if (activeButton === measurementButton) navigateTo("measurement")
         else if (activeButton === reportButton) navigateTo("report")
         else if (activeButton === settingsButton) navigateTo("settings")
+        // 3D测量不再使用页面切换，而是打开独立窗口
     }
+    // 3D测量窗口实例
+    Measurement3DWindow {
+        id: measurement3DWindow
+    }
+
     Component.onCompleted: {
         console.log("=== SmartScope Industrial UI initialized ===")
         console.log("Screen Resolution (logical): " + screenWidth + "x" + screenHeight)
