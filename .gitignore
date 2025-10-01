@@ -20,9 +20,6 @@ rustsmartscope
 logs/
 *.log
 
-# 配置文件（如果包含敏感信息）
-config.toml
-!simple_config.toml
 
 # IDE和编辑器文件
 .vscode/

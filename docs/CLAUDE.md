@@ -146,7 +146,13 @@ This is a Cargo workspace with multiple crates:
 4. Full rebuild with `./build.sh`
 
 ### Adding New UI Features
-1. Modify `qml/main.qml` for interface changes
+1. Modify `qml/main.qml` for main interface changes
+2. Create new QML components in `qml/components/` directory
+3. Create new page components in `qml/pages/` directory
+4. Add new windows as separate QML files (e.g., `Measurement3DWindow.qml`)
+5. Update `qml/qml.qrc` resource file to include new components
+6. For icons, add SVG files to `resources/icons/` and reference in qrc
+7. No rebuild needed for QML changes, just run application
 2. Add C++ integration in `src/main.cpp` if needed
 3. Expose new Rust functionality via C FFI if required
 
