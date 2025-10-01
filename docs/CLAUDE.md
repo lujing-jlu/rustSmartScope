@@ -166,3 +166,60 @@ This is a Cargo workspace with multiple crates:
 - Run with `./run.sh --debug` for verbose output
 - Check application logs in `logs/` directory
 - Use `ldd build/bin/rustsmartscope` to check library dependencies
+
+## Current UI Architecture (2024-09-30)
+
+### Main Window Structure
+- **ApplicationWindow**: Full-screen, frameless window
+- **Status Bar**: Top bar with time, date, and system info
+- **Navigation Bar**: Bottom bar with main navigation buttons
+- **Content Area**: Central area for page content
+- **Right Toolbar**: Vertical toolbar with tool buttons
+
+### Window System
+- **Main Window** (`main.qml`): Primary application interface
+- **3D Measurement Window** (`Measurement3DWindow.qml`): Independent measurement window
+  - Opened via "3D测量" button in main navigation
+  - Has its own specialized toolbar for measurement tools
+  - Supports minimize/close operations
+
+### Component System
+```
+qml/components/
+├── StatusIndicator.qml      # Status display component
+├── CameraPreview.qml        # Camera feed display
+├── NavigationButton.qml     # Navigation bar buttons
+└── ToolBarButton.qml        # Toolbar action buttons
+```
+
+### Page System
+```
+qml/pages/
+├── HomePage.qml             # Welcome/dashboard page
+├── PreviewPage.qml          # Camera preview page
+├── ReportPage.qml           # Report generation page
+├── SettingsPage.qml         # Application settings
+└── MeasurementPage.qml      # Legacy measurement page
+```
+
+### Toolbar Configurations
+- **Main Window Toolbar**: General camera controls (config, capture, LED, AI)
+- **3D Measurement Toolbar**: Specialized measurement tools
+  - 3D校准 (Calibration)
+  - 点云生成 (Point Cloud Generation)
+  - 深度测量 (Depth Measurement)
+  - 长度测量 (Length Measurement)
+  - 面积测量 (Area Measurement)
+  - 数据导出 (Data Export)
+
+### Resource Management
+- Icons stored in `resources/icons/` with SVG format
+- QML resources managed via `qml/qml.qrc`
+- Fonts loaded via `qml/fonts.qrc`
+- All resources embedded in binary for distribution
+
+### Design System
+- Modern dark theme with professional blue accents
+- HiDPI responsive scaling system
+- Consistent spacing and typography
+- Hover and click animations for better UX
