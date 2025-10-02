@@ -49,6 +49,7 @@
         <file alias="icons/down_arrow.svg">../resources/icons/down_arrow.svg</file>
         <file alias="icons/view.svg">../resources/icons/view.svg</file>
         <file alias="icons/save.svg">../resources/icons/save.svg</file>
+        <file alias="icons/screenshot.svg">../resources/icons/screenshot.svg</file>
 
         <!-- 字体文件已移动到fonts.qrc -->
     </qresource>

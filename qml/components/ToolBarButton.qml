@@ -67,39 +67,39 @@ Rectangle {
         width: 56  // 增大图标容器大小
         height: 56
 
-        // 活跃状态背景
-        Rectangle {
-            anchors.fill: parent
-            color: toolButton.isActive ? activeColor : "transparent"
-            radius: width / 2
-            opacity: toolButton.isActive ? 0.15 : 0
-            Behavior on opacity { PropertyAnimation { duration: 300 } }
-        }
+        // 活跃状态背景 - 移除圆形背景
+        // Rectangle {
+        //     anchors.fill: parent
+        //     color: toolButton.isActive ? activeColor : "transparent"
+        //     radius: width / 2
+        //     opacity: toolButton.isActive ? 0.15 : 0
+        //     Behavior on opacity { PropertyAnimation { duration: 300 } }
+        // }
 
         // 图标
         Image {
             id: icon
             source: iconSource
             anchors.centerIn: parent
-            width: 40   // 增大图标大小
-            height: 40
+            width: 28   // 缩小图标大小，确保一致性
+            height: 28
             fillMode: Image.PreserveAspectFit
             visible: false
         }
 
         ColorOverlay {
             anchors.centerIn: parent
-            width: 40
-            height: 40
+            width: 28
+            height: 28
             source: icon
-            color: "#FFFFFF"
+            color: toolButton.isActive ? activeColor : "#FFFFFF"
             Behavior on color { ColorAnimation { duration: 300 } }
         }
 
         DropShadow {
             anchors.centerIn: parent
-            width: 40
-            height: 40
+            width: 28
+            height: 28
             horizontalOffset: 0
             verticalOffset: 2
             radius: 8

@@ -469,7 +469,7 @@ ApplicationWindow {
                 ToolBarButton {
                     id: screenshotButton
                     text: "屏幕截图"
-                    iconSource: "qrc:/icons/camera_active.svg"
+                    iconSource: "qrc:/icons/screenshot.svg"
                     onClicked: {
                         console.log("Screenshot clicked")
                     }
