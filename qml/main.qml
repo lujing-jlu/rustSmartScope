@@ -522,27 +522,20 @@ ApplicationWindow {
                 width: availableNavWidth
                 height: navigationBarHeight
 
-                // 固定单排导航按钮布局
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: margins
+                // 固定单排导航按钮布局 - 使用固定定位确保间距一致
+                Row {
+                    anchors.centerIn: parent
                     spacing: 10
 
-                    Component.onCompleted: {
-                        console.log("=== 导航栏布局调试信息 ===")
-                        console.log("RowLayout spacing:", spacing)
-                        console.log("RowLayout margins:", margins)
-                        console.log("RowLayout width:", width)
-                        console.log("RowLayout height:", height)
-                    }
 
                     // 主页按钮
-                    NavigationButton {
+                    UnifiedNavigationButton {
                         id: homeButton
                         text: "主页"
                         iconSource: "qrc:/icons/home.svg"
                         isActive: true
                         iconOnly: true
+                        isSquareButton: true
                         onClicked: {
                             console.log("Home clicked")
                             setActiveTab(homeButton)
@@ -550,7 +543,7 @@ ApplicationWindow {
                     }
 
                     // 预览按钮
-                    NavigationButton {
+                    UnifiedNavigationButton {
                         id: detectionButton
                         text: "预览"
                         iconSource: "qrc:/icons/preview.svg"
@@ -563,278 +556,54 @@ ApplicationWindow {
 
 
                     // 报告按钮
-                    Rectangle {
+                    UnifiedNavigationButton {
                         id: reportButton
-                        Layout.preferredWidth: dynamicButtonWidth
-                        Layout.fillHeight: true
-                        color: reportButton.isActive ?
-                            Qt.rgba(0.2, 0.2, 0.2, 0.8) : Qt.rgba(0.12, 0.12, 0.12, 0.6)
-                        radius: cornerRadius
-                        border.width: 1
-                        border.color: Qt.rgba(1, 1, 1, 0.1)
-
-                        property bool isActive: false
-                        property bool hovered: false
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: {
-                                console.log("Report clicked")
-                                setActiveTab(reportButton)
-                            }
-                            onPressed: reportButton.scale = 0.92
-                            onReleased: reportButton.scale = 1.0
-                            onEntered: reportButton.hovered = true
-                            onExited: reportButton.hovered = false
-                        }
-
-                        Behavior on scale { SpringAnimation { spring: 4; damping: 0.6 } }
-                        Behavior on color { ColorAnimation { duration: 300 } }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            color: Qt.rgba(0.31, 0.31, 0.31, 0.7)
-                            radius: parent.radius
-                            opacity: reportButton.hovered ? 1 : 0
-                            Behavior on opacity { PropertyAnimation { duration: 200 } }
-                        }
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: spacing * 0.6
-
-                            Item {
-                                width: iconSize
-                                height: iconSize
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    color: reportButton.isActive ? accentPrimary : "transparent"
-                                    radius: width / 2
-                                    opacity: reportButton.isActive ? 0.15 : 0
-                                    Behavior on opacity {
-                                        PropertyAnimation { duration: 300 }
-                                    }
-                                }
-
-                                Image {
-                                    id: reportIcon
-                                    source: "qrc:/icons/report.svg"
-                                    anchors.fill: parent
-                                    anchors.margins: parent.width * 0.15
-                                    fillMode: Image.PreserveAspectFit
-                                    visible: false
-                                }
-
-                                ColorOverlay {
-                                    anchors.fill: reportIcon
-                                    source: reportIcon
-                                    color: "#FFFFFF"
-                                    Behavior on color { ColorAnimation { duration: 300 } }
-                                }
-                            }
-
-                            Text {
-                                text: "报告"
-                                color: "#FFFFFF"
-                                font.pixelSize: 38
-                                font.weight: Font.Medium
-                                font.family: mixedFontRegular
-                                anchors.verticalCenter: parent.verticalCenter
-                                Behavior on color { ColorAnimation { duration: 300 } }
-                            }
+                        text: "报告"
+                        iconSource: "qrc:/icons/report.svg"
+                        onClicked: {
+                            console.log("Report clicked")
+                            setActiveTab(reportButton)
                         }
                     }
 
                     // 设置按钮
-                    Rectangle {
+                    UnifiedNavigationButton {
                         id: settingsButton
-                        Layout.preferredWidth: dynamicButtonWidth
-                        Layout.fillHeight: true
-                        color: settingsButton.isActive ?
-                            Qt.rgba(0.2, 0.2, 0.2, 0.8) : Qt.rgba(0.12, 0.12, 0.12, 0.6)
-                        radius: cornerRadius
-                        border.width: 1
-                        border.color: Qt.rgba(1, 1, 1, 0.1)
-
-                        property bool isActive: false
-                        property bool hovered: false
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: {
-                                console.log("Settings clicked")
-                                setActiveTab(settingsButton)
-                            }
-                            onPressed: settingsButton.scale = 0.92
-                            onReleased: settingsButton.scale = 1.0
-                            onEntered: settingsButton.hovered = true
-                            onExited: settingsButton.hovered = false
-                        }
-
-                        Behavior on scale { SpringAnimation { spring: 4; damping: 0.6 } }
-                        Behavior on color { ColorAnimation { duration: 300 } }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            color: Qt.rgba(0.31, 0.31, 0.31, 0.7)
-                            radius: parent.radius
-                            opacity: settingsButton.hovered ? 1 : 0
-                            Behavior on opacity { PropertyAnimation { duration: 200 } }
-                        }
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: spacing * 0.6
-
-                            Item {
-                                width: iconSize
-                                height: iconSize
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    color: settingsButton.isActive ? accentPrimary : "transparent"
-                                    radius: width / 2
-                                    opacity: settingsButton.isActive ? 0.15 : 0
-                                    Behavior on opacity {
-                                        PropertyAnimation { duration: 300 }
-                                    }
-                                }
-
-                                Image {
-                                    id: settingIcon
-                                    source: "qrc:/icons/setting.svg"
-                                    anchors.fill: parent
-                                    anchors.margins: parent.width * 0.15
-                                    fillMode: Image.PreserveAspectFit
-                                    visible: false
-                                }
-
-                                ColorOverlay {
-                                    anchors.fill: settingIcon
-                                    source: settingIcon
-                                    color: "#FFFFFF"
-                                    Behavior on color { ColorAnimation { duration: 300 } }
-                                }
-                            }
-
-                            Text {
-                                text: "设置"
-                                color: "#FFFFFF"
-                                font.pixelSize: 38
-                                font.weight: Font.Medium
-                                font.family: mixedFontRegular
-                                anchors.verticalCenter: parent.verticalCenter
-                                Behavior on color { ColorAnimation { duration: 300 } }
-                            }
+                        text: "设置"
+                        iconSource: "qrc:/icons/setting.svg"
+                        onClicked: {
+                            console.log("Settings clicked")
+                            setActiveTab(settingsButton)
                         }
                     }
 
                     // 3D测量按钮
-                    Rectangle {
+                    UnifiedNavigationButton {
                         id: measurementButton
-                        Layout.preferredWidth: dynamicButtonWidth
-                        Layout.fillHeight: true
-                        color: measurementButton.isActive ?
-                            Qt.rgba(0.2, 0.2, 0.2, 0.8) : Qt.rgba(0.12, 0.12, 0.12, 0.6)
-                        radius: cornerRadius
-                        border.width: 1
-                        border.color: Qt.rgba(1, 1, 1, 0.1)
-
-                        property bool isActive: false
-                        property bool hovered: false
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: {
-                                console.log("3D测量窗口打开")
-                                if (measurement3DWindow.visibility === Window.Hidden || measurement3DWindow.visibility === Window.Minimized) {
-                                    measurement3DWindow.show()
-                                    measurement3DWindow.raise()
-                                    measurement3DWindow.requestActivate()
-                                } else {
-                                    // 如果窗口已经显示，则将其置于前台
-                                    measurement3DWindow.raise()
-                                    measurement3DWindow.requestActivate()
-                                }
-                            }
-                            onPressed: measurementButton.scale = 0.92
-                            onReleased: measurementButton.scale = 1.0
-                            onEntered: measurementButton.hovered = true
-                            onExited: measurementButton.hovered = false
-                        }
-
-                        Behavior on scale { SpringAnimation { spring: 4; damping: 0.6 } }
-                        Behavior on color { ColorAnimation { duration: 300 } }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            color: Qt.rgba(0.31, 0.31, 0.31, 0.7)
-                            radius: parent.radius
-                            opacity: measurementButton.hovered ? 1 : 0
-                            Behavior on opacity { PropertyAnimation { duration: 200 } }
-                        }
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: spacing * 0.6
-
-                            Item {
-                                width: iconSize
-                                height: iconSize
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    color: measurementButton.isActive ? accentPrimary : "transparent"
-                                    radius: width / 2
-                                    opacity: measurementButton.isActive ? 0.15 : 0
-                                    Behavior on opacity {
-                                        PropertyAnimation { duration: 300 }
-                                    }
-                                }
-
-                                Image {
-                                    id: measurementIcon
-                                    source: "qrc:/icons/3D.svg"
-                                    anchors.fill: parent
-                                    anchors.margins: parent.width * 0.15
-                                    fillMode: Image.PreserveAspectFit
-                                    visible: false
-                                }
-
-                                ColorOverlay {
-                                    anchors.fill: measurementIcon
-                                    source: measurementIcon
-                                    color: "#FFFFFF"
-                                    Behavior on color { ColorAnimation { duration: 300 } }
-                                }
-                            }
-
-                            Text {
-                                text: "3D测量"
-                                color: "#FFFFFF"
-                                font.pixelSize: 38
-                                font.weight: Font.Medium
-                                font.family: mixedFontRegular
-                                anchors.verticalCenter: parent.verticalCenter
-                                Behavior on color { ColorAnimation { duration: 300 } }
+                        text: "3D测量"
+                        iconSource: "qrc:/icons/3D.svg"
+                        onClicked: {
+                            console.log("3D测量窗口打开")
+                            if (measurement3DWindow.visibility === Window.Hidden || measurement3DWindow.visibility === Window.Minimized) {
+                                measurement3DWindow.show()
+                                measurement3DWindow.raise()
+                                measurement3DWindow.requestActivate()
+                            } else {
+                                // 如果窗口已经显示，则将其置于前台
+                                measurement3DWindow.raise()
+                                measurement3DWindow.requestActivate()
                             }
                         }
                     }
 
                     // 退出按钮
-                    NavigationButton {
+                    UnifiedNavigationButton {
                         id: exitButton
                         text: "退出"
                         iconSource: "qrc:/icons/close.svg"
                         isExitButton: true
                         iconOnly: true
+                        isSquareButton: true
                         onClicked: {
                             console.log("Exit clicked")
                             exitDialog.visible = true

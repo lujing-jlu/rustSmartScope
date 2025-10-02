@@ -7,6 +7,7 @@
         <file>components/StatusIndicator.qml</file>
         <file>components/CameraPreview.qml</file>
         <file>components/NavigationButton.qml</file>
+        <file>components/UnifiedNavigationButton.qml</file>
         <file>components/ToolBarButton.qml</file>
 
         <!-- 窗口 -->

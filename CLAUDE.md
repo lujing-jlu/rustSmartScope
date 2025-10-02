@@ -172,7 +172,7 @@ This is a Cargo workspace with multiple crates:
 - Check application logs in `logs/` directory
 - Use `ldd build/bin/rustsmartscope` to check library dependencies
 
-## Current UI Architecture (2024-09-30)
+## Current UI Architecture (2024-12-19)
 
 ### Main Window Structure
 - **ApplicationWindow**: Full-screen, frameless window
@@ -191,10 +191,11 @@ This is a Cargo workspace with multiple crates:
 ### Component System
 ```
 qml/components/
-├── StatusIndicator.qml      # Status display component
-├── CameraPreview.qml        # Camera feed display
-├── NavigationButton.qml     # Navigation bar buttons
-└── ToolBarButton.qml        # Toolbar action buttons
+├── StatusIndicator.qml           # Status display component
+├── CameraPreview.qml             # Camera feed display
+├── NavigationButton.qml          # Legacy navigation bar buttons
+├── UnifiedNavigationButton.qml   # New unified navigation component
+└── ToolBarButton.qml             # Toolbar action buttons
 ```
 
 ### Page System
@@ -204,8 +205,20 @@ qml/pages/
 ├── PreviewPage.qml          # Camera preview page
 ├── ReportPage.qml           # Report generation page
 ├── SettingsPage.qml         # Application settings
-└── MeasurementPage.qml      # Legacy measurement page
+├── MeasurementPage.qml      # Legacy measurement page
+└── DebugPage.qml            # Debug and development page
 ```
+
+### Navigation System Updates
+- **UnifiedNavigationButton**: New unified navigation component with enhanced features
+  - Support for both icon-only and text+icon modes
+  - Square button mode for special buttons (home, exit)
+  - Enhanced hover effects and animations
+  - Consistent styling across all navigation elements
+- **Navigation Layout**: Fixed single-row layout with 6 buttons
+  - Home, Preview, Report, Settings, 3D Measurement, Exit
+  - Dynamic button width calculation for optimal text display
+  - Responsive design for different screen sizes
 
 ### Toolbar Configurations
 - **Main Window Toolbar**: General camera controls (config, capture, LED, AI)
@@ -222,9 +235,11 @@ qml/pages/
 - QML resources managed via `qml/qml.qrc`
 - Fonts loaded via `qml/fonts.qrc`
 - All resources embedded in binary for distribution
+- New unified navigation component added to resource system
 
 ### Design System
 - Modern dark theme with professional blue accents
 - HiDPI responsive scaling system
 - Consistent spacing and typography
 - Hover and click animations for better UX
+- Enhanced button styling with unified component system
