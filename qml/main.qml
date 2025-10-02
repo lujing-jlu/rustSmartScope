@@ -114,7 +114,7 @@ ApplicationWindow {
         buttonMinWidth,
         Math.min(
             buttonMaxWidth,
-            (availableNavWidth - (totalButtons - 1) * spacing) / totalButtons
+            (availableNavWidth - (totalButtons - 1) * 10) / totalButtons
         )
     )
 
@@ -526,7 +526,15 @@ ApplicationWindow {
                 RowLayout {
                     anchors.fill: parent
                     anchors.margins: margins
-                    spacing: margins
+                    spacing: 10
+
+                    Component.onCompleted: {
+                        console.log("=== 导航栏布局调试信息 ===")
+                        console.log("RowLayout spacing:", spacing)
+                        console.log("RowLayout margins:", margins)
+                        console.log("RowLayout width:", width)
+                        console.log("RowLayout height:", height)
+                    }
 
                     // 主页按钮
                     NavigationButton {

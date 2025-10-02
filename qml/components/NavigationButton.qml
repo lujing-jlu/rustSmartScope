@@ -26,7 +26,7 @@ Rectangle {
     property bool hovered: false
 
     // 样式设置
-    Layout.preferredWidth: iconOnly ? height : dynamicButtonWidth
+    Layout.preferredWidth: dynamicButtonWidth
     Layout.fillHeight: true
     color: isExitButton ? exitBackgroundColor : backgroundColor
     radius: cornerRadius

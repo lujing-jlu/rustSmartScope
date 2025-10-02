@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Rules
+Always use context7 when I need code generation, setup or configuration steps, or
+library/API documentation. This means you should automatically use the Context7 MCP
+tools to resolve library id and get library docs without me having to explicitly ask.
+
 ## Project Overview
 
 RustSmartScope is a modular stereo camera 3D reconstruction system built with a Rust+C++/Qt hybrid architecture. It demonstrates modern cross-language integration patterns with Rust providing the high-performance core engine and Qt/QML providing the user interface.

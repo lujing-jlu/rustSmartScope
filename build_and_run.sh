@@ -140,6 +140,79 @@ show_help() {
     echo "  ./run.sh            # 只运行"
 }
 
+# 构建Rust静态库
+build_rust_library() {
+    local build_mode="release"
+
+    # 检查是否有debug参数
+    for arg in "$@"; do
+        if [ "$arg" = "debug" ]; then
+            build_mode="debug"
+            break
+        fi
+    done
+
+    print_step "构建Rust静态库 ($build_mode模式)..."
+
+    # 检查Rust环境
+    if ! command -v cargo &> /dev/null; then
+        print_error "未找到cargo命令，请安装Rust工具链"
+        print_info "安装方式: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+        return 1
+    fi
+
+    # 构建Rust库
+    if [ "$build_mode" = "debug" ]; then
+        print_info "执行: cargo build -p smartscope-c-ffi"
+        cargo build -p smartscope-c-ffi
+        local rust_lib_path="target/debug/libsmartscope.a"
+    else
+        print_info "执行: cargo build --release -p smartscope-c-ffi"
+        cargo build --release -p smartscope-c-ffi
+        local rust_lib_path="target/release/libsmartscope.a"
+    fi
+
+    # 检查库文件是否生成
+    if [ ! -f "$rust_lib_path" ]; then
+        print_error "Rust静态库构建失败: $rust_lib_path 不存在"
+        return 1
+    fi
+
+    local lib_size=$(du -h "$rust_lib_path" | cut -f1)
+    print_success "Rust静态库构建完成: $rust_lib_path ($lib_size)"
+}
+
+# 设置Qt5环境变量 (macOS专用)
+setup_qt5_environment() {
+    # 检测操作系统
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS - 检查Homebrew Qt5
+        local homebrew_qt_path="/opt/homebrew/Cellar/qt@5"
+        if [ -d "$homebrew_qt_path" ]; then
+            # 查找最新版本
+            local qt_version=$(ls "$homebrew_qt_path" | sort -V | tail -1)
+            if [ -n "$qt_version" ]; then
+                export CMAKE_PREFIX_PATH="$homebrew_qt_path/$qt_version"
+                print_info "设置Qt5环境: $CMAKE_PREFIX_PATH"
+                return 0
+            fi
+        fi
+
+        # 检查系统Qt5
+        if [ -d "/usr/local/Cellar/qt@5" ]; then
+            local qt_version=$(ls "/usr/local/Cellar/qt@5" | sort -V | tail -1)
+            if [ -n "$qt_version" ]; then
+                export CMAKE_PREFIX_PATH="/usr/local/Cellar/qt@5/$qt_version"
+                print_info "设置Qt5环境: $CMAKE_PREFIX_PATH"
+                return 0
+            fi
+        fi
+
+        print_warning "未找到Homebrew Qt5，可能会使用系统Qt或遇到架构不匹配问题"
+        print_info "安装方式: brew install qt@5"
+    fi
+}
+
 # 执行构建
 execute_build() {
     local build_args=("$@")
@@ -147,7 +220,16 @@ execute_build() {
     print_step "开始构建阶段..."
     echo -e "${YELLOW}═══════════════════════════════════════════════${NC}"
 
-    # 使用快速增量编译脚本
+    # 设置Qt5环境 (主要针对macOS)
+    setup_qt5_environment
+
+    # 首先构建Rust静态库
+    if ! build_rust_library "${build_args[@]}"; then
+        print_error "Rust库构建失败，终止构建流程"
+        return 1
+    fi
+
+    # 然后使用快速增量编译脚本构建C++部分
     if [ ${#build_args[@]} -eq 0 ]; then
         print_info "执行: ./build_incremental.sh (快速增量编译)"
         ./build_incremental.sh
