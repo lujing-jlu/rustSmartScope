@@ -285,7 +285,7 @@ ApplicationWindow {
 
                 // 左侧：Logo区域
                 Rectangle {
-                    Layout.preferredWidth: fontSize * 8
+                    Layout.preferredWidth: fontSize * 6
                     Layout.fillHeight: true
                     color: "transparent"
 
@@ -334,7 +334,7 @@ ApplicationWindow {
 
                 // 右侧：电池区域
                 Rectangle {
-                    Layout.preferredWidth: fontSize * 5
+                    Layout.preferredWidth: fontSize * 6
                     Layout.fillHeight: true
                     color: "transparent"
 
