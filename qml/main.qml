@@ -325,7 +325,7 @@ ApplicationWindow {
                     Text {
                         text: currentTime
                         color: "#FFFFFF"
-                        font.pixelSize: fontSize * 1.6
+                        font.pixelSize: fontSize * 1.2
                         font.weight: Font.Medium
                         font.family: mixedFontMedium
                         anchors.centerIn: parent
@@ -345,8 +345,8 @@ ApplicationWindow {
 
                         // 电池图标
                         Rectangle {
-                            width: fontSize * 1.5
-                            height: fontSize * 0.8
+                            width: fontSize * 2.0
+                            height: fontSize * 1.1
                             anchors.verticalCenter: parent.verticalCenter
                             radius: 2
                             color: "transparent"
@@ -372,8 +372,8 @@ ApplicationWindow {
                             Rectangle {
                                 anchors.left: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 2
-                                height: parent.height * 0.5
+                                width: 3
+                                height: parent.height * 0.6
                                 radius: 1
                                 color: "#FFFFFF"
                             }
@@ -383,7 +383,7 @@ ApplicationWindow {
                         Text {
                             text: batteryLevel + "%"
                             color: "#FFFFFF"
-                            font.pixelSize: fontSize * 1.6
+                            font.pixelSize: fontSize * 1.2
                             font.weight: Font.Medium
                             font.family: mixedFontMedium
                             anchors.verticalCenter: parent.verticalCenter
