@@ -244,153 +244,25 @@ ApplicationWindow {
         anchors.fill: parent
         color: "transparent"
 
-        // 现代化毛玻璃状态栏
-        Rectangle {
+        // 状态栏组件
+        StatusBar {
             id: statusBar
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             height: statusBarHeight
-            color: Qt.rgba(0.1, 0.1, 0.15, 0.8)
-            radius: 0
             z: 100
 
-            // 高级毛玻璃效果
-            Rectangle {
-                anchors.fill: parent
-                color: "transparent"
-                border.width: 1
-                border.color: Qt.rgba(1, 1, 1, 0.1)
-                radius: parent.radius
-            }
-
-            // 底部阴影
-            Rectangle {
-                anchors.top: parent.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: 1
-                gradient: Gradient {
-                    orientation: Gradient.Vertical
-                    GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.2) }
-                    GradientStop { position: 1.0; color: "transparent" }
-                }
-            }
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                spacing: 0
-
-                // 左侧：Logo区域
-                Rectangle {
-                    Layout.preferredWidth: fontSize * 6
-                    Layout.fillHeight: true
-                    color: "transparent"
-
-                    Image {
-                        id: appIcon
-                        source: "qrc:/icons/EDDYSUN-logo.png"
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        height: parent.height * 0.7
-                        fillMode: Image.PreserveAspectFit
-                        visible: true
-
-                        Component.onCompleted: {
-                            console.log("main.qml 图标组件加载完成, 源: " + source)
-                            console.log("Logo容器尺寸: " + parent.width + "x" + parent.height)
-                            console.log("Logo图片尺寸: " + width + "x" + height)
-                            console.log("Logo原始尺寸: " + implicitWidth + "x" + implicitHeight)
-                        }
-
-                        onStatusChanged: {
-                            console.log("main.qml 图标状态: " + status + ", 源: " + source)
-                            if (status === Image.Error) {
-                                console.log("main.qml 图标加载失败: " + source)
-                            } else if (status === Image.Ready) {
-                                console.log("main.qml 图标加载成功: " + source)
-                            }
-                        }
-                    }
-                }
-
-                // 中间：时间区域
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    color: "transparent"
-
-                    Text {
-                        text: currentTime
-                        color: "#FFFFFF"
-                        font.pixelSize: fontSize * 1.2
-                        font.weight: Font.Medium
-                        font.family: mixedFontMedium
-                        anchors.centerIn: parent
-                    }
-                }
-
-                // 右侧：电池区域
-                Rectangle {
-                    Layout.preferredWidth: fontSize * 6
-                    Layout.fillHeight: true
-                    color: "transparent"
-
-                    Row {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: fontSize * 0.3
-
-                        // 电池图标
-                        Rectangle {
-                            width: fontSize * 2.0
-                            height: fontSize * 1.1
-                            anchors.verticalCenter: parent.verticalCenter
-                            radius: 2
-                            color: "transparent"
-                            border.color: "#FFFFFF"
-                            border.width: 1.5
-
-                            // 电池电量填充
-                            Rectangle {
-                                anchors.left: parent.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.margins: 2
-                                width: (parent.width - 4) * (batteryLevel / 100.0)
-                                height: parent.height - 4
-                                radius: 1
-                                color: {
-                                    if (batteryLevel > 50) return accentSuccess
-                                    else if (batteryLevel > 20) return accentWarning
-                                    else return accentError
-                                }
-                            }
-
-                            // 电池正极
-                            Rectangle {
-                                anchors.left: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 3
-                                height: parent.height * 0.6
-                                radius: 1
-                                color: "#FFFFFF"
-                            }
-                        }
-
-                        // 电量百分比
-                        Text {
-                            text: batteryLevel + "%"
-                            color: "#FFFFFF"
-                            font.pixelSize: fontSize * 1.2
-                            font.weight: Font.Medium
-                            font.family: mixedFontMedium
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-                }
-            }
+            // 传递属性
+            currentTime: currentTime
+            currentDate: currentDate
+            batteryLevel: batteryLevel
+            isCharging: isCharging
+            fontSize: fontSize
+            mixedFontMedium: mixedFontMedium
+            accentSuccess: accentSuccess
+            accentWarning: accentWarning
+            accentError: accentError
         }
 
         // 全屏主内容区域 - 动态页面容器
@@ -440,10 +312,12 @@ ApplicationWindow {
             z: 90
 
             ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: margins
-                spacing: margins
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.rightMargin: 0
                 anchors.topMargin: margins * 2
+                spacing: margins
 
                 // 相机调整按钮
                 ToolBarButton {
@@ -504,7 +378,7 @@ ApplicationWindow {
             }
         }
 
-        // 2024现代化悬浮导航栏
+        // 导航栏组件
         Item {
             id: navigationContainer
             anchors.bottom: parent.bottom
@@ -513,102 +387,45 @@ ApplicationWindow {
             height: navigationBarHeight + margins * 2
             z: 100
 
-            // 透明导航容器
-            Item {
-                id: navigationCard
+            NavigationBar {
+                id: navigationBar
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: margins * 0.3
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: availableNavWidth
                 height: navigationBarHeight
 
-                // 固定单排导航按钮布局 - 使用固定定位确保间距一致
-                Row {
-                    anchors.centerIn: parent
-                    spacing: 10
+                // 传递属性
+                navigationBarHeight: navigationBarHeight
+                margins: margins
+                cornerRadius: cornerRadius
+                mixedFontRegular: mixedFontRegular
 
-
-                    // 主页按钮
-                    UnifiedNavigationButton {
-                        id: homeButton
-                        text: "主页"
-                        iconSource: "qrc:/icons/home.svg"
-                        isActive: true
-                        iconOnly: true
-                        isSquareButton: true
-                        onClicked: {
-                            console.log("Home clicked")
-                            setActiveTab(homeButton)
-                        }
+                // 连接信号
+                onHomeClicked: {
+                    navigateTo("home")
+                }
+                onPreviewClicked: {
+                    navigateTo("preview")
+                }
+                onReportClicked: {
+                    navigateTo("report")
+                }
+                onSettingsClicked: {
+                    navigateTo("settings")
+                }
+                onMeasurementClicked: {
+                    if (measurement3DWindow.visibility === Window.Hidden || measurement3DWindow.visibility === Window.Minimized) {
+                        measurement3DWindow.show()
+                        measurement3DWindow.raise()
+                        measurement3DWindow.requestActivate()
+                    } else {
+                        measurement3DWindow.raise()
+                        measurement3DWindow.requestActivate()
                     }
-
-                    // 预览按钮
-                    UnifiedNavigationButton {
-                        id: detectionButton
-                        text: "预览"
-                        iconSource: "qrc:/icons/preview.svg"
-                        activeColor: "#38BDF8"
-                        onClicked: {
-                            console.log("Detection clicked")
-                            setActiveTab(detectionButton)
-                        }
-                    }
-
-
-                    // 报告按钮
-                    UnifiedNavigationButton {
-                        id: reportButton
-                        text: "报告"
-                        iconSource: "qrc:/icons/report.svg"
-                        onClicked: {
-                            console.log("Report clicked")
-                            setActiveTab(reportButton)
-                        }
-                    }
-
-                    // 设置按钮
-                    UnifiedNavigationButton {
-                        id: settingsButton
-                        text: "设置"
-                        iconSource: "qrc:/icons/setting.svg"
-                        onClicked: {
-                            console.log("Settings clicked")
-                            setActiveTab(settingsButton)
-                        }
-                    }
-
-                    // 3D测量按钮
-                    UnifiedNavigationButton {
-                        id: measurementButton
-                        text: "3D测量"
-                        iconSource: "qrc:/icons/3D.svg"
-                        onClicked: {
-                            console.log("3D测量窗口打开")
-                            if (measurement3DWindow.visibility === Window.Hidden || measurement3DWindow.visibility === Window.Minimized) {
-                                measurement3DWindow.show()
-                                measurement3DWindow.raise()
-                                measurement3DWindow.requestActivate()
-                            } else {
-                                // 如果窗口已经显示，则将其置于前台
-                                measurement3DWindow.raise()
-                                measurement3DWindow.requestActivate()
-                            }
-                        }
-                    }
-
-                    // 退出按钮
-                    UnifiedNavigationButton {
-                        id: exitButton
-                        text: "退出"
-                        iconSource: "qrc:/icons/close.svg"
-                        isExitButton: true
-                        iconOnly: true
-                        isSquareButton: true
-                        onClicked: {
-                            console.log("Exit clicked")
-                            exitDialog.visible = true
-                        }
-                    }
+                }
+                onExitClicked: {
+                    exitDialog.visible = true
                 }
             }
         }
@@ -722,24 +539,11 @@ ApplicationWindow {
         console.log("Navigating to:", pageName)
         currentPage = pageName
 
-        // 更新按钮状态
-        homeButton.isActive = (pageName === "home")
-        detectionButton.isActive = (pageName === "preview")
-        measurementButton.isActive = (pageName === "measurement")
-        reportButton.isActive = (pageName === "report")
-        settingsButton.isActive = (pageName === "settings")
+        // 更新导航栏按钮状态
+        navigationBar.setActiveTab(pageName)
 
         // 切换页面内容（稍后实现）
         // TODO: 实现实际的页面切换逻辑
-    }
-
-    // 标签页切换函数
-    function setActiveTab(activeButton) {
-        if (activeButton === homeButton) navigateTo("home")
-        else if (activeButton === detectionButton) navigateTo("preview")
-        else if (activeButton === reportButton) navigateTo("report")
-        else if (activeButton === settingsButton) navigateTo("settings")
-        // 3D测量不再使用页面切换，而是打开独立窗口
     }
     // 3D测量窗口实例
     Measurement3DWindow {

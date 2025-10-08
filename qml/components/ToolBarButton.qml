@@ -22,11 +22,11 @@ Rectangle {
     property bool hovered: false
 
     // 样式设置
-    width: 80
-    height: 80
+    width: 48
+    height: 48
     color: backgroundColor
-    radius: 12
-    border.width: 2
+    radius: 8
+    border.width: 1.5
     border.color: isActive ?
         Qt.rgba(14/255, 165/255, 233/255, 0.5) : Qt.rgba(1, 1, 1, 0.1)
 
@@ -64,8 +64,8 @@ Rectangle {
     // 图标内容
     Item {
         anchors.centerIn: parent
-        width: 56  // 增大图标容器大小
-        height: 56
+        width: 34  // 调整图标容器大小 (56 * 0.6)
+        height: 34
 
         // 活跃状态背景 - 移除圆形背景
         // Rectangle {
@@ -81,16 +81,16 @@ Rectangle {
             id: icon
             source: iconSource
             anchors.centerIn: parent
-            width: 28   // 缩小图标大小，确保一致性
-            height: 28
+            width: 17   // 缩小图标大小到60% (28 * 0.6)
+            height: 17
             fillMode: Image.PreserveAspectFit
             visible: false
         }
 
         ColorOverlay {
             anchors.centerIn: parent
-            width: 28
-            height: 28
+            width: 17
+            height: 17
             source: icon
             color: toolButton.isActive ? activeColor : "#FFFFFF"
             Behavior on color { ColorAnimation { duration: 300 } }
@@ -98,8 +98,8 @@ Rectangle {
 
         DropShadow {
             anchors.centerIn: parent
-            width: 28
-            height: 28
+            width: 17
+            height: 17
             horizontalOffset: 0
             verticalOffset: 2
             radius: 8
@@ -117,13 +117,13 @@ Rectangle {
         PropertyAnimation {
             target: toolButton
             property: "border.width"
-            to: 3
+            to: 2.5
             duration: 100
         }
         PropertyAnimation {
             target: toolButton
             property: "border.width"
-            to: 2
+            to: 1.5
             duration: 200
         }
     }

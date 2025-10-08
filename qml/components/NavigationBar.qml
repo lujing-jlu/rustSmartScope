@@ -1,0 +1,126 @@
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.15
+import QtGraphicalEffects 1.15
+
+Rectangle {
+    id: navigationBar
+
+    // 公共属性 - 从主窗口传入
+    property int navigationBarHeight: 100
+    property int margins: 12
+    property int cornerRadius: 16
+    property string mixedFontRegular: ""
+
+    // 信号
+    signal homeClicked()
+    signal previewClicked()
+    signal reportClicked()
+    signal settingsClicked()
+    signal measurementClicked()
+    signal exitClicked()
+
+    // 活动状态管理
+    property string activeTab: "home"
+
+    function setActiveTab(tabName) {
+        activeTab = tabName
+        homeButton.isActive = (tabName === "home")
+        detectionButton.isActive = (tabName === "preview")
+        reportButton.isActive = (tabName === "report")
+        settingsButton.isActive = (tabName === "settings")
+        measurementButton.isActive = (tabName === "measurement")
+    }
+
+    // 导航栏样式 - 移除背景和边框
+    color: "transparent"
+    radius: 0
+    border.width: 0
+
+    // 固定单排导航按钮布局
+    Row {
+        anchors.centerIn: parent
+        spacing: 10
+
+        // 主页按钮
+        UnifiedNavigationButton {
+            id: homeButton
+            text: "主页"
+            iconSource: "qrc:/icons/home.svg"
+            isActive: activeTab === "home"
+            iconOnly: true
+            isSquareButton: true
+            onClicked: {
+                console.log("Home clicked")
+                setActiveTab("home")
+                navigationBar.homeClicked()
+            }
+        }
+
+        // 预览按钮
+        UnifiedNavigationButton {
+            id: detectionButton
+            text: "预览"
+            iconSource: "qrc:/icons/preview.svg"
+            isActive: activeTab === "preview"
+            activeColor: "#38BDF8"
+            onClicked: {
+                console.log("Detection clicked")
+                setActiveTab("preview")
+                navigationBar.previewClicked()
+            }
+        }
+
+        // 报告按钮
+        UnifiedNavigationButton {
+            id: reportButton
+            text: "报告"
+            iconSource: "qrc:/icons/report.svg"
+            isActive: activeTab === "report"
+            onClicked: {
+                console.log("Report clicked")
+                setActiveTab("report")
+                navigationBar.reportClicked()
+            }
+        }
+
+        // 设置按钮
+        UnifiedNavigationButton {
+            id: settingsButton
+            text: "设置"
+            iconSource: "qrc:/icons/setting.svg"
+            isActive: activeTab === "settings"
+            onClicked: {
+                console.log("Settings clicked")
+                setActiveTab("settings")
+                navigationBar.settingsClicked()
+            }
+        }
+
+        // 3D测量按钮
+        UnifiedNavigationButton {
+            id: measurementButton
+            text: "3D测量"
+            iconSource: "qrc:/icons/3D.svg"
+            isActive: activeTab === "measurement"
+            onClicked: {
+                console.log("3D测量窗口打开")
+                navigationBar.measurementClicked()
+            }
+        }
+
+        // 退出按钮
+        UnifiedNavigationButton {
+            id: exitButton
+            text: "退出"
+            iconSource: "qrc:/icons/close.svg"
+            isExitButton: true
+            iconOnly: true
+            isSquareButton: true
+            onClicked: {
+                console.log("Exit clicked")
+                navigationBar.exitClicked()
+            }
+        }
+    }
+}
