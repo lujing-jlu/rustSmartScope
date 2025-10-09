@@ -63,7 +63,7 @@ Rectangle {
                 source: "qrc:/icons/EDDYSUN-logo.png"
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                height: parent.height * 0.6
+                height: parent.height * 0.48  // 从0.6缩小到0.48 (减少20%)
                 fillMode: Image.PreserveAspectFit
                 smooth: true
                 antialiasing: true

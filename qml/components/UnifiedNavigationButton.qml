@@ -16,6 +16,12 @@ Rectangle {
     property color activeColor: "#0EA5E9"
     property color hoverColor: Qt.rgba(0.31, 0.31, 0.31, 0.7)
 
+    // 计算的尺寸属性，基于按钮高度
+    property int fontSize: buttonHeight * 0.25  // 字体大小为按钮高度的25%
+    property int iconSize: buttonHeight * 0.5   // 图标大小为按钮高度的50%
+    property int cornerRadius: buttonHeight * 0.15  // 圆角为按钮高度的15%
+    property string mixedFontRegular: ""  // 字体族名
+
     // 统一的按钮样式
     property color buttonColor: isExitButton ?
         (hovered ? Qt.rgba(0.8, 0.2, 0.2, 0.8) : Qt.rgba(0.6, 0.15, 0.15, 0.6)) :
@@ -30,11 +36,11 @@ Rectangle {
     // 私有属性
     property bool hovered: false
 
-    // 样式设置 - 固定尺寸，不使用计算值
-    property int fixedButtonHeight: 80  // 与工具栏按钮相同高度
-    property int fixedButtonWidth: 160  // 长方形按钮固定宽度
-    width: isSquareButton ? fixedButtonHeight : fixedButtonWidth
-    height: fixedButtonHeight
+    // 样式设置 - 使用计算值，基于传入的属性
+    property int buttonHeight: parent.height || 120  // 使用父组件高度
+    property int buttonWidth: (parent.height || 120) * 2  // 宽度为高度的2倍
+    width: isSquareButton ? buttonHeight : buttonWidth
+    height: buttonHeight
     color: buttonColor
     radius: cornerRadius
     border.width: 3

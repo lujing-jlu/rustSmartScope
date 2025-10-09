@@ -130,8 +130,8 @@ ApplicationWindow {
     property real cornerRadiusRatio: baseCornerRatio * sizeAdjustment
 
     // 现代化尺寸系统 - 适配HiDPI
-    property int statusBarHeight: Math.max(50, height * statusBarHeightRatio)
-    property int navigationBarHeight: Math.max(100, height * navigationBarHeightRatio)
+    property int statusBarHeight: Math.max(75, height * statusBarHeightRatio * 1.5)  // 增加50%
+    property int navigationBarHeight: Math.max(150, height * navigationBarHeightRatio * 1.5)  // 增加50%
     property int buttonHeight: Math.max(56, height * buttonHeightRatio)
     property int iconSize: Math.max(36, Math.min(width, height) * iconSizeRatio * 1.8)
     property int fontSize: Math.max(18, Math.min(width, height) * fontSizeRatio * 1.4)
@@ -258,7 +258,7 @@ ApplicationWindow {
             currentDate: currentDate
             batteryLevel: batteryLevel
             isCharging: isCharging
-            fontSize: fontSize
+            fontSize: fontSize * 1.5  // 增加50%
             mixedFontMedium: mixedFontMedium
             accentSuccess: accentSuccess
             accentWarning: accentWarning
@@ -390,7 +390,7 @@ ApplicationWindow {
             NavigationBar {
                 id: navigationBar
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: margins * 0.3
+                anchors.bottomMargin: margins * 2
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: availableNavWidth
                 height: navigationBarHeight
