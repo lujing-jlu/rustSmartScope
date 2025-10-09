@@ -263,9 +263,10 @@ ApplicationWindow {
                 anchors.topMargin: margins * 2
 
                 // 3D校准按钮
-                ToolBarButton {
+                UniversalButton {
                     id: calibrateButton
                     text: "3D校准"
+                    buttonStyle: "toolbar"
                     iconSource: "qrc:/icons/config.svg"
                     onClicked: {
                         console.log("3D calibration clicked")
@@ -273,9 +274,10 @@ ApplicationWindow {
                 }
 
                 // 点云生成按钮
-                ToolBarButton {
+                UniversalButton {
                     id: pointCloudButton
                     text: "点云生成"
+                    buttonStyle: "toolbar"
                     iconSource: "qrc:/icons/view.svg"
                     onClicked: {
                         console.log("Point cloud generation clicked")
@@ -283,9 +285,10 @@ ApplicationWindow {
                 }
 
                 // 深度测量按钮
-                ToolBarButton {
+                UniversalButton {
                     id: depthMeasureButton
                     text: "深度测量"
+                    buttonStyle: "toolbar"
                     iconSource: "qrc:/icons/measurement/depth.svg"
                     onClicked: {
                         console.log("Depth measurement clicked")
@@ -294,9 +297,10 @@ ApplicationWindow {
                 }
 
                 // 长度测量按钮
-                ToolBarButton {
+                UniversalButton {
                     id: lengthMeasureButton
                     text: "长度测量"
+                    buttonStyle: "toolbar"
                     iconSource: "qrc:/icons/measurement/length.svg"
                     onClicked: {
                         console.log("Length measurement clicked")
@@ -305,9 +309,10 @@ ApplicationWindow {
                 }
 
                 // 面积测量按钮
-                ToolBarButton {
+                UniversalButton {
                     id: areaMeasureButton
                     text: "面积测量"
+                    buttonStyle: "toolbar"
                     iconSource: "qrc:/icons/measurement/area.svg"
                     onClicked: {
                         console.log("Area measurement clicked")
@@ -316,9 +321,10 @@ ApplicationWindow {
                 }
 
                 // 测量数据导出按钮
-                ToolBarButton {
+                UniversalButton {
                     id: exportButton
                     text: "数据导出"
+                    buttonStyle: "toolbar"
                     iconSource: "qrc:/icons/save.svg"
                     onClicked: {
                         console.log("Export measurement data clicked")

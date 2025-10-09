@@ -320,50 +320,55 @@ ApplicationWindow {
                 spacing: margins
 
                 // 相机调整按钮
-                ToolBarButton {
+                UniversalButton {
                     id: adjustButton
                     text: "画面调整"
                     iconSource: "qrc:/icons/config.svg"
+                    buttonStyle: "toolbar"
                     onClicked: {
                         console.log("Camera adjust clicked")
                     }
                 }
 
                 // 双目截图按钮
-                ToolBarButton {
+                UniversalButton {
                     id: captureButton
                     text: "双目截图"
                     iconSource: "qrc:/icons/camera.svg"
+                    buttonStyle: "toolbar"
                     onClicked: {
                         console.log("Capture clicked")
                     }
                 }
 
                 // 屏幕截图按钮
-                ToolBarButton {
+                UniversalButton {
                     id: screenshotButton
                     text: "屏幕截图"
                     iconSource: "qrc:/icons/screenshot.svg"
+                    buttonStyle: "toolbar"
                     onClicked: {
                         console.log("Screenshot clicked")
                     }
                 }
 
                 // LED控制按钮
-                ToolBarButton {
+                UniversalButton {
                     id: ledControlButton
                     text: "LED控制"
                     iconSource: "qrc:/icons/brightness.svg"
+                    buttonStyle: "toolbar"
                     onClicked: {
                         console.log("LED control clicked")
                     }
                 }
 
                 // AI检测按钮
-                ToolBarButton {
+                UniversalButton {
                     id: aiDetectionButton
                     text: "AI检测"
                     iconSource: "qrc:/icons/AI.svg"
+                    buttonStyle: "toolbar"
                     onClicked: {
                         console.log("AI detection clicked")
                         // 切换AI检测状态

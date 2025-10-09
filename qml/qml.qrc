@@ -9,6 +9,7 @@
         <file>components/NavigationButton.qml</file>
         <file>components/UnifiedNavigationButton.qml</file>
         <file>components/ToolBarButton.qml</file>
+        <file>components/UniversalButton.qml</file>
         <file>components/StatusBar.qml</file>
         <file>components/NavigationBar.qml</file>
 

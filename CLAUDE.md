@@ -7,6 +7,19 @@ Always use context7 when I need code generation, setup or configuration steps, o
 library/API documentation. This means you should automatically use the Context7 MCP
 tools to resolve library id and get library docs without me having to explicitly ask.
 
+## Testing and Quality Assurance
+
+### Testing Commands
+- `cargo test` - Run Rust unit tests for all workspace crates
+- `cargo test -p smartscope-core` - Run tests for specific crate
+- `cargo clippy` - Run Rust linter for code quality
+- `cargo fmt` - Format Rust code according to style guidelines
+
+### Quality Checks
+- No dedicated test runner scripts currently configured
+- When adding tests, place them in `tests/` directory for integration tests
+- Unit tests should be co-located with source code using `#[cfg(test)]` modules
+
 ## Project Overview
 
 RustSmartScope is a modular stereo camera 3D reconstruction system built with a Rust+C++/Qt hybrid architecture. It demonstrates modern cross-language integration patterns with Rust providing the high-performance core engine and Qt/QML providing the user interface.
@@ -28,6 +41,10 @@ RustSmartScope is a modular stereo camera 3D reconstruction system built with a 
 - `./build_and_run.sh` - One-command build and run (recommended for development)
 - `./build_and_run.sh clean` - Clean build and run
 - `./build_and_run.sh debug` - Debug build and run
+
+### Additional Build Scripts
+- `./build_incremental.sh` - Incremental build for faster development iteration
+- `./build_optimized.sh` - Optimized build with additional performance flags
 
 ### Cleanup Commands
 - `./clean.sh` - Clean build artifacts only
@@ -80,6 +97,8 @@ This is a Cargo workspace with multiple crates:
 - Main workspace defined in root `Cargo.toml`
 - Individual crates have their own `Cargo.toml` files
 - Shared dependencies defined at workspace level
+- Active crates: `smartscope-core`, `c-ffi`
+- Reference code in `reference_code/` (excluded from workspace)
 
 ## Development Workflow
 
@@ -171,6 +190,25 @@ This is a Cargo workspace with multiple crates:
 - Run with `./run.sh --debug` for verbose output
 - Check application logs in `logs/` directory
 - Use `ldd build/bin/rustsmartscope` to check library dependencies
+
+## Important Files and Locations
+
+### Key Configuration Files
+- `config.toml` - Main application configuration
+- `simple_config.toml` - Minimal configuration for testing
+- `test_config.toml` - Test-specific configuration
+- `cbindgen.toml` - C header generation configuration
+
+### Build Outputs
+- `build/bin/rustsmartscope` - Main executable
+- `target/release/libsmartscope.a` - Rust static library
+- `include/` - Generated C headers for FFI
+
+### Resource Files
+- `qml/qml.qrc` - QML resource file
+- `qml/fonts.qrc` - Font resources
+- `resources/icons/` - SVG icon files
+- `camera_parameters/` - Camera calibration data
 
 ## Current UI Architecture (2024-12-19)
 

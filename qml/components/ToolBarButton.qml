@@ -22,8 +22,8 @@ Rectangle {
     property bool hovered: false
 
     // 样式设置
-    width: 48
-    height: 48
+    width: 82  // 放大70% (48 * 1.7)
+    height: 82
     color: backgroundColor
     radius: 8
     border.width: 1.5
@@ -64,33 +64,24 @@ Rectangle {
     // 图标内容
     Item {
         anchors.centerIn: parent
-        width: 34  // 调整图标容器大小 (56 * 0.6)
-        height: 34
-
-        // 活跃状态背景 - 移除圆形背景
-        // Rectangle {
-        //     anchors.fill: parent
-        //     color: toolButton.isActive ? activeColor : "transparent"
-        //     radius: width / 2
-        //     opacity: toolButton.isActive ? 0.15 : 0
-        //     Behavior on opacity { PropertyAnimation { duration: 300 } }
-        // }
+        width: 70  // 接近填满按钮 (82 * 0.85)
+        height: 70
 
         // 图标
         Image {
             id: icon
             source: iconSource
             anchors.centerIn: parent
-            width: 17   // 缩小图标大小到60% (28 * 0.6)
-            height: 17
+            width: 56   // 填满大部分空间 (70 * 0.8)
+            height: 56
             fillMode: Image.PreserveAspectFit
             visible: false
         }
 
         ColorOverlay {
             anchors.centerIn: parent
-            width: 17
-            height: 17
+            width: 56  // 填满大部分空间 (70 * 0.8)
+            height: 56
             source: icon
             color: toolButton.isActive ? activeColor : "#FFFFFF"
             Behavior on color { ColorAnimation { duration: 300 } }
@@ -98,8 +89,8 @@ Rectangle {
 
         DropShadow {
             anchors.centerIn: parent
-            width: 17
-            height: 17
+            width: 56  // 填满大部分空间 (70 * 0.8)
+            height: 56
             horizontalOffset: 0
             verticalOffset: 2
             radius: 8
