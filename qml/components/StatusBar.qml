@@ -12,6 +12,11 @@ Rectangle {
     property int batteryLevel: 85
     property bool isCharging: false
 
+    // 监听属性变化（调试用，可删除）
+    // onCurrentTimeChanged: {
+    //     console.log("StatusBar currentTime changed:", currentTime)
+    // }
+
     // 样式属性 - 从主窗口传入
     property int fontSize: 18
     property string mixedFontMedium: ""
@@ -85,6 +90,11 @@ Rectangle {
                 font.weight: Font.Bold
                 anchors.centerIn: parent
                 visible: true
+
+                // 调试信息（已修复，可删除）
+                // onTextChanged: {
+                //     console.log("状态栏时间更新:", text, "| 接收的currentTime:", currentTime)
+                // }
             }
         }
 

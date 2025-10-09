@@ -150,10 +150,31 @@ ApplicationWindow {
     property real glassBlur: devicePixelRatio > 2.0 ? 45 : 60
 
     // 基础时间和电池状态
-    property string currentTime: Qt.formatTime(new Date(), "HH:mm")
-    property string currentDate: Qt.formatDate(new Date(), "MM/dd")
+    property string currentTime: ""
+    property string currentDate: ""
     property int batteryLevel: 85  // 85% 电量
     property bool isCharging: false  // 充电状态
+
+    // 格式化时间的函数
+    function formatCurrentTime() {
+        var now = new Date()
+        var hours = now.getHours()
+        var minutes = now.getMinutes()
+        // 手动添加前导零
+        var hourStr = hours < 10 ? "0" + hours : hours.toString()
+        var minuteStr = minutes < 10 ? "0" + minutes : minutes.toString()
+        return hourStr + ":" + minuteStr
+    }
+
+    function formatCurrentDate() {
+        var now = new Date()
+        var month = now.getMonth() + 1
+        var day = now.getDate()
+        // 手动添加前导零
+        var monthStr = month < 10 ? "0" + month : month.toString()
+        var dayStr = day < 10 ? "0" + day : day.toString()
+        return monthStr + "/" + dayStr
+    }
 
     // 实时更新时间的Timer
     Timer {
@@ -163,9 +184,8 @@ ApplicationWindow {
         repeat: true
 
         onTriggered: {
-            var now = new Date()
-            currentTime = Qt.formatTime(now, "HH:mm")
-            currentDate = Qt.formatDate(now, "MM/dd")
+            currentTime = formatCurrentTime()
+            currentDate = formatCurrentDate()
         }
     }
 
@@ -253,11 +273,11 @@ ApplicationWindow {
             height: statusBarHeight
             z: 100
 
-            // 传递属性
-            currentTime: currentTime
-            currentDate: currentDate
-            batteryLevel: batteryLevel
-            isCharging: isCharging
+            // 传递属性 - 使用明确的绑定
+            currentTime: mainWindow.currentTime
+            currentDate: mainWindow.currentDate
+            batteryLevel: mainWindow.batteryLevel
+            isCharging: mainWindow.isCharging
             fontSize: fontSize * 1.5  // 增加50%
             mixedFontMedium: mixedFontMedium
             accentSuccess: accentSuccess
@@ -556,7 +576,12 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
+        // 立即更新时间
+        currentTime = formatCurrentTime()
+        currentDate = formatCurrentDate()
+
         console.log("=== SmartScope Industrial UI initialized ===")
+        console.log("Current Time: " + currentTime + " | Date: " + currentDate)
         console.log("Screen Resolution (logical): " + screenWidth + "x" + screenHeight)
         console.log("Window Size: " + width + "x" + height)
         console.log("Target Resolution: " + targetWidth + "x" + targetHeight)
