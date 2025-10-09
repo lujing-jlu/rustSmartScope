@@ -25,10 +25,11 @@ Rectangle {
     // 统一的按钮样式
     property color buttonColor: isExitButton ?
         (hovered ? Qt.rgba(0.8, 0.2, 0.2, 0.8) : Qt.rgba(0.6, 0.15, 0.15, 0.6)) :
-        Qt.rgba(0.12, 0.12, 0.12, 0.6)
+        (isActive ? Qt.rgba(0.25, 0.25, 0.25, 0.9) : Qt.rgba(0.12, 0.12, 0.12, 0.6))
 
     property color borderColor: isExitButton ?
-        Qt.rgba(1, 0.4, 0.4, 0.3) : Qt.rgba(1, 1, 1, 0.1)
+        Qt.rgba(1, 0.4, 0.4, 0.3) :
+        (isActive ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(1, 1, 1, 0.1))
 
     // 信号
     signal clicked()
