@@ -461,21 +461,28 @@ impl CameraManager {
 
         match mode {
             CameraMode::StereoCamera => {
-                // 从左相机读取帧
-                if let Some(ref mut reader) = self.left_reader {
-                    if let Ok(Some(frame)) = reader.read_frame() {
-                        if let Ok(mut left) = self.left_frame.lock() {
-                            *left = Some(frame);
-                        }
+                // 并行读取左右相机帧（使用rayon或者手动spawn）
+                // 为了避免引入rayon依赖，我们优化读取顺序，先尝试读取所有帧到临时变量
+                // 这样可以最小化锁的持有时间
+
+                let left_frame_opt = self.left_reader.as_mut()
+                    .and_then(|reader| reader.read_frame().ok())
+                    .flatten();
+
+                let right_frame_opt = self.right_reader.as_mut()
+                    .and_then(|reader| reader.read_frame().ok())
+                    .flatten();
+
+                // 批量更新帧缓存，减少锁竞争
+                if let Some(frame) = left_frame_opt {
+                    if let Ok(mut left) = self.left_frame.lock() {
+                        *left = Some(frame);
                     }
                 }
 
-                // 从右相机读取帧
-                if let Some(ref mut reader) = self.right_reader {
-                    if let Ok(Some(frame)) = reader.read_frame() {
-                        if let Ok(mut right) = self.right_frame.lock() {
-                            *right = Some(frame);
-                        }
+                if let Some(frame) = right_frame_opt {
+                    if let Ok(mut right) = self.right_frame.lock() {
+                        *right = Some(frame);
                     }
                 }
             }
@@ -613,19 +620,19 @@ impl CameraManager {
             .any(|keyword| name_lower.contains(&keyword.to_lowercase()))
     }
 
-    /// 获取左相机最新帧
+    /// 获取左相机最新帧（使用take避免克隆，调用后会清空缓存）
     pub fn get_left_frame(&self) -> Option<VideoFrame> {
-        self.left_frame.lock().ok()?.clone()
+        self.left_frame.lock().ok()?.take()
     }
 
-    /// 获取右相机最新帧
+    /// 获取右相机最新帧（使用take避免克隆，调用后会清空缓存）
     pub fn get_right_frame(&self) -> Option<VideoFrame> {
-        self.right_frame.lock().ok()?.clone()
+        self.right_frame.lock().ok()?.take()
     }
 
-    /// 获取单相机最新帧
+    /// 获取单相机最新帧（使用take避免克隆，调用后会清空缓存）
     pub fn get_single_frame(&self) -> Option<VideoFrame> {
-        self.single_frame.lock().ok()?.clone()
+        self.single_frame.lock().ok()?.take()
     }
 
     /// 获取当前相机模式

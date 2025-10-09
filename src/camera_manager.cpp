@@ -144,7 +144,8 @@ void CameraManager::updateFrames()
 
     // 根据相机模式获取对应的帧
     if (mode == StereoCamera) {
-        // 双目模式：获取左相机帧
+        // 双目模式：只处理左相机帧（当前只显示左相机）
+        // 右相机帧虽然在Rust侧读取了，但不在C++侧解码，避免浪费CPU
         CCameraFrame leftFrame;
         if (smartscope_get_left_frame(&leftFrame) == 0) {
             QImage newLeftImage = processFrame(leftFrame);
@@ -163,29 +164,13 @@ void CameraManager::updateFrames()
             }
         }
 
-        // 获取右相机帧
+        // 丢弃右相机帧（不解码，只是清空Rust缓存）
         CCameraFrame rightFrame;
-        if (smartscope_get_right_frame(&rightFrame) == 0) {
-            QImage newRightImage = processFrame(rightFrame);
-            if (!newRightImage.isNull()) {
-                QPixmap newRightPixmap = QPixmap::fromImage(newRightImage);
-
-                {
-                    QMutexLocker locker(&m_frameMutex);
-                    m_rightFrame = newRightImage;
-                    m_rightPixmap = newRightPixmap;
-                    frameUpdated = true;
-                }
-
-                // 发送QPixmap信号给原生Widget
-                emit rightPixmapUpdated(newRightPixmap);
-            }
-        }
+        smartscope_get_right_frame(&rightFrame);  // 只获取不处理，避免缓存积压
 
         // 发出信号通知QML更新
         if (frameUpdated) {
             emit leftFrameChanged();
-            emit rightFrameChanged();
         }
     } else if (mode == SingleCamera) {
         // 单目模式：获取单相机帧
