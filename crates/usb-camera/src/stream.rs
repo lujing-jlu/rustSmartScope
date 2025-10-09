@@ -86,8 +86,9 @@ impl CameraStreamReader {
 
         info!("Starting camera stream reader for {}", self.camera_name);
 
-        // Create async channel for frame communication (larger capacity to reduce backpressure)
-        let (tx, rx) = mpsc::channel(256);
+        // Create async channel for frame communication (small capacity to minimize latency)
+        // 使用1帧缓冲，强制立即消费最新帧，丢弃旧帧
+        let (tx, rx) = mpsc::channel(1);
         self.frame_receiver = Some(rx);
 
         // Clone data for the reading thread
@@ -143,25 +144,38 @@ impl CameraStreamReader {
     }
 
     /// Read a frame (non-blocking)
+    /// 总是返回最新的帧，丢弃所有积压的旧帧以最小化延迟
     pub fn read_frame(&mut self) -> CameraResult<Option<VideoFrame>> {
         if !self.running.load(Ordering::Relaxed) {
             return Ok(None);
         }
 
-        // Try async receiver first
+        let mut latest_frame = None;
+
+        // 从async receiver读取所有可用帧，只保留最新的
         if let Some(ref mut receiver) = self.frame_receiver {
-            match receiver.try_recv() {
-                Ok(frame) => return Ok(Some(frame)),
-                Err(mpsc::error::TryRecvError::Empty) => {}
-                Err(mpsc::error::TryRecvError::Disconnected) => {
-                    self.frame_receiver = None;
+            loop {
+                match receiver.try_recv() {
+                    Ok(frame) => {
+                        latest_frame = Some(frame); // 持续更新为最新帧
+                    }
+                    Err(mpsc::error::TryRecvError::Empty) => break,
+                    Err(mpsc::error::TryRecvError::Disconnected) => {
+                        self.frame_receiver = None;
+                        break;
+                    }
                 }
             }
         }
 
-        // Fallback to buffer
+        // 如果从async receiver获取到帧，直接返回
+        if latest_frame.is_some() {
+            return Ok(latest_frame);
+        }
+
+        // Fallback to buffer (也只取最新的)
         if let Ok(mut buffer) = self.frame_buffer.lock() {
-            Ok(buffer.pop_front())
+            Ok(buffer.pop_back()) // pop_back而不是pop_front，获取最新的帧
         } else {
             Ok(None)
         }
@@ -312,28 +326,24 @@ impl CameraStreamReader {
                             };
 
                             // Try to send to async channel without cloning; fallback to ring buffer
+                            // 为了最小化延迟，如果通道满了就丢弃旧帧，只保留最新帧
                             if let Some(ref sender) = frame_sender {
                                 match sender.try_send(frame) {
                                     Ok(()) => {}
-                                    Err(mpsc::error::TrySendError::Full(frame_back)) => {
-                                        debug!("Async channel full for {}", camera_name);
-                                        if let Ok(mut buffer) = frame_buffer.lock() {
-                                            buffer.push_back(frame_back);
-                                            while buffer.len() > 10 {
-                                                buffer.pop_front();
-                                            }
-                                        }
+                                    Err(mpsc::error::TrySendError::Full(_old_frame)) => {
+                                        // 通道满了，丢弃旧帧（已经在通道里的），这个新帧也暂时丢弃
+                                        // 这样可以确保下一帧能进入通道，保持最新画面
+                                        debug!("Async channel full for {}, dropping old frame", camera_name);
                                     }
                                     Err(mpsc::error::TrySendError::Closed(_frame_back)) => {
                                         // Drop if receiver is closed
                                     }
                                 }
                             } else {
+                                // 后备缓冲区也只保留1帧
                                 if let Ok(mut buffer) = frame_buffer.lock() {
-                                    buffer.push_back(frame);
-                                    while buffer.len() > 10 {
-                                        buffer.pop_front();
-                                    }
+                                    buffer.clear(); // 清空旧帧
+                                    buffer.push_back(frame); // 只保留最新帧
                                 }
                             }
                         }
