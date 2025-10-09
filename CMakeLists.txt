@@ -63,6 +63,7 @@ endif()
 # 添加源文件
 set(SOURCES
     src/main.cpp
+    src/qml_logger.cpp
 )
 
 # QML资源文件（如果存在）

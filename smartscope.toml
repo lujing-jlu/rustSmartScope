@@ -1,3 +1,6 @@
+# SmartScope 配置文件
+# 完整的立体视觉系统配置
+
 [app]
 name = "RustSmartScope"
 version = "0.1.0"
@@ -10,20 +13,12 @@ height = 720
 fps = 30
 
 [camera.left]
-name_keywords = [
-    "cameral",
-    "left",
-    "video3",
-]
+name_keywords = ["cameral", "left", "video3"]
 parameters_path = "camera_parameters/camera0_intrinsics.dat"
 rot_trans_path = "camera_parameters/camera0_rot_trans.dat"
 
 [camera.right]
-name_keywords = [
-    "camerar",
-    "right",
-    "video1",
-]
+name_keywords = ["camerar", "right", "video1"]
 parameters_path = "camera_parameters/camera1_intrinsics.dat"
 rot_trans_path = "camera_parameters/camera1_rot_trans.dat"
 
@@ -56,13 +51,13 @@ provider = "cuda"
 [stereo.point_cloud]
 max_points = 1000000
 filter_outliers = true
-voxel_size = 0.009999999776482582
+voxel_size = 0.01
 
 [hardware.hid]
-vendor_id = 1
-product_id = 60881
-usage_page = 65376
-usage = 97
+vendor_id = 0x0001
+product_id = 0xEDD1
+usage_page = 0xFF60
+usage = 0x61
 report_size = 33
 timeout_ms = 1000
 
@@ -98,7 +93,7 @@ max_reasonable_area_mm2 = 1000000.0
 [logging]
 level = "info"
 file_path = "logs/smartscope.log"
-max_file_size = 10485760
+max_file_size = 10485760  # 10MB
 backup_count = 5
 enable_detailed_logging = true
 

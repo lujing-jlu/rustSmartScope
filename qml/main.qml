@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
 import QtGraphicalEffects 1.15
+import RustSmartScope.Logger 1.0
 import "pages"
 import "components"
 
@@ -311,11 +312,11 @@ ApplicationWindow {
             }
 
             onLoaded: {
-                console.log("Page loaded:", currentPage)
+                Logger.info("Page loaded: " + currentPage)
             }
 
             onSourceChanged: {
-                console.log("Loading page:", source)
+                Logger.info("Loading page: " + source)
                 opacity = 0
                 opacity = 1
             }
@@ -346,7 +347,7 @@ ApplicationWindow {
                     iconSource: "qrc:/icons/config.svg"
                     buttonStyle: "toolbar"
                     onClicked: {
-                        console.log("Camera adjust clicked")
+                        Logger.info("Camera adjust clicked")
                     }
                 }
 
@@ -357,7 +358,7 @@ ApplicationWindow {
                     iconSource: "qrc:/icons/camera.svg"
                     buttonStyle: "toolbar"
                     onClicked: {
-                        console.log("Capture clicked")
+                        Logger.info("Capture clicked")
                     }
                 }
 
@@ -368,7 +369,7 @@ ApplicationWindow {
                     iconSource: "qrc:/icons/screenshot.svg"
                     buttonStyle: "toolbar"
                     onClicked: {
-                        console.log("Screenshot clicked")
+                        Logger.info("Screenshot clicked")
                     }
                 }
 
@@ -379,7 +380,7 @@ ApplicationWindow {
                     iconSource: "qrc:/icons/brightness.svg"
                     buttonStyle: "toolbar"
                     onClicked: {
-                        console.log("LED control clicked")
+                        Logger.info("LED control clicked")
                     }
                 }
 
@@ -390,7 +391,7 @@ ApplicationWindow {
                     iconSource: "qrc:/icons/AI.svg"
                     buttonStyle: "toolbar"
                     onClicked: {
-                        console.log("AI detection clicked")
+                        Logger.info("AI detection clicked")
                         // 切换AI检测状态
                         aiDetectionButton.isActive = !aiDetectionButton.isActive
                     }
@@ -523,7 +524,7 @@ ApplicationWindow {
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                console.log("Application exit confirmed")
+                                Logger.info("Application exit confirmed")
                                 Qt.quit()
                             }
                         }
@@ -561,7 +562,7 @@ ApplicationWindow {
 
     // 页面路由函数
     function navigateTo(pageName) {
-        console.log("Navigating to:", pageName)
+        Logger.info("Navigating to: " + pageName)
         currentPage = pageName
 
         // 更新导航栏按钮状态
@@ -580,31 +581,31 @@ ApplicationWindow {
         currentTime = formatCurrentTime()
         currentDate = formatCurrentDate()
 
-        console.log("=== SmartScope Industrial UI initialized ===")
-        console.log("Current Time: " + currentTime + " | Date: " + currentDate)
-        console.log("Screen Resolution (logical): " + screenWidth + "x" + screenHeight)
-        console.log("Window Size: " + width + "x" + height)
-        console.log("Target Resolution: " + targetWidth + "x" + targetHeight)
-        console.log("Device Pixel Ratio: " + devicePixelRatio.toFixed(2))
-        console.log("Logical DPI: " + logicalDpi.toFixed(1))
-        console.log("Visibility: " + visibility)
-        console.log("---")
-        console.log("Width Ratio: " + widthRatio.toFixed(2))
-        console.log("Height Ratio: " + heightRatio.toFixed(2))
-        console.log("Screen Ratio: " + screenRatio.toFixed(2))
-        console.log("HiDPI Adjustment: " + hiDPIAdjustment.toFixed(2))
-        console.log("Final Size Adjustment: " + sizeAdjustment.toFixed(2))
-        console.log("---")
-        console.log("Status bar height: " + statusBarHeight + "px")
-        console.log("Navigation bar height: " + navigationBarHeight + "px")
-        console.log("Font size: " + fontSize + "px")
-        console.log("Icon size: " + iconSize + "px")
-        console.log("Page loader area: " + pageLoader.width + "x" + pageLoader.height)
-        console.log("---")
-        console.log("Navigation Layout:")
-        console.log("Available nav width: " + availableNavWidth + "px")
-        console.log("Button max width: " + buttonMaxWidth + "px")
-        console.log("Button min width: " + buttonMinWidth + "px")
-        console.log("Dynamic button width: " + dynamicButtonWidth + "px")
+        Logger.info("=== SmartScope Industrial UI initialized ===")
+        Logger.info("Current Time: " + currentTime + " | Date: " + currentDate)
+        Logger.info("Screen Resolution (logical): " + screenWidth + "x" + screenHeight)
+        Logger.info("Window Size: " + width + "x" + height)
+        Logger.info("Target Resolution: " + targetWidth + "x" + targetHeight)
+        Logger.info("Device Pixel Ratio: " + devicePixelRatio.toFixed(2))
+        Logger.info("Logical DPI: " + logicalDpi.toFixed(1))
+        Logger.info("Visibility: " + visibility)
+        Logger.info("---")
+        Logger.info("Width Ratio: " + widthRatio.toFixed(2))
+        Logger.info("Height Ratio: " + heightRatio.toFixed(2))
+        Logger.info("Screen Ratio: " + screenRatio.toFixed(2))
+        Logger.info("HiDPI Adjustment: " + hiDPIAdjustment.toFixed(2))
+        Logger.info("Final Size Adjustment: " + sizeAdjustment.toFixed(2))
+        Logger.info("---")
+        Logger.info("Status bar height: " + statusBarHeight + "px")
+        Logger.info("Navigation bar height: " + navigationBarHeight + "px")
+        Logger.info("Font size: " + fontSize + "px")
+        Logger.info("Icon size: " + iconSize + "px")
+        Logger.info("Page loader area: " + pageLoader.width + "x" + pageLoader.height)
+        Logger.info("---")
+        Logger.info("Navigation Layout:")
+        Logger.info("Available nav width: " + availableNavWidth + "px")
+        Logger.info("Button max width: " + buttonMaxWidth + "px")
+        Logger.info("Button min width: " + buttonMinWidth + "px")
+        Logger.info("Dynamic button width: " + dynamicButtonWidth + "px")
     }
 }

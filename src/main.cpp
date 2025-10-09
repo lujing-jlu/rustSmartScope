@@ -9,45 +9,53 @@ extern "C" {
     #include "smartscope.h"
 }
 
+// 引入统一日志系统
+#include "logger.h"
+#include "qml_logger.h"
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     app.setApplicationName("RustSmartScope");
     app.setApplicationVersion("0.1.0");
 
-    qDebug() << "Starting RustSmartScope...";
+    // 使用统一日志系统替代qDebug
+    LOG_INFO("Main", "Starting RustSmartScope...");
 
-    // 测试Rust FFI连接
-    qDebug() << "Initializing Rust core...";
+    // 初始化Rust核心（包含日志系统）
+    LOG_INFO("Main", "Initializing Rust core...");
     int result = smartscope_init();
     if (result != SMARTSCOPE_ERROR_SUCCESS) {
-        qCritical() << "Failed to initialize Rust core:" << smartscope_get_error_string(result);
+        LOG_ERROR("Main", "Failed to initialize Rust core: ", smartscope_get_error_string(result));
         return -1;
     }
 
-    qDebug() << "Rust core initialized successfully";
-    qDebug() << "Version:" << smartscope_get_version();
-    qDebug() << "Is initialized:" << smartscope_is_initialized();
+    LOG_INFO("Main", "Rust core initialized successfully");
+    LOG_INFO("Main", "Version: ", smartscope_get_version());
+    LOG_INFO("Main", "Is initialized: ", smartscope_is_initialized() ? "true" : "false");
 
     // 测试配置文件操作
-    qDebug() << "Testing config operations...";
+    LOG_INFO("Main", "Testing config operations...");
     const char* configPath = "test_config.toml";
 
     // 尝试保存配置
     result = smartscope_save_config(configPath);
     if (result == SMARTSCOPE_ERROR_SUCCESS) {
-        qDebug() << "Config saved successfully";
+        LOG_INFO("Main", "Config saved successfully");
 
         // 尝试加载配置
         result = smartscope_load_config(configPath);
         if (result == SMARTSCOPE_ERROR_SUCCESS) {
-            qDebug() << "Config loaded successfully";
+            LOG_INFO("Main", "Config loaded successfully");
         } else {
-            qWarning() << "Failed to load config:" << smartscope_get_error_string(result);
+            LOG_ERROR("Main", "Failed to load config: ", smartscope_get_error_string(result));
         }
     } else {
-        qWarning() << "Failed to save config:" << smartscope_get_error_string(result);
+        LOG_ERROR("Main", "Failed to save config: ", smartscope_get_error_string(result));
     }
+
+    // 注册QML日志组件
+    QmlLogger::registerQmlType();
 
     // 创建QML引擎显示空白页面
     QQmlApplicationEngine engine;
@@ -61,7 +69,7 @@ int main(int argc, char *argv[])
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
                      &app, [qmlUrl](QObject *obj, const QUrl &objUrl) {
         if (!obj && qmlUrl == objUrl) {
-            qCritical() << "Failed to load QML file:" << qmlUrl;
+            LOG_ERROR("Main", "Failed to load QML file: ", qmlUrl.toString().toStdString());
             QCoreApplication::exit(-1);
         }
     }, Qt::QueuedConnection);
@@ -69,19 +77,19 @@ int main(int argc, char *argv[])
     engine.load(qmlUrl);
 
     if (engine.rootObjects().isEmpty()) {
-        qCritical() << "No QML root objects found";
+        LOG_ERROR("Main", "No QML root objects found");
         return -1;
     }
 
-    qDebug() << "Application started, showing window...";
+    LOG_INFO("Main", "Application started, showing window...");
 
     // 运行应用程序
     int exitCode = app.exec();
 
     // 清理Rust资源
-    qDebug() << "Shutting down Rust core...";
+    LOG_INFO("Main", "Shutting down Rust core...");
     smartscope_shutdown();
 
-    qDebug() << "Application exited with code:" << exitCode;
+    LOG_INFO("Main", "Application exited with code: ", exitCode);
     return exitCode;
 }

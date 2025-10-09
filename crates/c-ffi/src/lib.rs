@@ -6,7 +6,11 @@ use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int};
 use std::sync::Once;
 
-use smartscope_core::{AppState, SmartScopeError, AppConfig};
+use smartscope_core::{
+    AppState, SmartScopeError,
+    LoggerConfig, LogLevel, LogRotation, init_global_logger, log_from_cpp
+};
+use smartscope_core::config::SmartScopeConfig;
 
 /// 全局应用状态实例
 static mut APP_STATE: Option<AppState> = None;
@@ -32,12 +36,23 @@ impl From<SmartScopeError> for ErrorCode {
     }
 }
 
-/// 初始化SmartScope系统
+/// 初始化SmartScope系统和日志
 #[no_mangle]
 pub extern "C" fn smartscope_init() -> c_int {
     INIT.call_once(|| {
-        // 初始化日志系统
-        tracing_subscriber::fmt::init();
+        // 初始化统一日志系统
+        let log_config = LoggerConfig {
+            level: LogLevel::Info,
+            log_dir: "logs".to_string(),
+            console_output: true,
+            file_output: true,
+            json_format: false,
+            rotation: LogRotation::Daily,
+        };
+
+        if let Err(e) = init_global_logger(log_config) {
+            eprintln!("Failed to initialize logger: {}", e);
+        }
 
         unsafe {
             let mut state = AppState::new();
@@ -103,7 +118,7 @@ pub extern "C" fn smartscope_load_config(config_path: *const c_char) -> c_int {
         }
     };
 
-    match AppConfig::load_from_file(path_str) {
+    match SmartScopeConfig::load_from_file(path_str) {
         Ok(config) => {
             *app_state.config.write().unwrap() = config;
             tracing::info!("Configuration loaded from: {}", path_str);
@@ -178,4 +193,84 @@ pub extern "C" fn smartscope_free_string(s: *mut c_char) {
     unsafe {
         let _ = CString::from_raw(s);
     }
+}
+
+// ============================================================================
+// 日志相关C FFI接口
+// ============================================================================
+
+/// C FFI日志级别（与Rust的LogLevel对应）
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CLogLevel {
+    Trace = 0,
+    Debug = 1,
+    Info = 2,
+    Warn = 3,
+    Error = 4,
+}
+
+impl From<CLogLevel> for LogLevel {
+    fn from(level: CLogLevel) -> Self {
+        match level {
+            CLogLevel::Trace => LogLevel::Trace,
+            CLogLevel::Debug => LogLevel::Debug,
+            CLogLevel::Info => LogLevel::Info,
+            CLogLevel::Warn => LogLevel::Warn,
+            CLogLevel::Error => LogLevel::Error,
+        }
+    }
+}
+
+/// C++调用的日志函数
+#[no_mangle]
+pub extern "C" fn smartscope_log(
+    level: CLogLevel,
+    module: *const c_char,
+    message: *const c_char
+) -> c_int {
+    if module.is_null() || message.is_null() {
+        return ErrorCode::Error as c_int;
+    }
+
+    let module_str = match unsafe { CStr::from_ptr(module) }.to_str() {
+        Ok(s) => s,
+        Err(_) => return ErrorCode::Error as c_int,
+    };
+
+    let message_str = match unsafe { CStr::from_ptr(message) }.to_str() {
+        Ok(s) => s,
+        Err(_) => return ErrorCode::Error as c_int,
+    };
+
+    log_from_cpp(level.into(), module_str, message_str);
+    ErrorCode::Success as c_int
+}
+
+/// QML调用的日志函数
+#[no_mangle]
+pub extern "C" fn smartscope_log_qml(
+    level: CLogLevel,
+    message: *const c_char
+) -> c_int {
+    if message.is_null() {
+        return ErrorCode::Error as c_int;
+    }
+
+    let message_str = match unsafe { CStr::from_ptr(message) }.to_str() {
+        Ok(s) => s,
+        Err(_) => return ErrorCode::Error as c_int,
+    };
+
+    log_from_cpp(level.into(), "QML", message_str);
+    ErrorCode::Success as c_int
+}
+
+/// 设置日志级别
+#[no_mangle]
+pub extern "C" fn smartscope_set_log_level(level: CLogLevel) -> c_int {
+    // TODO: 实现动态日志级别设置
+    log_from_cpp(LogLevel::Info, "Logger",
+        &format!("Log level change requested: {:?}", level));
+    ErrorCode::Success as c_int
 }
