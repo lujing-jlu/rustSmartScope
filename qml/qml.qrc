@@ -12,9 +12,11 @@
         <file>components/UniversalButton.qml</file>
         <file>components/StatusBar.qml</file>
         <file>components/NavigationBar.qml</file>
+        <file>components/OperationButton.qml</file>
 
         <!-- 窗口 -->
         <file>Measurement3DWindow.qml</file>
+        <file>VideoOperationsWindow.qml</file>
 
         <!-- 页面 -->
         <file>pages/HomePage.qml</file>

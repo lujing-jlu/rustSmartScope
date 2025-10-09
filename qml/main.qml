@@ -341,6 +341,16 @@ ApplicationWindow {
                     text: "画面调整"
                     iconSource: "qrc:/icons/config.svg"
                     buttonStyle: "toolbar"
+                    onClicked: {
+                        if (videoOperationsWindow.visibility === Window.Hidden || videoOperationsWindow.visibility === Window.Minimized) {
+                            videoOperationsWindow.show()
+                            videoOperationsWindow.raise()
+                            videoOperationsWindow.requestActivate()
+                        } else {
+                            videoOperationsWindow.raise()
+                            videoOperationsWindow.requestActivate()
+                        }
+                    }
                 }
 
                 // 双目截图按钮
@@ -632,6 +642,11 @@ ApplicationWindow {
     // 3D测量窗口实例
     Measurement3DWindow {
         id: measurement3DWindow
+    }
+
+    // 视频操作窗口实例
+    VideoOperationsWindow {
+        id: videoOperationsWindow
     }
 
     Component.onCompleted: {
