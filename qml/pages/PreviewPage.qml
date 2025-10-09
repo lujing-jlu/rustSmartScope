@@ -11,7 +11,7 @@ Rectangle {
 
     Text {
         anchors.centerIn: parent
-        text: "🔍 预览页面"
+        text: "📚 媒体库"
         font.pixelSize: 48
         font.bold: true
         color: "#38BDF8"  // 亮蓝色主题

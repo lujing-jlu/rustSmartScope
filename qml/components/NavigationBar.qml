@@ -57,15 +57,15 @@ Rectangle {
             }
         }
 
-        // 预览按钮
+        // 媒体库按钮
         UnifiedNavigationButton {
             id: detectionButton
-            text: "预览"
+            text: "媒体库"
             iconSource: "qrc:/icons/preview.svg"
             isActive: activeTab === "preview"
             activeColor: "#38BDF8"
             onClicked: {
-                console.log("Detection clicked")
+                console.log("Media Library clicked")
                 setActiveTab("preview")
                 navigationBar.previewClicked()
             }
