@@ -5,7 +5,7 @@
 
 pub mod config;
 pub mod control;
-pub mod cpp_interface;
+// pub mod cpp_interface;  // 禁用：在smartscope-c-ffi中有专用的FFI层
 pub mod decoder;
 pub mod device;
 pub mod error;
@@ -15,7 +15,7 @@ mod turbojpeg;
 
 pub use config::*;
 pub use control::*;
-pub use cpp_interface::*;
+// pub use cpp_interface::*;  // 禁用
 pub use decoder::*;
 pub use device::*;
 pub use error::*;

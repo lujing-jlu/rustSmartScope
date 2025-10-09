@@ -279,7 +279,7 @@ ApplicationWindow {
             currentDate: mainWindow.currentDate
             batteryLevel: mainWindow.batteryLevel
             isCharging: mainWindow.isCharging
-            fontSize: fontSize * 1.5  // 增加50%
+            fontSize: mainWindow.fontSize * 1.5  // 增加50%
             mixedFontMedium: mixedFontMedium
             accentSuccess: accentSuccess
             accentWarning: accentWarning

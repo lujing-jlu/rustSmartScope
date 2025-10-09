@@ -3,18 +3,19 @@
 //! 支持配置热重载、状态同步等功能
 
 use crate::config::{SmartScopeConfig, PartialConfig};
+use crate::camera::CameraManager;
 use std::sync::{Arc, RwLock};
 use std::path::Path;
 use notify::{Watcher, RecommendedWatcher, RecursiveMode, Event};
 use std::sync::mpsc;
 
 /// SmartScope应用状态
-#[derive(Debug)]
 pub struct AppState {
     pub config: Arc<RwLock<SmartScopeConfig>>,
     pub initialized: bool,
     pub config_watcher: Option<RecommendedWatcher>,
     pub config_path: Option<String>,
+    pub camera_manager: Option<CameraManager>,
 }
 
 impl Clone for AppState {
@@ -24,6 +25,7 @@ impl Clone for AppState {
             initialized: self.initialized,
             config_watcher: None,  // Watcher不能clone，需要重新创建
             config_path: self.config_path.clone(),
+            camera_manager: None,  // CameraManager不能clone，需要重新创建
         }
     }
 }
@@ -35,6 +37,7 @@ impl AppState {
             initialized: false,
             config_watcher: None,
             config_path: None,
+            camera_manager: None,
         }
     }
 
@@ -45,7 +48,12 @@ impl AppState {
         // 验证配置
         config.validate()?;
 
-        *self.config.write().unwrap() = config;
+        *self.config.write().unwrap() = config.clone();
+
+        // 初始化相机管理器
+        let mut camera_manager = CameraManager::new(config);
+        camera_manager.initialize()?;
+        self.camera_manager = Some(camera_manager);
 
         self.initialized = true;
         tracing::info!("SmartScope core initialized");
@@ -53,6 +61,11 @@ impl AppState {
     }
 
     pub fn shutdown(&mut self) {
+        // 停止相机管理器
+        if let Some(mut camera_manager) = self.camera_manager.take() {
+            let _ = camera_manager.stop();
+        }
+
         // 停止配置文件监控
         if let Some(watcher) = self.config_watcher.take() {
             drop(watcher);
@@ -138,6 +151,53 @@ impl AppState {
 
     pub fn is_initialized(&self) -> bool {
         self.initialized
+    }
+
+    /// 启动相机系统
+    pub fn start_camera(&mut self) -> crate::Result<()> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.start()?;
+            tracing::info!("相机系统启动成功");
+        }
+        Ok(())
+    }
+
+    /// 停止相机系统
+    pub fn stop_camera(&mut self) -> crate::Result<()> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.stop()?;
+            tracing::info!("相机系统停止成功");
+        }
+        Ok(())
+    }
+
+    /// 处理相机帧数据
+    pub fn process_camera_frames(&mut self) {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.process_frames();
+        }
+    }
+
+    /// 获取左相机最新帧
+    pub fn get_left_camera_frame(&self) -> Option<crate::camera::VideoFrame> {
+        self.camera_manager.as_ref()?.get_left_frame()
+    }
+
+    /// 获取右相机最新帧
+    pub fn get_right_camera_frame(&self) -> Option<crate::camera::VideoFrame> {
+        self.camera_manager.as_ref()?.get_right_frame()
+    }
+
+    /// 获取相机状态
+    pub fn get_camera_status(&self) -> Option<crate::camera::CameraStatus> {
+        self.camera_manager.as_ref().map(|cm| cm.get_status())
+    }
+
+    /// 检查相机是否运行中
+    pub fn is_camera_running(&self) -> bool {
+        self.camera_manager.as_ref()
+            .map(|cm| cm.is_running())
+            .unwrap_or(false)
     }
 }
 

@@ -64,6 +64,9 @@ endif()
 set(SOURCES
     src/main.cpp
     src/qml_logger.cpp
+    src/camera_manager.cpp
+    src/video_widget.cpp
+    src/qml_video_item.cpp
 )
 
 # QML资源文件（如果存在）
@@ -93,6 +96,7 @@ target_link_libraries(rustsmartscope
     ${RUST_SMARTSCOPE_LIB}
     ${CMAKE_DL_LIBS}
     -lpthread
+    -lturbojpeg
 )
 
 # 输出构建信息

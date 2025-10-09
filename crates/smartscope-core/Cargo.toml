@@ -17,5 +17,10 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "local-time", 
 tracing-appender = "0.2"
 notify = "6.0"
 
+# Camera support
+usb-camera = { path = "../usb-camera" }
+crossbeam-channel.workspace = true
+tokio.workspace = true
+
 [dev-dependencies]
 tempfile = "3.0"

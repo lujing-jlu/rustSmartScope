@@ -74,12 +74,15 @@ The project uses a three-layer architecture:
 1. **Rust Backend (`crates/`)**:
    - `smartscope-core/` - Core state management, configuration, and error handling
    - `c-ffi/` - C Foreign Function Interface layer for Qt integration
+   - `usb-camera/` - Camera interface and video frame handling
+   - `linux-video/` - Low-level Linux V4L2 video support
    - Built as static library (`libsmartscope.a`)
 
 2. **C++ Bridge Layer (`src/`, `CMakeLists.txt`)**:
    - Qt5 application framework
    - Integrates Rust static library via C FFI
    - Manages Qt/QML lifecycle
+   - Includes `camera_manager.cpp/h` for camera integration
 
 3. **QML Frontend (`qml/`)**:
    - Declarative user interface
@@ -91,23 +94,25 @@ The project uses a three-layer architecture:
 - **State Management**: Centralized application state in `smartscope-core::AppState`
 - **Configuration System**: TOML-based configuration with runtime loading/saving
 - **Error Handling**: Typed error system with C-compatible error codes
+- **Logging**: Unified logging system accessible from Rust, C++, and QML
 
 ### Workspace Structure
 This is a Cargo workspace with multiple crates:
 - Main workspace defined in root `Cargo.toml`
 - Individual crates have their own `Cargo.toml` files
 - Shared dependencies defined at workspace level
-- Active crates: `smartscope-core`, `c-ffi`
+- Active crates: `smartscope-core`, `c-ffi`, `usb-camera`, `linux-video`
 - Reference code in `reference_code/` (excluded from workspace)
 
 ## Development Workflow
 
 ### Dependencies Required
 - Rust toolchain (cargo, rustc)
-- CMake 3.18+
-- Qt5 development libraries
+- CMake 3.16+
+- Qt5 development libraries (Core, Gui, Widgets, Quick, Qml, Svg)
 - G++ or compatible C++ compiler
 - Make
+- libturbojpeg (for JPEG encoding/decoding)
 
 ### When Making Changes
 
@@ -121,7 +126,7 @@ This is a Cargo workspace with multiple crates:
    - Use `./build.sh` to rebuild both Rust and C++ components
 
 3. **QML Interface Changes**:
-   - Modify `qml/main.qml`
+   - Modify `qml/main.qml` or component files
    - No rebuild needed, changes reflected on next run
 
 4. **C API Changes**:
@@ -177,8 +182,8 @@ This is a Cargo workspace with multiple crates:
 5. Update `qml/qml.qrc` resource file to include new components
 6. For icons, add SVG files to `resources/icons/` and reference in qrc
 7. No rebuild needed for QML changes, just run application
-2. Add C++ integration in `src/main.cpp` if needed
-3. Expose new Rust functionality via C FFI if required
+8. Add C++ integration in `src/main.cpp` if needed
+9. Expose new Rust functionality via C FFI if required
 
 ### Configuration Changes
 1. Update `AppConfig` structure in `smartscope-core::config`
@@ -196,7 +201,6 @@ This is a Cargo workspace with multiple crates:
 ### Key Configuration Files
 - `config.toml` - Main application configuration
 - `simple_config.toml` - Minimal configuration for testing
-- `test_config.toml` - Test-specific configuration
 - `cbindgen.toml` - C header generation configuration
 
 ### Build Outputs
@@ -210,7 +214,7 @@ This is a Cargo workspace with multiple crates:
 - `resources/icons/` - SVG icon files
 - `camera_parameters/` - Camera calibration data
 
-## Current UI Architecture (2024-12-19)
+## Current UI Architecture
 
 ### Main Window Structure
 - **ApplicationWindow**: Full-screen, frameless window
@@ -247,7 +251,7 @@ qml/pages/
 └── DebugPage.qml            # Debug and development page
 ```
 
-### Navigation System Updates
+### Navigation System
 - **UnifiedNavigationButton**: New unified navigation component with enhanced features
   - Support for both icon-only and text+icon modes
   - Square button mode for special buttons (home, exit)

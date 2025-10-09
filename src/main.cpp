@@ -12,6 +12,10 @@ extern "C" {
 // 引入统一日志系统
 #include "logger.h"
 #include "qml_logger.h"
+#include "camera_manager.h"
+#include "video_widget.h"
+#include "qml_video_item.h"
+#include <QQmlEngine>
 
 int main(int argc, char *argv[])
 {
@@ -57,12 +61,32 @@ int main(int argc, char *argv[])
     // 注册QML日志组件
     QmlLogger::registerQmlType();
 
+    // 注册QmlVideoItem到QML
+    qmlRegisterType<QmlVideoItem>("RustSmartScope.Video", 1, 0, "VideoDisplay");
+
+    // 创建相机管理器
+    CameraManager *cameraManager = new CameraManager(&app);
+
+    // 创建原生Qt视频显示Widget
+    VideoWidget *videoWidget = new VideoWidget();
+    videoWidget->setWindowTitle("Camera View");
+    videoWidget->resize(1280, 720);
+
+    // 连接相机管理器信号到VideoWidget
+    QObject::connect(cameraManager, &CameraManager::leftPixmapUpdated,
+                    videoWidget, &VideoWidget::setFrame);
+
+    // 显示VideoWidget（可以独立窗口显示）
+    videoWidget->show();
+
     // 创建QML引擎显示空白页面
     QQmlApplicationEngine engine;
 
     // 设置窗口属性到QML上下文
     engine.rootContext()->setContextProperty("appVersion", "0.1.0");
     engine.rootContext()->setContextProperty("rustInitialized", smartscope_is_initialized());
+    engine.rootContext()->setContextProperty("CameraManager", cameraManager);
+    engine.rootContext()->setContextProperty("VideoWidget", videoWidget);
 
     // 加载QML文件
     const QUrl qmlUrl(QStringLiteral("qrc:/main.qml"));

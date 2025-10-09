@@ -3,13 +3,18 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 
 Rectangle {
+    id: cameraPreview
     property string cameraName: ""
     property bool connected: false
+    property alias imageSource: cameraImage.source
 
     color: "#1E1E1E"
     border.color: connected ? "#A3BE8C" : "#BF616A"
     border.width: 2
     radius: 8
+
+    // 信号
+    signal clicked()
 
     ColumnLayout {
         anchors.fill: parent
@@ -55,26 +60,36 @@ Rectangle {
                     }
                 }
 
-                // 相机连接时显示模拟预览
-                Rectangle {
+                // 相机连接时显示实际图像
+                Image {
+                    id: cameraImage
                     anchors.fill: parent
                     visible: connected
-                    color: "#4C566A"
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    cache: false
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: "实时预览\n" + cameraName
-                        color: "#ECEFF4"
-                        font.pixelSize: 14
-                        horizontalAlignment: Text.AlignHCenter
-                    }
+                    // 如果没有图像，显示占位符
+                    Rectangle {
+                        anchors.fill: parent
+                        visible: cameraImage.status !== Image.Ready && connected
+                        color: "#4C566A"
 
-                    // 模拟视频帧更新
-                    SequentialAnimation on color {
-                        running: connected
-                        loops: Animation.Infinite
-                        ColorAnimation { to: "#5E81AC"; duration: 2000 }
-                        ColorAnimation { to: "#4C566A"; duration: 2000 }
+                        Text {
+                            anchors.centerIn: parent
+                            text: "正在获取图像...\n" + cameraName
+                            color: "#ECEFF4"
+                            font.pixelSize: 14
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+
+                        // 加载动画
+                        SequentialAnimation on color {
+                            running: connected && cameraImage.status !== Image.Ready
+                            loops: Animation.Infinite
+                            ColorAnimation { to: "#5E81AC"; duration: 1000 }
+                            ColorAnimation { to: "#4C566A"; duration: 1000 }
+                        }
                     }
                 }
             }
@@ -86,5 +101,12 @@ Rectangle {
             font.pixelSize: 10
             Layout.alignment: Qt.AlignHCenter
         }
+    }
+
+    // 点击交互
+    MouseArea {
+        anchors.fill: parent
+        cursorShape: Qt.PointingHandCursor
+        onClicked: cameraPreview.clicked()
     }
 }
