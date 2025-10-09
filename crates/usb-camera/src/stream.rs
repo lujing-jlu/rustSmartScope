@@ -128,9 +128,16 @@ impl CameraStreamReader {
         self.running.store(false, Ordering::Relaxed);
 
         // Wait for thread to finish
+        // Use catch_unwind to handle potential panics in the thread
         if let Some(handle) = self.read_thread.take() {
-            if let Err(e) = handle.join() {
-                error!("Failed to join reading thread: {:?}", e);
+            match handle.join() {
+                Ok(_) => {
+                    info!("Reading thread joined successfully for {}", self.camera_name);
+                }
+                Err(e) => {
+                    // Thread panicked, but we can recover
+                    warn!("Reading thread panicked for {} (recovered): {:?}", self.camera_name, e);
+                }
             }
         }
 

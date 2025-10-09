@@ -7,6 +7,7 @@ use std::time::{SystemTime, Instant, Duration};
 use std::process::Command;
 use std::thread;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc;
 use crate::error::{SmartScopeError, Result};
 use crate::config::SmartScopeConfig;
 
@@ -56,6 +57,8 @@ pub struct CameraManager {
     monitor_thread: Option<thread::JoinHandle<()>>,
     /// 缓存的相机连接状态
     cached_connection_status: Arc<Mutex<(bool, bool, Instant)>>, // (left, right, last_check_time)
+    /// 模式变化通知接收端
+    mode_change_rx: Option<mpsc::Receiver<CameraMode>>,
 }
 
 impl CameraManager {
@@ -75,6 +78,7 @@ impl CameraManager {
             monitor_thread: None,
             // 初始状态：未连接，时间设为很久以前以触发首次检测
             cached_connection_status: Arc::new(Mutex::new((false, false, Instant::now() - Duration::from_secs(10)))),
+            mode_change_rx: None,
         }
     }
 
@@ -335,10 +339,14 @@ impl CameraManager {
         let current_mode = Arc::clone(&self.current_mode);
         let config = self.config.clone();
 
+        // 创建模式变化通知通道
+        let (mode_tx, mode_rx) = mpsc::channel();
+        self.mode_change_rx = Some(mode_rx);
+
         monitor_running.store(true, Ordering::Relaxed);
 
         let handle = thread::spawn(move || {
-            Self::monitor_loop(monitor_running, current_mode, config);
+            Self::monitor_loop(monitor_running, current_mode, config, mode_tx);
         });
 
         self.monitor_thread = Some(handle);
@@ -349,6 +357,7 @@ impl CameraManager {
         running: Arc<AtomicBool>,
         current_mode: Arc<Mutex<CameraMode>>,
         config: SmartScopeConfig,
+        mode_tx: mpsc::Sender<CameraMode>,
     ) {
         let mut last_mode = CameraMode::NoCamera;
 
@@ -369,6 +378,9 @@ impl CameraManager {
                         if let Ok(mut mode) = current_mode.lock() {
                             *mode = new_mode;
                         }
+
+                        // 发送模式变化通知
+                        let _ = mode_tx.send(new_mode);
 
                         last_mode = new_mode;
                     }
@@ -435,6 +447,16 @@ impl CameraManager {
 
     /// 处理新帧数据
     pub fn process_frames(&mut self) {
+        // 检查是否有模式变化通知
+        if let Some(ref rx) = self.mode_change_rx {
+            if let Ok(new_mode) = rx.try_recv() {
+                tracing::info!("收到模式变化通知，重新初始化相机: {:?}", new_mode);
+                if let Err(e) = self.reinitialize_for_mode(new_mode) {
+                    tracing::error!("重新初始化相机失败: {}", e);
+                }
+            }
+        }
+
         let mode = *self.current_mode.lock().unwrap();
 
         match mode {
@@ -471,6 +493,110 @@ impl CameraManager {
                 // 无相机模式，不读取帧
             }
         }
+    }
+
+    /// 针对新模式重新初始化相机
+    fn reinitialize_for_mode(&mut self, new_mode: CameraMode) -> Result<()> {
+        tracing::info!("开始重新初始化相机，目标模式: {:?}", new_mode);
+
+        // 停止所有现有的相机读取器
+        if let Some(mut reader) = self.left_reader.take() {
+            tracing::info!("停止左相机读取器");
+            let _ = reader.stop(); // 忽略错误，现在stop()能处理panic了
+        }
+        if let Some(mut reader) = self.right_reader.take() {
+            tracing::info!("停止右相机读取器");
+            let _ = reader.stop();
+        }
+        if let Some(mut reader) = self.single_reader.take() {
+            tracing::info!("停止单相机读取器");
+            let _ = reader.stop();
+        }
+
+        // 等待一小段时间，确保资源完全释放
+        thread::sleep(Duration::from_millis(100));
+
+        // 清空帧缓存
+        if let Ok(mut left) = self.left_frame.lock() {
+            *left = None;
+        }
+        if let Ok(mut right) = self.right_frame.lock() {
+            *right = None;
+        }
+        if let Ok(mut single) = self.single_frame.lock() {
+            *single = None;
+        }
+
+        // 如果是NoCamera模式，直接返回
+        if new_mode == CameraMode::NoCamera {
+            tracing::info!("无相机模式，无需初始化读取器");
+            return Ok(());
+        }
+
+        // 重新检测相机
+        let detected_cameras = self.detect_cameras()?;
+
+        // 创建相机配置
+        let camera_config = CameraConfig {
+            width: self.config.camera.width,
+            height: self.config.camera.height,
+            framerate: self.config.camera.fps,
+            pixel_format: "MJPG".to_string(),
+            parameters: std::collections::HashMap::new(),
+        };
+
+        // 根据新模式创建并启动相应的读取器
+        match new_mode {
+            CameraMode::StereoCamera => {
+                // 双目模式
+                for camera in detected_cameras {
+                    if camera.is_left {
+                        tracing::info!("创建并启动左相机流读取器: {}", camera.device_path);
+                        let mut reader = CameraStreamReader::new(
+                            &camera.device_path,
+                            &camera.name,
+                            camera_config.clone(),
+                        );
+                        reader.start().map_err(|e| {
+                            SmartScopeError::Unknown(format!("启动左相机失败: {}", e))
+                        })?;
+                        self.left_reader = Some(reader);
+                    } else if camera.is_right {
+                        tracing::info!("创建并启动右相机流读取器: {}", camera.device_path);
+                        let mut reader = CameraStreamReader::new(
+                            &camera.device_path,
+                            &camera.name,
+                            camera_config.clone(),
+                        );
+                        reader.start().map_err(|e| {
+                            SmartScopeError::Unknown(format!("启动右相机失败: {}", e))
+                        })?;
+                        self.right_reader = Some(reader);
+                    }
+                }
+            }
+            CameraMode::SingleCamera => {
+                // 单目模式
+                if let Some(camera) = detected_cameras.first() {
+                    tracing::info!("创建并启动单相机流读取器: {}", camera.device_path);
+                    let mut reader = CameraStreamReader::new(
+                        &camera.device_path,
+                        &camera.name,
+                        camera_config.clone(),
+                    );
+                    reader.start().map_err(|e| {
+                        SmartScopeError::Unknown(format!("启动单相机失败: {}", e))
+                    })?;
+                    self.single_reader = Some(reader);
+                }
+            }
+            CameraMode::NoCamera => {
+                // 已经在上面处理了
+            }
+        }
+
+        tracing::info!("相机重新初始化完成，模式: {:?}", new_mode);
+        Ok(())
     }
 
     /// 判断是否为左相机
