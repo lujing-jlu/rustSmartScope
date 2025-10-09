@@ -458,16 +458,26 @@ ApplicationWindow {
             }
         }
 
-        // 对话框卡片
+        // 对话框卡片 - 毛玻璃效果
         Rectangle {
             id: dialogCard
             width: 700
             height: 320
             anchors.centerIn: parent
-            color: surfaceElevated
+            color: Qt.rgba(0.16, 0.16, 0.18, 0.85)
             radius: cornerRadius * 2
             border.width: 2
-            border.color: Qt.rgba(14, 165, 233, 0.2)
+            border.color: Qt.rgba(14, 165, 233, 0.3)
+
+            // 内层毛玻璃效果
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: parent.radius - 1
+                color: Qt.rgba(0.2, 0.2, 0.24, 0.6)
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.05)
+            }
 
             // 提示文本
             Text {
@@ -479,6 +489,7 @@ ApplicationWindow {
                 anchors.top: parent.top
                 anchors.topMargin: 60
                 anchors.horizontalCenter: parent.horizontalCenter
+                z: 1
             }
 
             // 按钮行
@@ -487,6 +498,7 @@ ApplicationWindow {
                 anchors.bottomMargin: 50
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: 30
+                z: 1
 
                 // 取消按钮
                 Rectangle {
@@ -494,11 +506,21 @@ ApplicationWindow {
                     width: 200
                     height: 90
                     radius: cornerRadius
-                    color: Qt.rgba(0.12, 0.12, 0.12, 0.6)
+                    color: Qt.rgba(0.12, 0.12, 0.12, 0.7)
                     border.width: 1
-                    border.color: Qt.rgba(1, 1, 1, 0.1)
+                    border.color: Qt.rgba(1, 1, 1, 0.15)
 
                     property bool hovered: false
+
+                    // 内层高光
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        radius: parent.radius - 1
+                        color: Qt.rgba(1, 1, 1, 0.03)
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.05)
+                    }
 
                     Text {
                         text: "取消"
@@ -507,6 +529,7 @@ ApplicationWindow {
                         font.weight: Font.Medium
                         color: "#FFFFFF"
                         anchors.centerIn: parent
+                        z: 1
                     }
 
                     MouseArea {
@@ -522,11 +545,15 @@ ApplicationWindow {
                         when: cancelButton.hovered
                         PropertyChanges {
                             target: cancelButton
-                            color: Qt.rgba(0.2, 0.2, 0.2, 0.8)
+                            color: Qt.rgba(0.2, 0.2, 0.2, 0.85)
+                            border.color: Qt.rgba(14, 165, 233, 0.5)
                         }
                     }
 
                     Behavior on color {
+                        ColorAnimation { duration: 150 }
+                    }
+                    Behavior on border.color {
                         ColorAnimation { duration: 150 }
                     }
                 }
@@ -537,11 +564,21 @@ ApplicationWindow {
                     width: 200
                     height: 90
                     radius: cornerRadius
-                    color: Qt.rgba(0.7, 0.2, 0.2, 0.8)
+                    color: Qt.rgba(0.7, 0.2, 0.2, 0.85)
                     border.width: 1
-                    border.color: Qt.rgba(1, 1, 1, 0.1)
+                    border.color: Qt.rgba(1, 1, 1, 0.15)
 
                     property bool hovered: false
+
+                    // 内层高光
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        radius: parent.radius - 1
+                        color: Qt.rgba(1, 1, 1, 0.05)
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.08)
+                    }
 
                     Text {
                         text: "退出"
@@ -550,6 +587,7 @@ ApplicationWindow {
                         font.weight: Font.Medium
                         color: "#FFFFFF"
                         anchors.centerIn: parent
+                        z: 1
                     }
 
                     MouseArea {
@@ -565,11 +603,15 @@ ApplicationWindow {
                         when: confirmButton.hovered
                         PropertyChanges {
                             target: confirmButton
-                            color: Qt.rgba(0.8, 0.25, 0.25, 0.95)
+                            color: Qt.rgba(0.85, 0.25, 0.25, 0.95)
+                            border.color: Qt.rgba(1, 1, 1, 0.3)
                         }
                     }
 
                     Behavior on color {
+                        ColorAnimation { duration: 150 }
+                    }
+                    Behavior on border.color {
                         ColorAnimation { duration: 150 }
                     }
                 }
