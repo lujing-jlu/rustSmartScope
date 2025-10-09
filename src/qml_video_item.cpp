@@ -22,8 +22,8 @@ void QmlVideoItem::paint(QPainter *painter)
     QMutexLocker locker(&m_mutex);
 
     if (m_currentFrame.isNull()) {
-        // 绘制占位符
-        painter->fillRect(boundingRect(), QColor("#2E3440"));
+        // 绘制占位符 - 纯黑色背景
+        painter->fillRect(boundingRect(), QColor("#000000"));
 
         painter->setPen(QColor("#88C0D0"));
         QFont font = painter->font();

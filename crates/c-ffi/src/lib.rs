@@ -9,7 +9,7 @@ use std::sync::{Once, Mutex};
 use smartscope_core::{
     AppState, SmartScopeError,
     LoggerConfig, LogLevel, LogRotation, init_global_logger, log_from_cpp,
-    CameraStatus, VideoFrame
+    CameraStatus, CameraMode, VideoFrame
 };
 use smartscope_core::config::SmartScopeConfig;
 
@@ -283,6 +283,25 @@ pub extern "C" fn smartscope_set_log_level(level: CLogLevel) -> c_int {
 // 相机相关C FFI接口
 // ============================================================================
 
+/// C FFI相机模式枚举
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CCameraMode {
+    NoCamera = 0,
+    SingleCamera = 1,
+    StereoCamera = 2,
+}
+
+impl From<CameraMode> for CCameraMode {
+    fn from(mode: CameraMode) -> Self {
+        match mode {
+            CameraMode::NoCamera => CCameraMode::NoCamera,
+            CameraMode::SingleCamera => CCameraMode::SingleCamera,
+            CameraMode::StereoCamera => CCameraMode::StereoCamera,
+        }
+    }
+}
+
 /// C FFI相机帧数据结构
 #[repr(C)]
 pub struct CCameraFrame {
@@ -299,6 +318,7 @@ pub struct CCameraFrame {
 #[repr(C)]
 pub struct CCameraStatus {
     pub running: bool,
+    pub mode: u32,  // CCameraMode as u32
     pub left_camera_connected: bool,
     pub right_camera_connected: bool,
     pub last_left_frame_sec: u64,
@@ -361,6 +381,7 @@ pub extern "C" fn smartscope_process_camera_frames() -> c_int {
 lazy_static! {
     static ref LEFT_FRAME_BUFFER: Mutex<Vec<u8>> = Mutex::new(Vec::new());
     static ref RIGHT_FRAME_BUFFER: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+    static ref SINGLE_FRAME_BUFFER: Mutex<Vec<u8>> = Mutex::new(Vec::new());
 }
 
 /// 获取左相机最新帧
@@ -445,6 +466,47 @@ pub extern "C" fn smartscope_get_right_frame(frame_out: *mut CCameraFrame) -> c_
     }
 }
 
+/// 获取单相机最新帧
+#[no_mangle]
+pub extern "C" fn smartscope_get_single_frame(frame_out: *mut CCameraFrame) -> c_int {
+    if frame_out.is_null() {
+        return ErrorCode::Error as c_int;
+    }
+
+    let app_state = match get_app_state() {
+        Ok(state) => state,
+        Err(_) => return ErrorCode::Error as c_int,
+    };
+
+    if let Some(frame) = app_state.get_single_camera_frame() {
+        let timestamp = frame.timestamp.duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default();
+
+        // 将帧数据复制到静态缓冲区，确保指针在FFI调用期间有效
+        let mut buffer = SINGLE_FRAME_BUFFER.lock().unwrap();
+        buffer.clear();
+        buffer.extend_from_slice(&frame.data);
+
+        tracing::debug!("FFI: 返回单相机帧 - 大小: {} 字节, 尺寸: {}x{}, 格式: {}",
+                       buffer.len(), frame.width, frame.height, frame.format);
+
+        unsafe {
+            (*frame_out) = CCameraFrame {
+                data: buffer.as_ptr(),
+                data_len: buffer.len(),
+                width: frame.width,
+                height: frame.height,
+                format: frame.format,
+                timestamp_sec: timestamp.as_secs(),
+                timestamp_nsec: timestamp.subsec_nanos(),
+            };
+        }
+        ErrorCode::Success as c_int
+    } else {
+        ErrorCode::Error as c_int
+    }
+}
+
 /// 获取相机状态
 #[no_mangle]
 pub extern "C" fn smartscope_get_camera_status(status_out: *mut CCameraStatus) -> c_int {
@@ -468,9 +530,12 @@ pub extern "C" fn smartscope_get_camera_status(status_out: *mut CCameraStatus) -
             .map(|d| d.as_secs())
             .unwrap_or(0);
 
+        let c_mode: CCameraMode = status.mode.into();
+
         unsafe {
             (*status_out) = CCameraStatus {
                 running: status.running,
+                mode: c_mode as u32,
                 left_camera_connected: status.left_camera_connected,
                 right_camera_connected: status.right_camera_connected,
                 last_left_frame_sec: left_time,
@@ -481,6 +546,19 @@ pub extern "C" fn smartscope_get_camera_status(status_out: *mut CCameraStatus) -
     } else {
         ErrorCode::Error as c_int
     }
+}
+
+/// 获取当前相机模式
+#[no_mangle]
+pub extern "C" fn smartscope_get_camera_mode() -> u32 {
+    let app_state = match get_app_state() {
+        Ok(state) => state,
+        Err(_) => return CCameraMode::NoCamera as u32,
+    };
+
+    let mode = app_state.get_camera_mode();
+    let c_mode: CCameraMode = mode.into();
+    c_mode as u32
 }
 
 /// 检查相机是否运行中

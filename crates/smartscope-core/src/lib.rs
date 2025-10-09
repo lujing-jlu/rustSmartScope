@@ -16,4 +16,4 @@ pub use logger::{
     UnifiedLogger, LoggerConfig, LogLevel, LogRotation,
     init_global_logger, get_global_logger, log_from_cpp, log_from_qml
 };
-pub use camera::{CameraManager, CameraStatus, VideoFrame};
+pub use camera::{CameraManager, CameraStatus, CameraMode, VideoFrame};

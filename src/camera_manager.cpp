@@ -10,6 +10,7 @@ CameraManager::CameraManager(QObject *parent)
     , m_cameraRunning(false)
     , m_leftConnected(false)
     , m_rightConnected(false)
+    , m_cameraMode(NoCamera)
 {
     // 设置定时器每33ms更新一次 (~30 FPS)
     m_updateTimer->setInterval(33);
@@ -51,16 +52,20 @@ bool CameraManager::stopCamera()
         m_cameraRunning = false;
         m_leftConnected = false;
         m_rightConnected = false;
+        m_cameraMode = NoCamera;
 
         QMutexLocker locker(&m_frameMutex);
         m_leftFrame = QImage();
         m_rightFrame = QImage();
+        m_singleFrame = QImage();
 
         emit cameraRunningChanged();
         emit leftConnectedChanged();
         emit rightConnectedChanged();
+        emit cameraModeChanged();
         emit leftFrameChanged();
         emit rightFrameChanged();
+        emit singleFrameChanged();
 
         qDebug() << "Camera system stopped successfully";
         return true;
@@ -82,6 +87,12 @@ QImage CameraManager::rightFrame() const
     return m_rightFrame;
 }
 
+QImage CameraManager::singleFrame() const
+{
+    QMutexLocker locker(const_cast<QMutex*>(&m_frameMutex));
+    return m_singleFrame;
+}
+
 bool CameraManager::cameraRunning() const
 {
     return m_cameraRunning;
@@ -97,6 +108,11 @@ bool CameraManager::rightConnected() const
     return m_rightConnected;
 }
 
+int CameraManager::cameraMode() const
+{
+    return m_cameraMode;
+}
+
 QPixmap CameraManager::getLeftPixmap() const
 {
     QMutexLocker locker(const_cast<QMutex*>(&m_frameMutex));
@@ -109,6 +125,12 @@ QPixmap CameraManager::getRightPixmap() const
     return m_rightPixmap;
 }
 
+QPixmap CameraManager::getSinglePixmap() const
+{
+    QMutexLocker locker(const_cast<QMutex*>(&m_frameMutex));
+    return m_singlePixmap;
+}
+
 void CameraManager::updateFrames()
 {
     // 处理相机帧数据
@@ -118,50 +140,79 @@ void CameraManager::updateFrames()
     updateStatus();
 
     bool frameUpdated = false;
+    uint32_t mode = smartscope_get_camera_mode();
 
-    // 获取左相机帧
-    CCameraFrame leftFrame;
-    if (smartscope_get_left_frame(&leftFrame) == 0) {
-        QImage newLeftImage = processFrame(leftFrame);
-        if (!newLeftImage.isNull()) {
-            QPixmap newLeftPixmap = QPixmap::fromImage(newLeftImage);
+    // 根据相机模式获取对应的帧
+    if (mode == StereoCamera) {
+        // 双目模式：获取左相机帧
+        CCameraFrame leftFrame;
+        if (smartscope_get_left_frame(&leftFrame) == 0) {
+            QImage newLeftImage = processFrame(leftFrame);
+            if (!newLeftImage.isNull()) {
+                QPixmap newLeftPixmap = QPixmap::fromImage(newLeftImage);
 
-            {
-                QMutexLocker locker(&m_frameMutex);
-                m_leftFrame = newLeftImage;
-                m_leftPixmap = newLeftPixmap;
-                frameUpdated = true;
+                {
+                    QMutexLocker locker(&m_frameMutex);
+                    m_leftFrame = newLeftImage;
+                    m_leftPixmap = newLeftPixmap;
+                    frameUpdated = true;
+                }
+
+                // 发送QPixmap信号给原生Widget（不需要锁，信号是异步的）
+                emit leftPixmapUpdated(newLeftPixmap);
             }
+        }
 
-            // 发送QPixmap信号给原生Widget（不需要锁，信号是异步的）
-            emit leftPixmapUpdated(newLeftPixmap);
+        // 获取右相机帧
+        CCameraFrame rightFrame;
+        if (smartscope_get_right_frame(&rightFrame) == 0) {
+            QImage newRightImage = processFrame(rightFrame);
+            if (!newRightImage.isNull()) {
+                QPixmap newRightPixmap = QPixmap::fromImage(newRightImage);
+
+                {
+                    QMutexLocker locker(&m_frameMutex);
+                    m_rightFrame = newRightImage;
+                    m_rightPixmap = newRightPixmap;
+                    frameUpdated = true;
+                }
+
+                // 发送QPixmap信号给原生Widget
+                emit rightPixmapUpdated(newRightPixmap);
+            }
+        }
+
+        // 发出信号通知QML更新
+        if (frameUpdated) {
+            emit leftFrameChanged();
+            emit rightFrameChanged();
+        }
+    } else if (mode == SingleCamera) {
+        // 单目模式：获取单相机帧
+        CCameraFrame singleFrame;
+        if (smartscope_get_single_frame(&singleFrame) == 0) {
+            QImage newSingleImage = processFrame(singleFrame);
+            if (!newSingleImage.isNull()) {
+                QPixmap newSinglePixmap = QPixmap::fromImage(newSingleImage);
+
+                {
+                    QMutexLocker locker(&m_frameMutex);
+                    m_singleFrame = newSingleImage;
+                    m_singlePixmap = newSinglePixmap;
+                    frameUpdated = true;
+                }
+
+                // 发送QPixmap信号给原生Widget
+                emit singlePixmapUpdated(newSinglePixmap);
+            }
+        }
+
+        // 发出信号通知QML更新
+        if (frameUpdated) {
+            emit singleFrameChanged();
         }
     }
-
-    // 获取右相机帧
-    CCameraFrame rightFrame;
-    if (smartscope_get_right_frame(&rightFrame) == 0) {
-        QImage newRightImage = processFrame(rightFrame);
-        if (!newRightImage.isNull()) {
-            QPixmap newRightPixmap = QPixmap::fromImage(newRightImage);
-
-            {
-                QMutexLocker locker(&m_frameMutex);
-                m_rightFrame = newRightImage;
-                m_rightPixmap = newRightPixmap;
-                frameUpdated = true;
-            }
-
-            // 发送QPixmap信号给原生Widget
-            emit rightPixmapUpdated(newRightPixmap);
-        }
-    }
-
-    // 发出信号通知QML更新
-    if (frameUpdated) {
-        emit leftFrameChanged();
-        emit rightFrameChanged();
-    }
+    // NoCamera模式：不获取帧数据
 }
 
 QImage CameraManager::processFrame(const CCameraFrame& frame)
@@ -199,10 +250,12 @@ void CameraManager::updateStatus()
         bool wasRunning = m_cameraRunning;
         bool wasLeftConnected = m_leftConnected;
         bool wasRightConnected = m_rightConnected;
+        int wasMode = m_cameraMode;
 
         m_cameraRunning = status.running;
         m_leftConnected = status.left_camera_connected;
         m_rightConnected = status.right_camera_connected;
+        m_cameraMode = static_cast<int>(status.mode);
 
         if (wasRunning != m_cameraRunning) {
             emit cameraRunningChanged();
@@ -212,6 +265,10 @@ void CameraManager::updateStatus()
         }
         if (wasRightConnected != m_rightConnected) {
             emit rightConnectedChanged();
+        }
+        if (wasMode != m_cameraMode) {
+            qDebug() << "Camera mode changed:" << wasMode << "->" << m_cameraMode;
+            emit cameraModeChanged();
         }
     }
 }

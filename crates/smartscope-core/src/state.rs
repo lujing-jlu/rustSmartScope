@@ -188,9 +188,21 @@ impl AppState {
         self.camera_manager.as_ref()?.get_right_frame()
     }
 
+    /// 获取单相机最新帧
+    pub fn get_single_camera_frame(&self) -> Option<crate::camera::VideoFrame> {
+        self.camera_manager.as_ref()?.get_single_frame()
+    }
+
     /// 获取相机状态
     pub fn get_camera_status(&self) -> Option<crate::camera::CameraStatus> {
         self.camera_manager.as_ref().map(|cm| cm.get_status())
+    }
+
+    /// 获取当前相机模式
+    pub fn get_camera_mode(&self) -> crate::camera::CameraMode {
+        self.camera_manager.as_ref()
+            .map(|cm| cm.get_camera_mode())
+            .unwrap_or(crate::camera::CameraMode::NoCamera)
     }
 
     /// 检查相机是否运行中

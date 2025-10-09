@@ -5,10 +5,15 @@ import RustSmartScope.Video 1.0
 
 Rectangle {
     id: homePage
-    color: "#2E3440"  // 深色背景
+    color: "#000000"  // 纯黑色背景
 
     signal backRequested()
     signal navigateRequested(string pageType)
+
+    // 相机模式枚举（与C++端对应）
+    readonly property int noCamera: 0
+    readonly property int singleCamera: 1
+    readonly property int stereoCamera: 2
 
     // 使用原生QPixmap渲染的视频显示组件
     VideoDisplay {
@@ -16,13 +21,51 @@ Rectangle {
         anchors.fill: parent
     }
 
+    // 监听相机模式变化，切换显示的信号源
+    Connections {
+        target: CameraManager
+        function onCameraModeChanged() {
+            updateVideoSource()
+        }
+    }
+
+    function updateVideoSource() {
+        if (!CameraManager) return
+
+        var mode = CameraManager.cameraMode
+        Logger.info("Updating video source for mode: " + mode)
+
+        // 断开所有之前的连接
+        try {
+            CameraManager.leftPixmapUpdated.disconnect(videoDisplay.updateFrame)
+        } catch(e) {}
+        try {
+            CameraManager.singlePixmapUpdated.disconnect(videoDisplay.updateFrame)
+        } catch(e) {}
+
+        // 根据模式连接对应的信号
+        if (mode === stereoCamera) {
+            // 双目模式：显示左相机
+            CameraManager.leftPixmapUpdated.connect(videoDisplay.updateFrame)
+            Logger.info("Connected to left camera (stereo mode)")
+        } else if (mode === singleCamera) {
+            // 单目模式：显示单相机
+            CameraManager.singlePixmapUpdated.connect(videoDisplay.updateFrame)
+            Logger.info("Connected to single camera")
+        } else {
+            // 无相机模式：清空显示
+            videoDisplay.clear()
+            Logger.info("No camera available")
+        }
+    }
+
     Component.onCompleted: {
         Logger.info("HomePage initialized with VideoDisplay")
 
-        // 连接CameraManager的QPixmap信号到VideoDisplay
+        // 连接CameraManager信号
         if (CameraManager) {
-            CameraManager.leftPixmapUpdated.connect(videoDisplay.updateFrame)
-            Logger.info("Connected CameraManager.leftPixmapUpdated to VideoDisplay")
+            // 初始化视频源
+            updateVideoSource()
 
             // 页面加载时自动启动相机
             if (!CameraManager.cameraRunning) {
@@ -35,9 +78,14 @@ Rectangle {
     }
 
     Component.onDestruction: {
-        // 清理连接
+        // 清理所有连接
         if (CameraManager) {
-            CameraManager.leftPixmapUpdated.disconnect(videoDisplay.updateFrame)
+            try {
+                CameraManager.leftPixmapUpdated.disconnect(videoDisplay.updateFrame)
+            } catch(e) {}
+            try {
+                CameraManager.singlePixmapUpdated.disconnect(videoDisplay.updateFrame)
+            } catch(e) {}
         }
     }
 }
