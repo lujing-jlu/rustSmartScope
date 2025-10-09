@@ -56,7 +56,7 @@ impl AppState {
         self.camera_manager = Some(camera_manager);
 
         self.initialized = true;
-        tracing::info!("SmartScope core initialized");
+        tracing::debug!("SmartScope core initialized");
         Ok(())
     }
 
@@ -72,7 +72,7 @@ impl AppState {
         }
 
         self.initialized = false;
-        tracing::info!("SmartScope core shutdown");
+        tracing::debug!("SmartScope core shutdown");
     }
 
     /// 启用配置文件热重载
@@ -104,7 +104,7 @@ impl AppState {
 
                             if let Ok(mut config) = config_arc.write() {
                                 *config = new_config;
-                                tracing::info!("配置热重载成功");
+                                tracing::debug!("配置热重载成功");
                             }
                         }
                         Err(e) => {
@@ -128,7 +128,7 @@ impl AppState {
         // 如果有配置文件路径，保存到文件
         if let Some(path) = &self.config_path {
             config.save_to_file(path)?;
-            tracing::info!("配置已更新并保存到文件: {}", path);
+            tracing::debug!("配置已更新并保存到文件: {}", path);
         }
 
         Ok(())
@@ -140,7 +140,7 @@ impl AppState {
         new_config.validate()?;
 
         *self.config.write().unwrap() = new_config;
-        tracing::info!("配置重新加载成功");
+        tracing::debug!("配置重新加载成功");
         Ok(())
     }
 
@@ -157,7 +157,7 @@ impl AppState {
     pub fn start_camera(&mut self) -> crate::Result<()> {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.start()?;
-            tracing::info!("相机系统启动成功");
+            tracing::debug!("相机系统启动成功");
         }
         Ok(())
     }
@@ -166,7 +166,7 @@ impl AppState {
     pub fn stop_camera(&mut self) -> crate::Result<()> {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.stop()?;
-            tracing::info!("相机系统停止成功");
+            tracing::debug!("相机系统停止成功");
         }
         Ok(())
     }

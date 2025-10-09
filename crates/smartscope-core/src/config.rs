@@ -396,12 +396,12 @@ impl SmartScopeConfig {
 
         for path in config_paths {
             if let Ok(config) = Self::load_from_file(path) {
-                tracing::info!("配置加载成功: {}", path);
+                tracing::debug!("配置加载成功: {}", path);
                 return config;
             }
         }
 
-        tracing::warn!("未找到配置文件，使用默认配置");
+        tracing::debug!("未找到配置文件，使用默认配置");
         Self::default()
     }
 

@@ -84,7 +84,7 @@ impl CameraManager {
 
     /// 检测可用的相机设备
     pub fn detect_cameras(&self) -> Result<Vec<DetectedCamera>> {
-        tracing::info!("检测可用的相机设备...");
+        tracing::debug!("检测可用的相机设备...");
 
         let output = Command::new("v4l2-ctl")
             .arg("--list-devices")
@@ -101,9 +101,9 @@ impl CameraManager {
         let output_str = String::from_utf8_lossy(&output.stdout);
         let cameras = self.parse_v4l2_output(&output_str)?;
 
-        tracing::info!("检测到 {} 个相机设备", cameras.len());
+        tracing::debug!("检测到 {} 个相机设备", cameras.len());
         for camera in &cameras {
-            tracing::info!("相机: {} 位于 {}", camera.name, camera.device_path);
+            tracing::debug!("相机: {} 位于 {}", camera.name, camera.device_path);
         }
 
         Ok(cameras)
@@ -504,7 +504,7 @@ impl CameraManager {
 
     /// 针对新模式重新初始化相机
     fn reinitialize_for_mode(&mut self, new_mode: CameraMode) -> Result<()> {
-        tracing::info!("开始重新初始化相机，目标模式: {:?}", new_mode);
+        tracing::info!("相机模式切换: {:?}，重新初始化中...", new_mode);
 
         // 停止所有现有的相机读取器
         if let Some(mut reader) = self.left_reader.take() {
@@ -602,7 +602,7 @@ impl CameraManager {
             }
         }
 
-        tracing::info!("相机重新初始化完成，模式: {:?}", new_mode);
+        tracing::info!("相机模式切换完成: {:?}", new_mode);
         Ok(())
     }
 

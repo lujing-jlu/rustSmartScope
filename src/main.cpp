@@ -22,35 +22,22 @@ int main(int argc, char *argv[])
     app.setApplicationName("RustSmartScope");
     app.setApplicationVersion("0.1.0");
 
-    // 使用统一日志系统替代qDebug
-    LOG_INFO("Main", "Starting RustSmartScope...");
-
     // 初始化Rust核心（包含日志系统）
-    LOG_INFO("Main", "Initializing Rust core...");
     int result = smartscope_init();
     if (result != SMARTSCOPE_ERROR_SUCCESS) {
         LOG_ERROR("Main", "Failed to initialize Rust core: ", smartscope_get_error_string(result));
         return -1;
     }
 
-    LOG_INFO("Main", "Rust core initialized successfully");
-    LOG_INFO("Main", "Version: ", smartscope_get_version());
-    LOG_INFO("Main", "Is initialized: ", smartscope_is_initialized() ? "true" : "false");
-
     // 测试配置文件操作
-    LOG_INFO("Main", "Testing config operations...");
     const char* configPath = "test_config.toml";
 
     // 尝试保存配置
     result = smartscope_save_config(configPath);
     if (result == SMARTSCOPE_ERROR_SUCCESS) {
-        LOG_INFO("Main", "Config saved successfully");
-
         // 尝试加载配置
         result = smartscope_load_config(configPath);
-        if (result == SMARTSCOPE_ERROR_SUCCESS) {
-            LOG_INFO("Main", "Config loaded successfully");
-        } else {
+        if (result != SMARTSCOPE_ERROR_SUCCESS) {
             LOG_ERROR("Main", "Failed to load config: ", smartscope_get_error_string(result));
         }
     } else {
@@ -91,15 +78,11 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    LOG_INFO("Main", "Application started, showing window...");
-
     // 运行应用程序
     int exitCode = app.exec();
 
     // 清理Rust资源
-    LOG_INFO("Main", "Shutting down Rust core...");
     smartscope_shutdown();
 
-    LOG_INFO("Main", "Application exited with code: ", exitCode);
     return exitCode;
 }

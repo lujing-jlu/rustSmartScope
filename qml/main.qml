@@ -311,12 +311,7 @@ ApplicationWindow {
                 }
             }
 
-            onLoaded: {
-                Logger.info("Page loaded: " + currentPage)
-            }
-
             onSourceChanged: {
-                Logger.info("Loading page: " + source)
                 opacity = 0
                 opacity = 1
             }
@@ -346,9 +341,6 @@ ApplicationWindow {
                     text: "画面调整"
                     iconSource: "qrc:/icons/config.svg"
                     buttonStyle: "toolbar"
-                    onClicked: {
-                        Logger.info("Camera adjust clicked")
-                    }
                 }
 
                 // 双目截图按钮
@@ -357,9 +349,6 @@ ApplicationWindow {
                     text: "双目截图"
                     iconSource: "qrc:/icons/camera.svg"
                     buttonStyle: "toolbar"
-                    onClicked: {
-                        Logger.info("Capture clicked")
-                    }
                 }
 
                 // 屏幕截图按钮
@@ -368,9 +357,6 @@ ApplicationWindow {
                     text: "屏幕截图"
                     iconSource: "qrc:/icons/screenshot.svg"
                     buttonStyle: "toolbar"
-                    onClicked: {
-                        Logger.info("Screenshot clicked")
-                    }
                 }
 
                 // LED控制按钮
@@ -379,9 +365,6 @@ ApplicationWindow {
                     text: "LED控制"
                     iconSource: "qrc:/icons/brightness.svg"
                     buttonStyle: "toolbar"
-                    onClicked: {
-                        Logger.info("LED control clicked")
-                    }
                 }
 
                 // AI检测按钮
@@ -391,7 +374,6 @@ ApplicationWindow {
                     iconSource: "qrc:/icons/AI.svg"
                     buttonStyle: "toolbar"
                     onClicked: {
-                        Logger.info("AI detection clicked")
                         // 切换AI检测状态
                         aiDetectionButton.isActive = !aiDetectionButton.isActive
                     }
@@ -458,99 +440,137 @@ ApplicationWindow {
     }
 
     // 退出确认对话框
-    Rectangle {
+    Item {
         id: exitDialog
         anchors.fill: parent
-        color: Qt.rgba(0, 0, 0, 0.7)
         visible: false
         z: 200
 
-        MouseArea {
+        // 半透明背景
+        Rectangle {
             anchors.fill: parent
-            onClicked: exitDialog.visible = false
+            color: "#000000"
+            opacity: 0.75
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: exitDialog.visible = false
+            }
         }
 
+        // 对话框卡片
         Rectangle {
-            anchors.centerIn: parent
-            width: Math.min(parent.width * 0.8, 600)
+            id: dialogCard
+            width: 700
             height: 320
-            radius: cornerRadius * 2
+            anchors.centerIn: parent
             color: surfaceElevated
-            border.width: 1
-            border.color: borderPrimary
+            radius: cornerRadius * 2
+            border.width: 2
+            border.color: Qt.rgba(14, 165, 233, 0.2)
 
-            Column {
-                anchors.centerIn: parent
-                spacing: spacing * 2
+            // 提示文本
+            Text {
+                id: dialogMessage
+                text: "确定要退出应用吗？"
+                font.family: mixedFontRegular
+                font.pixelSize: Math.max(28, fontSize * 1.8)
+                color: textPrimary
+                anchors.top: parent.top
+                anchors.topMargin: 60
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
 
-                Text {
-                    text: "确认退出"
-                    color: textPrimary
-                    font.pixelSize: fontSize * 2.2
-                    font.weight: Font.Medium
-                    font.family: mixedFontMedium
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
+            // 按钮行
+            Row {
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 50
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 30
 
-                Text {
-                    text: "确定要退出SmartScope应用吗？"
-                    color: textSecondary
-                    font.pixelSize: fontSize * 1.6
-                    font.family: mixedFontRegular
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
+                // 取消按钮
+                Rectangle {
+                    id: cancelButton
+                    width: 200
+                    height: 90
+                    radius: cornerRadius
+                    color: Qt.rgba(0.12, 0.12, 0.12, 0.6)
+                    border.width: 1
+                    border.color: Qt.rgba(1, 1, 1, 0.1)
 
-                Row {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: spacing * 2
+                    property bool hovered: false
 
-                    Rectangle {
-                        width: 140
-                        height: buttonHeight * 0.8
-                        radius: cornerRadius
-                        color: accentError
-                        border.width: 1
-                        border.color: Qt.rgba(1, 1, 1, 0.2)
+                    Text {
+                        text: "取消"
+                        font.family: mixedFontRegular
+                        font.pixelSize: Math.max(28, fontSize * 1.8)
+                        font.weight: Font.Medium
+                        color: "#FFFFFF"
+                        anchors.centerIn: parent
+                    }
 
-                        Text {
-                            text: "退出"
-                            color: "#FFFFFF"
-                            font.pixelSize: fontSize * 1.6
-                            font.weight: Font.Medium
-                            font.family: mixedFontMedium
-                            anchors.centerIn: parent
-                        }
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: exitDialog.visible = false
+                        onEntered: parent.hovered = true
+                        onExited: parent.hovered = false
+                    }
 
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                Logger.info("Application exit confirmed")
-                                Qt.quit()
-                            }
+                    states: State {
+                        when: cancelButton.hovered
+                        PropertyChanges {
+                            target: cancelButton
+                            color: Qt.rgba(0.2, 0.2, 0.2, 0.8)
                         }
                     }
 
-                    Rectangle {
-                        width: 140
-                        height: buttonHeight * 0.8
-                        radius: cornerRadius
-                        color: "transparent"
-                        border.width: 2
-                        border.color: borderPrimary
+                    Behavior on color {
+                        ColorAnimation { duration: 150 }
+                    }
+                }
 
-                        Text {
-                            text: "取消"
-                            color: textPrimary
-                            font.pixelSize: fontSize * 1.6
-                            font.weight: Font.Medium
-                            font.family: mixedFontMedium
-                            anchors.centerIn: parent
-                        }
+                // 确认退出按钮
+                Rectangle {
+                    id: confirmButton
+                    width: 200
+                    height: 90
+                    radius: cornerRadius
+                    color: Qt.rgba(0.7, 0.2, 0.2, 0.8)
+                    border.width: 1
+                    border.color: Qt.rgba(1, 1, 1, 0.1)
 
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: exitDialog.visible = false
+                    property bool hovered: false
+
+                    Text {
+                        text: "退出"
+                        font.family: mixedFontRegular
+                        font.pixelSize: Math.max(28, fontSize * 1.8)
+                        font.weight: Font.Medium
+                        color: "#FFFFFF"
+                        anchors.centerIn: parent
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Qt.quit()
+                        onEntered: parent.hovered = true
+                        onExited: parent.hovered = false
+                    }
+
+                    states: State {
+                        when: confirmButton.hovered
+                        PropertyChanges {
+                            target: confirmButton
+                            color: Qt.rgba(0.8, 0.25, 0.25, 0.95)
                         }
+                    }
+
+                    Behavior on color {
+                        ColorAnimation { duration: 150 }
                     }
                 }
             }
@@ -562,14 +582,10 @@ ApplicationWindow {
 
     // 页面路由函数
     function navigateTo(pageName) {
-        Logger.info("Navigating to: " + pageName)
         currentPage = pageName
 
         // 更新导航栏按钮状态
         navigationBar.setActiveTab(pageName)
-
-        // 切换页面内容（稍后实现）
-        // TODO: 实现实际的页面切换逻辑
     }
     // 3D测量窗口实例
     Measurement3DWindow {
@@ -581,31 +597,6 @@ ApplicationWindow {
         currentTime = formatCurrentTime()
         currentDate = formatCurrentDate()
 
-        Logger.info("=== SmartScope Industrial UI initialized ===")
-        Logger.info("Current Time: " + currentTime + " | Date: " + currentDate)
-        Logger.info("Screen Resolution (logical): " + screenWidth + "x" + screenHeight)
-        Logger.info("Window Size: " + width + "x" + height)
-        Logger.info("Target Resolution: " + targetWidth + "x" + targetHeight)
-        Logger.info("Device Pixel Ratio: " + devicePixelRatio.toFixed(2))
-        Logger.info("Logical DPI: " + logicalDpi.toFixed(1))
-        Logger.info("Visibility: " + visibility)
-        Logger.info("---")
-        Logger.info("Width Ratio: " + widthRatio.toFixed(2))
-        Logger.info("Height Ratio: " + heightRatio.toFixed(2))
-        Logger.info("Screen Ratio: " + screenRatio.toFixed(2))
-        Logger.info("HiDPI Adjustment: " + hiDPIAdjustment.toFixed(2))
-        Logger.info("Final Size Adjustment: " + sizeAdjustment.toFixed(2))
-        Logger.info("---")
-        Logger.info("Status bar height: " + statusBarHeight + "px")
-        Logger.info("Navigation bar height: " + navigationBarHeight + "px")
-        Logger.info("Font size: " + fontSize + "px")
-        Logger.info("Icon size: " + iconSize + "px")
-        Logger.info("Page loader area: " + pageLoader.width + "x" + pageLoader.height)
-        Logger.info("---")
-        Logger.info("Navigation Layout:")
-        Logger.info("Available nav width: " + availableNavWidth + "px")
-        Logger.info("Button max width: " + buttonMaxWidth + "px")
-        Logger.info("Button min width: " + buttonMinWidth + "px")
-        Logger.info("Dynamic button width: " + dynamicButtonWidth + "px")
+        Logger.info("SmartScope UI initialized")
     }
 }

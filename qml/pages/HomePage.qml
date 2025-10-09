@@ -33,7 +33,6 @@ Rectangle {
         if (!CameraManager) return
 
         var mode = CameraManager.cameraMode
-        Logger.info("Updating video source for mode: " + mode)
 
         // 断开所有之前的连接
         try {
@@ -47,21 +46,16 @@ Rectangle {
         if (mode === stereoCamera) {
             // 双目模式：显示左相机
             CameraManager.leftPixmapUpdated.connect(videoDisplay.updateFrame)
-            Logger.info("Connected to left camera (stereo mode)")
         } else if (mode === singleCamera) {
             // 单目模式：显示单相机
             CameraManager.singlePixmapUpdated.connect(videoDisplay.updateFrame)
-            Logger.info("Connected to single camera")
         } else {
             // 无相机模式：清空显示
             videoDisplay.clear()
-            Logger.info("No camera available")
         }
     }
 
     Component.onCompleted: {
-        Logger.info("HomePage initialized with VideoDisplay")
-
         // 连接CameraManager信号
         if (CameraManager) {
             // 初始化视频源
@@ -69,7 +63,6 @@ Rectangle {
 
             // 页面加载时自动启动相机
             if (!CameraManager.cameraRunning) {
-                Logger.info("Starting camera...")
                 CameraManager.startCamera()
             }
         } else {

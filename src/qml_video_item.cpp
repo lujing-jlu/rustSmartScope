@@ -8,13 +8,10 @@ QmlVideoItem::QmlVideoItem(QQuickItem *parent)
     // 启用抗锯齿
     setAntialiasing(true);
     setRenderTarget(QQuickPaintedItem::FramebufferObject);
-
-    qDebug() << "QmlVideoItem created";
 }
 
 QmlVideoItem::~QmlVideoItem()
 {
-    qDebug() << "QmlVideoItem destroyed";
 }
 
 void QmlVideoItem::paint(QPainter *painter)
