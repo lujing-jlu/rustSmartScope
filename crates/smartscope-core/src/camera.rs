@@ -3,7 +3,7 @@
 //! 统一管理USB相机，提供左右相机的图像流
 
 use std::sync::{Arc, Mutex};
-use std::time::SystemTime;
+use std::time::{SystemTime, Instant, Duration};
 use std::process::Command;
 use crate::error::{SmartScopeError, Result};
 use crate::config::SmartScopeConfig;
@@ -30,6 +30,8 @@ pub struct CameraManager {
     left_frame: Arc<Mutex<Option<VideoFrame>>>,
     /// 最新的右相机帧
     right_frame: Arc<Mutex<Option<VideoFrame>>>,
+    /// 缓存的相机连接状态
+    cached_connection_status: Arc<Mutex<(bool, bool, Instant)>>, // (left, right, last_check_time)
 }
 
 impl CameraManager {
@@ -42,6 +44,8 @@ impl CameraManager {
             running: false,
             left_frame: Arc::new(Mutex::new(None)),
             right_frame: Arc::new(Mutex::new(None)),
+            // 初始状态：未连接，时间设为很久以前以触发首次检测
+            cached_connection_status: Arc::new(Mutex::new((false, false, Instant::now() - Duration::from_secs(10)))),
         }
     }
 
@@ -327,15 +331,37 @@ impl CameraManager {
         }
     }
 
-    /// 检查相机连接状态
+    /// 检查相机连接状态（带缓存，1秒更新一次）
     fn check_camera_connections(&self) -> (bool, bool) {
-        match self.detect_cameras() {
-            Ok(cameras) => {
-                let left_connected = cameras.iter().any(|c| c.is_left);
-                let right_connected = cameras.iter().any(|c| c.is_right);
-                (left_connected, right_connected)
+        const CACHE_DURATION: Duration = Duration::from_secs(1);
+
+        if let Ok(mut cache) = self.cached_connection_status.lock() {
+            let (left, right, last_check) = *cache;
+
+            // 如果缓存还有效，直接返回
+            if last_check.elapsed() < CACHE_DURATION {
+                return (left, right);
             }
-            Err(_) => (false, false),
+
+            // 缓存过期，重新检测
+            match self.detect_cameras() {
+                Ok(cameras) => {
+                    let left_connected = cameras.iter().any(|c| c.is_left);
+                    let right_connected = cameras.iter().any(|c| c.is_right);
+
+                    // 更新缓存
+                    *cache = (left_connected, right_connected, Instant::now());
+                    (left_connected, right_connected)
+                }
+                Err(_) => {
+                    // 检测失败，更新缓存为未连接
+                    *cache = (false, false, Instant::now());
+                    (false, false)
+                }
+            }
+        } else {
+            // 无法获取锁，返回未连接
+            (false, false)
         }
     }
 }
