@@ -3,7 +3,9 @@ resolver = "2"
 
 members = [
     "crates/smartscope-core",
-    "crates/c-ffi"
+    "crates/c-ffi",
+    "crates/linux-video",
+    "crates/usb-camera"
 ]
 
 exclude = [
@@ -29,6 +31,8 @@ anyhow = "1.0"
 thiserror = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+log = "0.4"
+env_logger = "0.11"
 
 # C FFI support
 cbindgen = "0.26"

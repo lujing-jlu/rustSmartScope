@@ -1,0 +1,37 @@
+[package]
+name = "usb-camera"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "USB Camera management library for SmartScope"
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+log.workspace = true
+env_logger.workspace = true
+tokio = { version = "1.0", features = ["full"] }
+serde.workspace = true
+serde_json.workspace = true
+libc = "0.2.175"
+nix = { version = "0.30.1", features = ["fs", "mman"] }
+crossbeam-channel = "0.5.15"
+toml = "0.9.5"
+
+# V4L2 support for real hardware
+linuxvideo = { path = "../linux-video" }
+chrono = { version = "0.4", features = ["serde"] }
+base64 = "0.22"
+turbojpeg = "1.3"
+
+# Hardware acceleration support (disabled until properly implemented)
+# rockchip-mpp = { path = "../rockchip-mpp" }
+# rockchip-rga = { path = "../rockchip-rga" }
+
+[dev-dependencies]
+ctrlc = "3.4"
+crossbeam-channel = "0.5.15"
+
+[lib]
+name = "usb_camera"
+crate-type = ["cdylib", "staticlib", "rlib"]
