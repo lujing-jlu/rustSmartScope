@@ -20,6 +20,7 @@ GlassPopupWindow {
     QtObject {
         id: internal
         property bool syncing: true
+        property bool autoWhiteBalanceSupported: true
 
         // 获取当前相机属性枚举值
         function getCameraPropertyEnum(name) {
@@ -104,28 +105,43 @@ GlassPopupWindow {
             }
 
             applyParameterToSlider(brightnessSlider, "brightness")
-            applyParameterToSlider(contrastSlider, "contrast")
-            applyParameterToSlider(saturationSlider, "saturation")
-            applyParameterToSlider(backlightSlider, "backlight")
-            applyParameterToSlider(gammaSlider, "gamma")
-            applyParameterToSlider(exposureSlider, "exposure")
-            applyParameterToSlider(gainSlider, "gain")
-            applyParameterToSlider(whiteBalanceSlider, "white_balance")
+            if (typeof contrastSlider !== "undefined") applyParameterToSlider(contrastSlider, "contrast")
+            if (typeof saturationSlider !== "undefined") applyParameterToSlider(saturationSlider, "saturation")
+            if (typeof backlightSlider !== "undefined") applyParameterToSlider(backlightSlider, "backlight")
+            if (typeof gammaSlider !== "undefined") applyParameterToSlider(gammaSlider, "gamma")
+            if (typeof exposureSlider !== "undefined") applyParameterToSlider(exposureSlider, "exposure")
+            if (typeof gainSlider !== "undefined") applyParameterToSlider(gainSlider, "gain")
+            if (typeof whiteBalanceSlider !== "undefined") applyParameterToSlider(whiteBalanceSlider, "white_balance")
 
             var autoExposureEnum = getCameraPropertyEnum("auto_exposure")
             var autoExposureValue = getCurrentParameterValue(autoExposureEnum)
             if (autoExposureValue !== null && autoExposureValue !== undefined && autoExposureValue !== -1) {
                 var isAutoExposure = autoExposureValue !== 1
                 autoExposureCheck.checked = isAutoExposure
-                exposureSlider.enabled = !isAutoExposure
+                if (typeof exposureSlider !== "undefined") {
+                    exposureSlider.enabled = !isAutoExposure
+                }
             }
 
             var autoWhiteBalanceEnum = getCameraPropertyEnum("auto_white_balance")
+            var autoWhiteBalanceRange = getParameterRange(autoWhiteBalanceEnum)
+            var supportsAutoWhiteBalance = autoWhiteBalanceRange && !(autoWhiteBalanceRange.min === 0 && autoWhiteBalanceRange.max === 0 && autoWhiteBalanceRange.default_value === 0 && autoWhiteBalanceRange.current === 0)
+            internal.autoWhiteBalanceSupported = !!supportsAutoWhiteBalance
+            autoWhiteBalanceCheck.visible = internal.autoWhiteBalanceSupported
+            autoWhiteBalanceCheck.enabled = internal.autoWhiteBalanceSupported
+
             var autoWhiteBalanceValue = getCurrentParameterValue(autoWhiteBalanceEnum)
-            if (autoWhiteBalanceValue !== null && autoWhiteBalanceValue !== undefined && autoWhiteBalanceValue !== -1) {
+            if (internal.autoWhiteBalanceSupported && autoWhiteBalanceValue !== null && autoWhiteBalanceValue !== undefined && autoWhiteBalanceValue !== -1) {
                 var isAutoWhiteBalance = autoWhiteBalanceValue !== 0
                 autoWhiteBalanceCheck.checked = isAutoWhiteBalance
-                whiteBalanceSlider.enabled = !isAutoWhiteBalance
+                if (typeof whiteBalanceSlider !== "undefined") {
+                    whiteBalanceSlider.enabled = !isAutoWhiteBalance
+                }
+            } else if (!internal.autoWhiteBalanceSupported) {
+                autoWhiteBalanceCheck.checked = false
+                if (typeof whiteBalanceSlider !== "undefined") {
+                    whiteBalanceSlider.enabled = true
+                }
             }
             syncing = false
         }
@@ -140,9 +156,22 @@ GlassPopupWindow {
             if (current !== null && current !== undefined && current === intValue) {
                 return
             }
+
+            var range = getParameterRange(propertyEnum)
+            if (range) {
+                var min = range.min !== undefined ? range.min : intValue
+                var max = range.max !== undefined ? range.max : intValue
+                intValue = Math.max(min, Math.min(max, intValue))
+            }
+
             var applied = setParameter(propertyName, intValue)
             if (!applied) {
                 console.error("参数同步失败:", propertyName, intValue)
+                return
+            }
+
+            if (range && (range.current !== intValue)) {
+                range.current = intValue
             }
         }
 
@@ -185,7 +214,62 @@ GlassPopupWindow {
                 // 双相机模式 - 使用左相机的默认值
                 loadDefaultValues("left")
             }
+
             Qt.callLater(function() {
+                // 自动模式默认开启
+                var autoExposureApplied = setParameter("auto_exposure", 3)
+                if (!autoExposureApplied) {
+                    console.error("重置时设置自动曝光失败")
+                }
+
+                if (internal.autoWhiteBalanceSupported) {
+                    var autoWhiteBalanceApplied = setParameter("auto_white_balance", 1)
+                    if (!autoWhiteBalanceApplied) {
+                        console.warn("自动白平衡控制不受支持，禁用自动白平衡开关")
+                        internal.autoWhiteBalanceSupported = false
+                        autoWhiteBalanceCheck.checked = false
+                        autoWhiteBalanceCheck.enabled = false
+                        autoWhiteBalanceCheck.visible = false
+                        if (typeof whiteBalanceSlider !== "undefined") {
+                            whiteBalanceSlider.enabled = true
+                        }
+                    } else {
+                        autoWhiteBalanceCheck.checked = true
+                        if (typeof whiteBalanceSlider !== "undefined") {
+                            whiteBalanceSlider.enabled = false
+                        }
+                    }
+                } else {
+                    autoWhiteBalanceCheck.checked = false
+                    autoWhiteBalanceCheck.enabled = false
+                    autoWhiteBalanceCheck.visible = false
+                    if (typeof whiteBalanceSlider !== "undefined") {
+                        whiteBalanceSlider.enabled = true
+                    }
+                }
+
+                // 应用其他参数（自动模式下的手动值跳过）
+                var sliders = []
+                if (typeof brightnessSlider !== "undefined") sliders.push({ name: "brightness", control: brightnessSlider })
+                if (typeof contrastSlider !== "undefined") sliders.push({ name: "contrast", control: contrastSlider })
+                if (typeof saturationSlider !== "undefined") sliders.push({ name: "saturation", control: saturationSlider })
+                if (typeof backlightSlider !== "undefined") sliders.push({ name: "backlight", control: backlightSlider })
+                if (typeof gammaSlider !== "undefined") sliders.push({ name: "gamma", control: gammaSlider })
+                if (typeof gainSlider !== "undefined") sliders.push({ name: "gain", control: gainSlider })
+
+                for (var i = 0; i < sliders.length; i++) {
+                    var info = sliders[i]
+                    handleSliderChange(info.name, info.control.value)
+                }
+
+                if (!autoExposureCheck.checked && typeof exposureSlider !== "undefined") {
+                    handleSliderChange("exposure", exposureSlider.value)
+                }
+
+                if (internal.autoWhiteBalanceSupported && !autoWhiteBalanceCheck.checked && typeof whiteBalanceSlider !== "undefined") {
+                    handleSliderChange("white_balance", whiteBalanceSlider.value)
+                }
+
                 syncParametersFromCamera()
             })
         }
@@ -197,18 +281,27 @@ GlassPopupWindow {
                 "backlight", "gamma", "exposure", "white_balance"
             ]
 
-            if (typeof brightnessSlider === "undefined") {
-                console.warn("CameraParameterWindow: 滑块控件尚未初始化，无法加载默认参数")
-                return
-            }
-
             syncing = true
+
+            var sliders = {}
+            if (typeof brightnessSlider !== "undefined") sliders.brightness = brightnessSlider
+            if (typeof contrastSlider !== "undefined") sliders.contrast = contrastSlider
+            if (typeof saturationSlider !== "undefined") sliders.saturation = saturationSlider
+            if (typeof backlightSlider !== "undefined") sliders.backlight = backlightSlider
+            if (typeof gammaSlider !== "undefined") sliders.gamma = gammaSlider
+            if (typeof exposureSlider !== "undefined") sliders.exposure = exposureSlider
+            if (typeof whiteBalanceSlider !== "undefined") sliders.white_balance = whiteBalanceSlider
+
             for (var i = 0; i < properties.length; i++) {
                 var propName = properties[i]
+                var control = sliders[propName]
+                if (!control) {
+                    continue
+                }
+
                 var propEnum = getCameraPropertyEnum(propName)
                 var range
 
-                // 根据相机类型获取参数范围
                 if (cameraType === "single") {
                     range = CameraParameterManager.getSingleCameraParameterRange(propEnum)
                 } else if (cameraType === "left") {
@@ -217,30 +310,9 @@ GlassPopupWindow {
                     range = CameraParameterManager.getRightCameraParameterRange(propEnum)
                 }
 
-                // 设置滑块到默认值
                 if (range && range.default_value !== undefined) {
-                    switch(propName) {
-                        case "brightness":
-                            brightnessSlider.value = range.default_value
-                            break
-                        case "contrast":
-                            contrastSlider.value = range.default_value
-                            break
-                        case "saturation":
-                            saturationSlider.value = range.default_value
-                            break
-                        case "backlight":
-                            backlightSlider.value = range.default_value
-                            break
-                        case "gamma":
-                            gammaSlider.value = range.default_value
-                            break
-                        case "exposure":
-                            exposureSlider.value = range.default_value
-                            break
-                        case "white_balance":
-                            whiteBalanceSlider.value = range.default_value
-                            break
+                    if (!(range.min === 0 && range.max === 0 && range.default_value === 0 && range.current === 0)) {
+                        control.value = range.default_value
                     }
                 }
             }
@@ -308,7 +380,9 @@ GlassPopupWindow {
                             value: 0
                             stepSize: 1
                             onValueChanged: {
-                                internal.handleSliderChange("brightness", value)
+                                if (!internal.syncing) {
+                                    internal.handleSliderChange("brightness", value)
+                                }
                             }
 
                             background: Rectangle {
@@ -370,7 +444,9 @@ GlassPopupWindow {
                             value: 0
                             stepSize: 1
                             onValueChanged: {
-                                internal.handleSliderChange("contrast", value)
+                                if (!internal.syncing) {
+                                    internal.handleSliderChange("contrast", value)
+                                }
                             }
 
                             background: Rectangle {
@@ -432,7 +508,9 @@ GlassPopupWindow {
                             value: 50
                             stepSize: 1
                             onValueChanged: {
-                                internal.handleSliderChange("saturation", value)
+                                if (!internal.syncing) {
+                                    internal.handleSliderChange("saturation", value)
+                                }
                             }
 
                             background: Rectangle {
@@ -494,7 +572,9 @@ GlassPopupWindow {
                             value: 0
                             stepSize: 1
                             onValueChanged: {
-                                internal.handleSliderChange("backlight", value)
+                                if (!internal.syncing) {
+                                    internal.handleSliderChange("backlight", value)
+                                }
                             }
 
                             background: Rectangle {
@@ -556,7 +636,9 @@ GlassPopupWindow {
                             value: 100
                             stepSize: 1
                             onValueChanged: {
-                                internal.handleSliderChange("gamma", value)
+                                if (!internal.syncing) {
+                                    internal.handleSliderChange("gamma", value)
+                                }
                             }
 
                             background: Rectangle {
@@ -649,7 +731,9 @@ GlassPopupWindow {
 
                         onToggled: {
                             if (internal.syncing) {
-                                exposureSlider.enabled = !checked
+                                if (typeof exposureSlider !== "undefined") {
+                                    exposureSlider.enabled = !checked
+                                }
                                 return
                             }
 
@@ -660,14 +744,18 @@ GlassPopupWindow {
                                 internal.syncing = true
                                 autoExposureCheck.checked = !checked
                                 internal.syncing = false
-                                exposureSlider.enabled = !autoExposureCheck.checked
+                                if (typeof exposureSlider !== "undefined") {
+                                    exposureSlider.enabled = !autoExposureCheck.checked
+                                }
                                 Qt.callLater(function() { internal.syncParametersFromCamera() })
                                 return
                             }
 
-                            exposureSlider.enabled = !checked
+                            if (typeof exposureSlider !== "undefined") {
+                                exposureSlider.enabled = !checked
+                            }
 
-                            if (!checked) {
+                            if (!checked && typeof exposureSlider !== "undefined") {
                                 internal.handleSliderChange("exposure", exposureSlider.value)
                             }
 
@@ -698,7 +786,7 @@ GlassPopupWindow {
                             enabled: !autoExposureCheck.checked
                             stepSize: 1
                             onValueChanged: {
-                                if (!autoExposureCheck.checked) {
+                                if (!internal.syncing && !autoExposureCheck.checked) {
                                     internal.handleSliderChange("exposure", value)
                                 }
                             }
@@ -763,7 +851,7 @@ GlassPopupWindow {
                             value: 0
                             stepSize: 1
                             onValueChanged: {
-                                if (!autoExposureCheck.checked) {
+                                if (!internal.syncing && !autoExposureCheck.checked) {
                                     internal.handleSliderChange("gain", value)
                                 }
                             }
@@ -843,6 +931,14 @@ GlassPopupWindow {
                         }
 
                         onToggled: {
+                            if (!internal.autoWhiteBalanceSupported) {
+                                autoWhiteBalanceCheck.checked = false
+                                if (typeof whiteBalanceSlider !== "undefined") {
+                                    whiteBalanceSlider.enabled = true
+                                }
+                                return
+                            }
+
                             if (internal.syncing) {
                                 whiteBalanceSlider.enabled = !checked
                                 return
@@ -893,7 +989,7 @@ GlassPopupWindow {
                             enabled: !autoWhiteBalanceCheck.checked
                             stepSize: 100
                             onValueChanged: {
-                                if (!autoWhiteBalanceCheck.checked) {
+                                if (!internal.syncing && !autoWhiteBalanceCheck.checked) {
                                     internal.handleSliderChange("white_balance", value)
                                 }
                             }
@@ -970,13 +1066,6 @@ GlassPopupWindow {
                     onClicked: {
                         internal.resetParameters()
                         console.log("重置相机参数到默认值")
-                        // 调用FFI重置
-                        if (cameraParameterWindow.cameraMode === 1) {
-                            CameraParameterManager.resetSingleCameraParameters()
-                        } else if (cameraParameterWindow.cameraMode === 2) {
-                            CameraParameterManager.resetLeftCameraParameters()
-                            CameraParameterManager.resetRightCameraParameters()
-                        }
                     }
                 }
 

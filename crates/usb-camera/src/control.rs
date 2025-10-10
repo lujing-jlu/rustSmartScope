@@ -202,6 +202,25 @@ impl CameraControl {
     
     /// Query V4L2 parameter range and current value
     fn query_v4l2_parameter(&self, v4l2_property: &str) -> CameraResult<ParameterRange> {
+        let current_value = self.query_v4l2_current(v4l2_property)?;
+        let range_info = self.query_v4l2_range(v4l2_property).unwrap_or_else(|err| {
+            warn!("Failed to query range for {} on {}: {}", v4l2_property, self.device_path, err);
+            (0, 255, 1, current_value)
+        });
+
+        let (min, max, step, default) = range_info;
+        let current = current_value.clamp(min, max);
+
+        Ok(ParameterRange {
+            min,
+            max,
+            step,
+            default,
+            current,
+        })
+    }
+
+    fn query_v4l2_current(&self, v4l2_property: &str) -> CameraResult<i32> {
         let output = std::process::Command::new("v4l2-ctl")
             .arg("--device")
             .arg(&self.device_path)
@@ -211,89 +230,84 @@ impl CameraControl {
             .map_err(|e| CameraError::ConfigurationError(
                 format!("Failed to run v4l2-ctl: {}", e)
             ))?;
-        
+
         if !output.status.success() {
             return Err(CameraError::ConfigurationError(
                 format!("Parameter {} not supported on device {}", v4l2_property, self.device_path)
             ));
         }
-        
+
         let output_str = String::from_utf8_lossy(&output.stdout);
-        self.parse_v4l2_parameter_output(&output_str, v4l2_property)
-    }
-    
-    /// Parse v4l2-ctl output to extract parameter range
-    fn parse_v4l2_parameter_output(&self, output: &str, _property: &str) -> CameraResult<ParameterRange> {
-        // Expected format: "brightness: 0" or "brightness: 0 (int) min=0 max=255 step=1 default=128 value=128"
-        let output = output.trim();
-        
-        // Simple format: "brightness: 0"
-        if let Some(colon_pos) = output.find(':') {
-            let value_str = output[colon_pos + 1..].trim();
-            if let Ok(current) = value_str.parse::<i32>() {
-                // For simple format, use default ranges
-                return Ok(ParameterRange {
-                    min: 0,
-                    max: 255,
-                    step: 1,
-                    default: current,
-                    current,
-                });
+        let trimmed = output_str.trim();
+
+        if let Some(colon_pos) = trimmed.find(':') {
+            let value_str = trimmed[colon_pos + 1..].trim();
+            if let Ok(value) = value_str.parse::<i32>() {
+                return Ok(value);
             }
         }
-        
-        // Extended format: "brightness: 0 (int) min=0 max=255 step=1 default=128 value=128"
-        let parts: Vec<&str> = output.split_whitespace().collect();
-        
-        if parts.len() < 2 {
+
+        Err(CameraError::ConfigurationError(
+            format!("Failed to parse current value for {}: {}", v4l2_property, trimmed)
+        ))
+    }
+
+    fn query_v4l2_range(&self, v4l2_property: &str) -> CameraResult<(i32, i32, i32, i32)> {
+        let output = std::process::Command::new("v4l2-ctl")
+            .arg("--device")
+            .arg(&self.device_path)
+            .arg(format!("--queryctrl={}", v4l2_property))
+            .output()
+            .map_err(|e| CameraError::ConfigurationError(
+                format!("Failed to run v4l2-ctl --queryctrl: {}", e)
+            ))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(CameraError::ConfigurationError(
-                format!("Unexpected v4l2-ctl output format: {}", output)
+                format!("Failed to query control {} on {}: {}", v4l2_property, self.device_path, stderr.trim())
             ));
         }
-        
-        // Extract current value
-        let current = parts[1].parse::<i32>()
-            .map_err(|_| CameraError::ConfigurationError(
-                format!("Failed to parse current value from: {}", parts[1])
-            ))?;
-        
-        // Extract min, max, step, default from the rest
-        let mut min = 0;
-        let mut max = 255;
-        let mut step = 1;
-        let mut default = current;
-        
-        for part in &parts[2..] {
-            if part.starts_with("min=") {
-                min = part[4..].parse::<i32>()
-                    .map_err(|_| CameraError::ConfigurationError(
-                        format!("Failed to parse min value from: {}", part)
-                    ))?;
-            } else if part.starts_with("max=") {
-                max = part[4..].parse::<i32>()
-                    .map_err(|_| CameraError::ConfigurationError(
-                        format!("Failed to parse max value from: {}", part)
-                    ))?;
-            } else if part.starts_with("step=") {
-                step = part[5..].parse::<i32>()
-                    .map_err(|_| CameraError::ConfigurationError(
-                        format!("Failed to parse step value from: {}", part)
-                    ))?;
-            } else if part.starts_with("default=") {
-                default = part[8..].parse::<i32>()
-                    .map_err(|_| CameraError::ConfigurationError(
-                        format!("Failed to parse default value from: {}", part)
-                    ))?;
+
+        let output_str = String::from_utf8_lossy(&output.stdout);
+        let trimmed = output_str.trim();
+
+        let mut min = None;
+        let mut max = None;
+        let mut step = None;
+        let mut default = None;
+
+        for line in trimmed.lines() {
+            let line = line.trim();
+            if let Some(value) = line.strip_prefix("Minimum:") {
+                min = value.trim().parse::<i32>().ok();
+            } else if let Some(value) = line.strip_prefix("Maximum:") {
+                max = value.trim().parse::<i32>().ok();
+            } else if let Some(value) = line.strip_prefix("Step:") {
+                step = value.trim().parse::<i32>().ok();
+            } else if let Some(value) = line.strip_prefix("Default value:") {
+                default = value.trim().parse::<i32>().ok();
+            } else if let Some(value) = line.strip_prefix("default=") {
+                default = value.trim().parse::<i32>().ok();
+            } else if let Some(value) = line.strip_prefix("min=") {
+                min = value.trim().parse::<i32>().ok();
+            } else if let Some(value) = line.strip_prefix("max=") {
+                max = value.trim().parse::<i32>().ok();
+            } else if let Some(value) = line.strip_prefix("step=") {
+                step = value.trim().parse::<i32>().ok();
             }
         }
-        
-        Ok(ParameterRange {
-            min,
-            max,
-            step,
-            default,
-            current,
-        })
+
+        let min = min.ok_or_else(|| CameraError::ConfigurationError(
+            format!("Failed to parse min value for {}", v4l2_property)
+        ))?;
+        let max = max.ok_or_else(|| CameraError::ConfigurationError(
+            format!("Failed to parse max value for {}", v4l2_property)
+        ))?;
+        let step = step.unwrap_or(1).max(1);
+        let default = default.unwrap_or(min);
+
+        Ok((min, max, step, default))
     }
 }
 
