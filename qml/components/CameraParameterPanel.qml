@@ -28,21 +28,18 @@ Rectangle {
     QtObject {
         id: internal
 
-        // 获取当前相机属性枚举值
+        // 获取当前相机属性枚举值 - 匹配C FFI枚举定义
         function getCameraPropertyEnum(name) {
             var propertyMap = {
                 "brightness": 0,
                 "contrast": 1,
                 "saturation": 2,
-                "hue": 3,
-                "gain": 4,
-                "exposure": 5,
-                "focus": 6,
-                "white_balance": 7,
-                "frame_rate": 8,
-                "resolution": 9,
-                "gamma": 10,
-                "backlight": 11
+                "gain": 3,
+                "exposure": 4,
+                // white_balance: 5 - 不支持，已移除
+                "gamma": 6,
+                "backlight": 7,
+                "auto_exposure": 8
             }
             return propertyMap[name] || 0
         }
@@ -89,7 +86,7 @@ Rectangle {
         function loadDefaultValues(cameraType) {
             var properties = [
                 "brightness", "contrast", "saturation",
-                "backlight", "gamma", "exposure", "white_balance"
+                "backlight", "gamma", "exposure"
             ]
 
             for (var i = 0; i < properties.length; i++) {
@@ -127,16 +124,12 @@ Rectangle {
                         case "exposure":
                             exposureSlider.value = range.default_value
                             break
-                        case "white_balance":
-                            whiteBalanceSlider.value = range.default_value
-                            break
                     }
                 }
             }
 
-            // 设置自动曝光和自动白平衡为默认状态
+            // 设置自动曝光为默认状态
             autoExposureCheck.checked = true
-            autoWhiteBalanceCheck.checked = true
         }
 
         // 应用所有设置
@@ -164,11 +157,6 @@ Rectangle {
             // 曝光时间
             if (!autoExposureCheck.checked) {
                 setParameter("exposure", exposureSlider.value)
-            }
-
-            // 白平衡
-            if (!autoWhiteBalanceCheck.checked) {
-                setParameter("white_balance", whiteBalanceSlider.value)
             }
         }
     }
@@ -292,109 +280,6 @@ Rectangle {
 
                 Label {
                     text: Math.round(exposureSlider.value).toString()
-                    font.pixelSize: 22
-                    color: "white"
-                    Layout.preferredWidth: 60
-                    horizontalAlignment: Text.AlignHCenter
-                }
-            }
-
-            // 自动白平衡
-            Item {
-                Layout.fillWidth: true
-                Layout.columnSpan: 2
-                Layout.preferredHeight: 40
-
-                CheckBox {
-                    id: autoWhiteBalanceCheck
-                    text: "自动白平衡"
-                    checked: false
-
-                    font.pixelSize: 22
-
-                    contentItem: Text {
-                        text: autoWhiteBalanceCheck.text
-                        font: autoWhiteBalanceCheck.font
-                        color: "white"
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: autoWhiteBalanceCheck.indicator.width + autoWhiteBalanceCheck.spacing
-                    }
-
-                    indicator: Rectangle {
-                        implicitWidth: 30
-                        implicitHeight: 30
-                        x: autoWhiteBalanceCheck.leftPadding
-                        y: parent.height / 2 - height / 2
-                        radius: 4
-                        border.color: "#000000"
-                        border.width: 2
-                        color: autoWhiteBalanceCheck.checked ? "#555555" : "transparent"
-
-                        Text {
-                            visible: autoWhiteBalanceCheck.checked
-                            text: "✓"
-                            color: "white"
-                            font.pixelSize: 20
-                            anchors.centerIn: parent
-                        }
-                    }
-                }
-            }
-
-            // 白平衡温度
-            Label {
-                text: "白平衡温度:"
-                font.pixelSize: 22
-                font.bold: true
-                color: "white"
-                horizontalAlignment: Text.AlignRight
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 10
-
-                Slider {
-                    id: whiteBalanceSlider
-                    Layout.fillWidth: true
-                    from: 2000
-                    to: 6500
-                    value: 4500
-                    enabled: !autoWhiteBalanceCheck.checked
-                    stepSize: 100
-
-                    background: Rectangle {
-                        x: whiteBalanceSlider.leftPadding
-                        y: whiteBalanceSlider.topPadding + whiteBalanceSlider.availableHeight / 2 - height / 2
-                        implicitWidth: 200
-                        implicitHeight: 14
-                        width: whiteBalanceSlider.availableWidth
-                        height: implicitHeight
-                        radius: 7
-                        color: "#555"
-
-                        Rectangle {
-                            width: whiteBalanceSlider.visualPosition * parent.width
-                            height: parent.height
-                            color: "#2196F3"
-                            radius: 7
-                        }
-                    }
-
-                    handle: Rectangle {
-                        x: whiteBalanceSlider.leftPadding + whiteBalanceSlider.visualPosition * (whiteBalanceSlider.availableWidth - width)
-                        y: whiteBalanceSlider.topPadding + whiteBalanceSlider.availableHeight / 2 - height / 2
-                        implicitWidth: 36
-                        implicitHeight: 36
-                        radius: 18
-                        color: whiteBalanceSlider.pressed ? "#666666" : "#888888"
-                        border.color: "#000000"
-                        border.width: 2
-                    }
-                }
-
-                Label {
-                    text: Math.round(whiteBalanceSlider.value).toString()
                     font.pixelSize: 22
                     color: "white"
                     Layout.preferredWidth: 60
