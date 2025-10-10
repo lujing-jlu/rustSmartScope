@@ -11,6 +11,9 @@ GlassPopupWindow {
     windowWidth: 1100
     windowHeight: 850
 
+    // 添加信号
+    signal openCameraParameters()
+
     // 视频调整内容
     content: VideoAdjustmentContent {
         id: videoContent
@@ -19,7 +22,8 @@ GlassPopupWindow {
         onAdvancedSettingsRequested: {
             console.log("打开高级设置面板")
             videoOperationsWindow.close()
-            // TODO: 打开高级设置窗口/面板
+            // 发出信号打开相机参数窗口
+            videoOperationsWindow.openCameraParameters()
         }
     }
 

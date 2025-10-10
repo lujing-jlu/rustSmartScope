@@ -647,6 +647,15 @@ ApplicationWindow {
     // 视频操作窗口实例
     VideoOperationsWindow {
         id: videoOperationsWindow
+        onOpenCameraParameters: {
+            // 打开相机参数设置窗口
+            cameraParameterWindow.show()
+        }
+    }
+
+    // 相机参数设置窗口实例
+    CameraParameterWindow {
+        id: cameraParameterWindow
     }
 
     Component.onCompleted: {

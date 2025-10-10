@@ -69,6 +69,7 @@ set(SOURCES
     src/main.cpp
     src/qml_logger.cpp
     src/camera_manager.cpp
+    src/camera_parameter_manager.cpp
     src/video_widget.cpp
     src/qml_video_item.cpp
     src/video_transform_manager.cpp

@@ -421,6 +421,118 @@ impl AppState {
     pub fn get_distortion_correction(&self) -> bool {
         *self.distortion_correction_enabled.read().unwrap()
     }
+
+    // ============================================================================
+    // 相机参数控制相关方法
+    // ============================================================================
+
+    /// 设置左相机参数
+    pub fn set_left_camera_parameter(&mut self, property: &crate::camera::CameraProperty, value: i32) -> crate::Result<()> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.set_left_camera_parameter(property, value)
+        } else {
+            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+        }
+    }
+
+    /// 设置右相机参数
+    pub fn set_right_camera_parameter(&mut self, property: &crate::camera::CameraProperty, value: i32) -> crate::Result<()> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.set_right_camera_parameter(property, value)
+        } else {
+            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+        }
+    }
+
+    /// 设置单相机参数
+    pub fn set_single_camera_parameter(&mut self, property: &crate::camera::CameraProperty, value: i32) -> crate::Result<()> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.set_single_camera_parameter(property, value)
+        } else {
+            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+        }
+    }
+
+    /// 获取左相机参数
+    pub fn get_left_camera_parameter(&mut self, property: &crate::camera::CameraProperty) -> crate::Result<i32> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.get_left_camera_parameter(property)
+        } else {
+            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+        }
+    }
+
+    /// 获取右相机参数
+    pub fn get_right_camera_parameter(&mut self, property: &crate::camera::CameraProperty) -> crate::Result<i32> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.get_right_camera_parameter(property)
+        } else {
+            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+        }
+    }
+
+    /// 获取单相机参数
+    pub fn get_single_camera_parameter(&mut self, property: &crate::camera::CameraProperty) -> crate::Result<i32> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.get_single_camera_parameter(property)
+        } else {
+            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+        }
+    }
+
+    /// 获取左相机参数范围
+    pub fn get_left_camera_parameter_range(&mut self, property: &crate::camera::CameraProperty) -> crate::Result<crate::camera::ParameterRange> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.get_left_camera_parameter_range(property)
+        } else {
+            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+        }
+    }
+
+    /// 获取右相机参数范围
+    pub fn get_right_camera_parameter_range(&mut self, property: &crate::camera::CameraProperty) -> crate::Result<crate::camera::ParameterRange> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.get_right_camera_parameter_range(property)
+        } else {
+            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+        }
+    }
+
+    /// 获取单相机参数范围
+    pub fn get_single_camera_parameter_range(&mut self, property: &crate::camera::CameraProperty) -> crate::Result<crate::camera::ParameterRange> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.get_single_camera_parameter_range(property)
+        } else {
+            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+        }
+    }
+
+    /// 重置左相机参数到默认值
+    pub fn reset_left_camera_parameters(&mut self) -> crate::Result<()> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.reset_left_camera_parameters()
+        } else {
+            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+        }
+    }
+
+    /// 重置右相机参数到默认值
+    pub fn reset_right_camera_parameters(&mut self) -> crate::Result<()> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.reset_right_camera_parameters()
+        } else {
+            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+        }
+    }
+
+    /// 重置单相机参数到默认值
+    pub fn reset_single_camera_parameters(&mut self) -> crate::Result<()> {
+        if let Some(ref mut camera_manager) = self.camera_manager {
+            camera_manager.reset_single_camera_parameters()
+        } else {
+            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+        }
+    }
 }
 
 impl Default for AppState {

@@ -14,7 +14,8 @@ use crate::config::SmartScopeConfig;
 // 重新导出USB相机相关类型
 pub use usb_camera::{
     CameraStreamReader, CameraConfig, VideoFrame,
-    V4L2DeviceManager, CameraResult, CameraError
+    V4L2DeviceManager, CameraResult, CameraError,
+    CameraControl, CameraProperty, ParameterRange,
 };
 
 // 注意：不需要重新导出本模块的类型，它们已经在模块中定义
@@ -39,6 +40,12 @@ pub struct CameraManager {
     right_reader: Option<CameraStreamReader>,
     /// 单相机流读取器（当只有一个相机时使用）
     single_reader: Option<CameraStreamReader>,
+    /// 左相机参数控制
+    left_control: Option<CameraControl>,
+    /// 右相机参数控制
+    right_control: Option<CameraControl>,
+    /// 单相机参数控制
+    single_control: Option<CameraControl>,
     /// 当前配置
     config: SmartScopeConfig,
     /// 运行状态
@@ -68,6 +75,9 @@ impl CameraManager {
             left_reader: None,
             right_reader: None,
             single_reader: None,
+            left_control: None,
+            right_control: None,
+            single_control: None,
             config,
             running: false,
             left_frame: Arc::new(Mutex::new(None)),
@@ -216,7 +226,7 @@ impl CameraManager {
 
         match mode {
             CameraMode::StereoCamera => {
-                // 双目模式：为左右相机创建流读取器
+                // 双目模式：为左右相机创建流读取器和参数控制
                 for camera in detected_cameras {
                     if camera.is_left {
                         tracing::info!("创建左相机流读取器: {}", camera.device_path);
@@ -226,6 +236,11 @@ impl CameraManager {
                             camera_config.clone(),
                         );
                         self.left_reader = Some(reader);
+
+                        // 创建左相机参数控制
+                        let control = CameraControl::new(&camera.device_path);
+                        tracing::info!("左相机参数控制创建成功");
+                        self.left_control = Some(control);
                     } else if camera.is_right {
                         tracing::info!("创建右相机流读取器: {}", camera.device_path);
                         let reader = CameraStreamReader::new(
@@ -234,6 +249,11 @@ impl CameraManager {
                             camera_config.clone(),
                         );
                         self.right_reader = Some(reader);
+
+                        // 创建右相机参数控制
+                        let control = CameraControl::new(&camera.device_path);
+                        tracing::info!("右相机参数控制创建成功");
+                        self.right_control = Some(control);
                     }
                 }
             }
@@ -247,6 +267,11 @@ impl CameraManager {
                         camera_config.clone(),
                     );
                     self.single_reader = Some(reader);
+
+                    // 创建单相机参数控制
+                    let control = CameraControl::new(&camera.device_path);
+                    tracing::info!("单相机参数控制创建成功");
+                    self.single_control = Some(control);
                 }
             }
             CameraMode::NoCamera => {
@@ -568,6 +593,11 @@ impl CameraManager {
                             SmartScopeError::Unknown(format!("启动左相机失败: {}", e))
                         })?;
                         self.left_reader = Some(reader);
+
+                        // 创建左相机参数控制
+                        let control = CameraControl::new(&camera.device_path);
+                        tracing::info!("左相机参数控制创建成功");
+                        self.left_control = Some(control);
                     } else if camera.is_right {
                         tracing::info!("创建并启动右相机流读取器: {}", camera.device_path);
                         let mut reader = CameraStreamReader::new(
@@ -579,6 +609,11 @@ impl CameraManager {
                             SmartScopeError::Unknown(format!("启动右相机失败: {}", e))
                         })?;
                         self.right_reader = Some(reader);
+
+                        // 创建右相机参数控制
+                        let control = CameraControl::new(&camera.device_path);
+                        tracing::info!("右相机参数控制创建成功");
+                        self.right_control = Some(control);
                     }
                 }
             }
@@ -595,6 +630,11 @@ impl CameraManager {
                         SmartScopeError::Unknown(format!("启动单相机失败: {}", e))
                     })?;
                     self.single_reader = Some(reader);
+
+                    // 创建单相机参数控制
+                    let control = CameraControl::new(&camera.device_path);
+                    tracing::info!("单相机参数控制创建成功");
+                    self.single_control = Some(control);
                 }
             }
             CameraMode::NoCamera => {
@@ -694,6 +734,130 @@ impl CameraManager {
         } else {
             // 无法获取锁，返回未连接
             (false, false)
+        }
+    }
+
+    // ============================================================================
+    // 相机参数控制方法
+    // ============================================================================
+
+    /// 设置左相机参数
+    pub fn set_left_camera_parameter(&mut self, property: &CameraProperty, value: i32) -> Result<()> {
+        if let Some(ref mut control) = self.left_control {
+            control.set_parameter(property, value)
+                .map_err(|e| SmartScopeError::Unknown(format!("设置左相机参数失败: {}", e)))
+        } else {
+            Err(SmartScopeError::Unknown("左相机参数控制未初始化".to_string()))
+        }
+    }
+
+    /// 设置右相机参数
+    pub fn set_right_camera_parameter(&mut self, property: &CameraProperty, value: i32) -> Result<()> {
+        if let Some(ref mut control) = self.right_control {
+            control.set_parameter(property, value)
+                .map_err(|e| SmartScopeError::Unknown(format!("设置右相机参数失败: {}", e)))
+        } else {
+            Err(SmartScopeError::Unknown("右相机参数控制未初始化".to_string()))
+        }
+    }
+
+    /// 设置单相机参数
+    pub fn set_single_camera_parameter(&mut self, property: &CameraProperty, value: i32) -> Result<()> {
+        if let Some(ref mut control) = self.single_control {
+            control.set_parameter(property, value)
+                .map_err(|e| SmartScopeError::Unknown(format!("设置单相机参数失败: {}", e)))
+        } else {
+            Err(SmartScopeError::Unknown("单相机参数控制未初始化".to_string()))
+        }
+    }
+
+    /// 获取左相机参数
+    pub fn get_left_camera_parameter(&mut self, property: &CameraProperty) -> Result<i32> {
+        if let Some(ref mut control) = self.left_control {
+            control.get_parameter(property)
+                .map_err(|e| SmartScopeError::Unknown(format!("获取左相机参数失败: {}", e)))
+        } else {
+            Err(SmartScopeError::Unknown("左相机参数控制未初始化".to_string()))
+        }
+    }
+
+    /// 获取右相机参数
+    pub fn get_right_camera_parameter(&mut self, property: &CameraProperty) -> Result<i32> {
+        if let Some(ref mut control) = self.right_control {
+            control.get_parameter(property)
+                .map_err(|e| SmartScopeError::Unknown(format!("获取右相机参数失败: {}", e)))
+        } else {
+            Err(SmartScopeError::Unknown("右相机参数控制未初始化".to_string()))
+        }
+    }
+
+    /// 获取单相机参数
+    pub fn get_single_camera_parameter(&mut self, property: &CameraProperty) -> Result<i32> {
+        if let Some(ref mut control) = self.single_control {
+            control.get_parameter(property)
+                .map_err(|e| SmartScopeError::Unknown(format!("获取单相机参数失败: {}", e)))
+        } else {
+            Err(SmartScopeError::Unknown("单相机参数控制未初始化".to_string()))
+        }
+    }
+
+    /// 获取左相机参数范围
+    pub fn get_left_camera_parameter_range(&mut self, property: &CameraProperty) -> Result<ParameterRange> {
+        if let Some(ref mut control) = self.left_control {
+            control.get_parameter_range(property)
+                .map_err(|e| SmartScopeError::Unknown(format!("获取左相机参数范围失败: {}", e)))
+        } else {
+            Err(SmartScopeError::Unknown("左相机参数控制未初始化".to_string()))
+        }
+    }
+
+    /// 获取右相机参数范围
+    pub fn get_right_camera_parameter_range(&mut self, property: &CameraProperty) -> Result<ParameterRange> {
+        if let Some(ref mut control) = self.right_control {
+            control.get_parameter_range(property)
+                .map_err(|e| SmartScopeError::Unknown(format!("获取右相机参数范围失败: {}", e)))
+        } else {
+            Err(SmartScopeError::Unknown("右相机参数控制未初始化".to_string()))
+        }
+    }
+
+    /// 获取单相机参数范围
+    pub fn get_single_camera_parameter_range(&mut self, property: &CameraProperty) -> Result<ParameterRange> {
+        if let Some(ref mut control) = self.single_control {
+            control.get_parameter_range(property)
+                .map_err(|e| SmartScopeError::Unknown(format!("获取单相机参数范围失败: {}", e)))
+        } else {
+            Err(SmartScopeError::Unknown("单相机参数控制未初始化".to_string()))
+        }
+    }
+
+    /// 重置左相机参数到默认值
+    pub fn reset_left_camera_parameters(&mut self) -> Result<()> {
+        if let Some(ref mut control) = self.left_control {
+            control.reset_to_defaults()
+                .map_err(|e| SmartScopeError::Unknown(format!("重置左相机参数失败: {}", e)))
+        } else {
+            Err(SmartScopeError::Unknown("左相机参数控制未初始化".to_string()))
+        }
+    }
+
+    /// 重置右相机参数到默认值
+    pub fn reset_right_camera_parameters(&mut self) -> Result<()> {
+        if let Some(ref mut control) = self.right_control {
+            control.reset_to_defaults()
+                .map_err(|e| SmartScopeError::Unknown(format!("重置右相机参数失败: {}", e)))
+        } else {
+            Err(SmartScopeError::Unknown("右相机参数控制未初始化".to_string()))
+        }
+    }
+
+    /// 重置单相机参数到默认值
+    pub fn reset_single_camera_parameters(&mut self) -> Result<()> {
+        if let Some(ref mut control) = self.single_control {
+            control.reset_to_defaults()
+                .map_err(|e| SmartScopeError::Unknown(format!("重置单相机参数失败: {}", e)))
+        } else {
+            Err(SmartScopeError::Unknown("单相机参数控制未初始化".to_string()))
         }
     }
 }

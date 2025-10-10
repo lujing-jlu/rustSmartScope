@@ -13,6 +13,7 @@ extern "C" {
 #include "logger.h"
 #include "qml_logger.h"
 #include "camera_manager.h"
+#include "camera_parameter_manager.h"
 #include "qml_video_item.h"
 #include "video_transform_manager.h"
 #include <QQmlEngine>
@@ -54,6 +55,9 @@ int main(int argc, char *argv[])
     // 创建相机管理器
     CameraManager *cameraManager = new CameraManager(&app);
 
+    // 创建相机参数管理器
+    CameraParameterManager *cameraParameterManager = new CameraParameterManager(&app);
+
     // 创建视频变换管理器
     VideoTransformManager *videoTransformManager = new VideoTransformManager(&app);
 
@@ -64,6 +68,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("appVersion", "0.1.0");
     engine.rootContext()->setContextProperty("rustInitialized", smartscope_is_initialized());
     engine.rootContext()->setContextProperty("CameraManager", cameraManager);
+    engine.rootContext()->setContextProperty("CameraParameterManager", cameraParameterManager);
     engine.rootContext()->setContextProperty("VideoTransformManager", videoTransformManager);
 
     // 加载QML文件

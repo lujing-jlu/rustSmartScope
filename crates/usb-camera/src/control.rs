@@ -19,18 +19,22 @@ pub enum CameraProperty {
     Saturation,
     /// Hue (色调)
     Hue,
-    /// Gain (增益)
+    /// Gain (增益) - Not directly supported by most UVC cameras
     Gain,
-    /// Exposure (曝光)
+    /// Exposure (曝光) - Maps to exposure_time_absolute
     Exposure,
     /// Focus (焦距)
     Focus,
-    /// White Balance (白平衡)
+    /// White Balance (白平衡) - Maps to white_balance_temperature
     WhiteBalance,
     /// Frame Rate (帧率)
     FrameRate,
     /// Resolution (分辨率)
     Resolution,
+    /// Gamma (伽马值)
+    Gamma,
+    /// Backlight Compensation (背光补偿)
+    BacklightCompensation,
 }
 
 /// Parameter range information
@@ -135,6 +139,8 @@ impl CameraControl {
             CameraProperty::Exposure,
             CameraProperty::Focus,
             CameraProperty::WhiteBalance,
+            CameraProperty::Gamma,
+            CameraProperty::BacklightCompensation,
         ];
         
         let mut result = HashMap::new();
@@ -173,11 +179,13 @@ impl CameraControl {
             CameraProperty::Contrast => Ok("contrast"),
             CameraProperty::Saturation => Ok("saturation"),
             CameraProperty::Hue => Ok("hue"),
-            CameraProperty::Gain => Ok("gain"),
-            CameraProperty::Exposure => Ok("exposure"),
-            CameraProperty::Focus => Ok("focus"),
-            CameraProperty::WhiteBalance => Ok("white_balance"),
+            CameraProperty::Gain => Ok("gain"),  // Note: Most UVC cameras don't support this
+            CameraProperty::Exposure => Ok("exposure_time_absolute"),  // Corrected V4L2 name
+            CameraProperty::Focus => Ok("focus_absolute"),
+            CameraProperty::WhiteBalance => Ok("white_balance_temperature"),  // Corrected V4L2 name
             CameraProperty::FrameRate => Ok("frame_rate"),
+            CameraProperty::Gamma => Ok("gamma"),
+            CameraProperty::BacklightCompensation => Ok("backlight_compensation"),
             CameraProperty::Resolution => Err(CameraError::ConfigurationError(
                 "Resolution is not a V4L2 control parameter".to_string()
             )),

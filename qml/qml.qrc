@@ -15,10 +15,12 @@
         <file>components/OperationButton.qml</file>
         <file>components/GlassPopupWindow.qml</file>
         <file>components/VideoAdjustmentContent.qml</file>
+        <file>components/CameraParameterPanel.qml</file>
 
         <!-- 窗口 -->
         <file>Measurement3DWindow.qml</file>
         <file>VideoOperationsWindow.qml</file>
+        <file>CameraParameterWindow.qml</file>
 
         <!-- 页面 -->
         <file>pages/HomePage.qml</file>
