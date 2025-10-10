@@ -110,11 +110,13 @@ impl ImagePipeline {
 
         // 3. 应用 RGA 视频变换（旋转、翻转、反色）
         // 需要检查是否有90度或270度旋转，这会交换宽高
-        let video_transform = self.video_transform.read().unwrap();
-        let rotation = video_transform.get_config().rotation_degrees;
-        drop(video_transform); // 释放锁
+        let rotation = {
+            let video_transform = self.video_transform.read().unwrap();
+            video_transform.get_config().rotation_degrees
+        }; // 锁自动释放
 
-        let final_data = self.apply_video_transforms(&corrected_data, width, height)?;
+        // 传递所有权，避免不必要的复制
+        let final_data = self.apply_video_transforms(corrected_data, width, height)?;
 
         // 如果用户旋转了90度或270度，需要交换宽高
         if rotation == 90 || rotation == 270 {
@@ -151,7 +153,6 @@ impl ImagePipeline {
             .decompress(mjpeg_data, output_image)
             .map_err(|e| SmartScopeError::VideoProcessingError(format!("MJPEG decode failed: {}", e)))?;
 
-        debug!("Decoded MJPEG frame: {}x{}", width, height);
         Ok((rgb_buffer, width, height))
     }
 
@@ -175,7 +176,6 @@ impl ImagePipeline {
 
         // 步骤2: 逆时针旋转90度（补偿标定时相机的顺时针90度旋转）
         let rotated_mat = self.rotate_mat_counter_clockwise_90(&mat)?;
-        debug!("Rotated image counter-clockwise 90° for calibration compensation");
 
         // 获取对应相机的校正器
         let corrector = if is_left_camera {
@@ -200,11 +200,9 @@ impl ImagePipeline {
             // 步骤3: 应用畸变校正
             let corrected_mat = corrector.correct_distortion(&rotated_mat)
                 .map_err(|e| SmartScopeError::VideoProcessingError(format!("Distortion correction failed: {}", e)))?;
-            debug!("Distortion correction applied for {} camera", if is_left_camera { "left" } else { "right" });
 
             // 步骤4: 顺时针旋转90度（恢复到正常方向）
             let final_mat = self.rotate_mat_clockwise_90(&corrected_mat)?;
-            debug!("Rotated image clockwise 90° to restore normal orientation");
 
             // 步骤5: 转换回 RGB 数据
             let final_data = self.mat_to_rgb(&final_mat)?;
@@ -218,34 +216,34 @@ impl ImagePipeline {
         }
     }
 
-    /// 应用视频变换（旋转、翻转、反色）
+    /// 应用视频变换（旋转、翻转、反色）- 优化版本
     fn apply_video_transforms(
         &self,
-        rgb_data: &[u8],
+        rgb_data: Vec<u8>,  // 接收所有权，避免不必要的复制
         width: u32,
         height: u32,
     ) -> Result<Vec<u8>> {
         let video_transform = self.video_transform.read().unwrap();
         let transforms = video_transform.get_config().get_transforms();
 
+        // 如果没有变换，直接返回原数据（零复制）
         if transforms.is_empty() {
-            return Ok(rgb_data.to_vec());
+            return Ok(rgb_data);
         }
 
         // 使用 RGA 硬件加速（如果可用）
         if video_transform.is_rga_available() {
-            debug!("Applying {} RGA transforms", transforms.len());
             video_transform.apply_transforms(
-                rgb_data,
+                &rgb_data,
                 width,
                 height,
                 RgaFormat::Rgb888,
                 &transforms,
             )
         } else {
-            // RGA 不可用，返回原始数据
+            // RGA 不可用，返回原始数据（零复制）
             warn!("RGA not available, video transforms skipped");
-            Ok(rgb_data.to_vec())
+            Ok(rgb_data)
         }
     }
 
