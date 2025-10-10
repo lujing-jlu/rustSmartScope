@@ -3,21 +3,21 @@ import QtQuick.Controls 2.15
 import QtQuick.Window 2.15
 import "components"
 
-// 视频操作窗口 - 无边框圆角毛玻璃效果窗口
+// 视频操作窗口 - 全屏透明窗口，中间显示毛玻璃卡片
 Window {
     id: videoOperationsWindow
-    width: 1100
-    height: 850
+    width: Screen.width
+    height: Screen.height
     title: "画面调整"
 
-    // 无边框、半透明背景
-    flags: Qt.Dialog | Qt.FramelessWindowHint
+    // 全屏无边框透明窗口
+    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
 
-    // 窗口显示时居中
+    // 窗口显示时填充整个屏幕
     Component.onCompleted: {
-        setX(Screen.width / 2 - width / 2)
-        setY(Screen.height / 2 - height / 2)
+        setX(0)
+        setY(0)
     }
 
     // 现代化设计系统颜色
@@ -47,14 +47,28 @@ Window {
     property int brightnessLevel: 0
     property var brightnessLevels: [0, 25, 50, 75, 100]
 
-    // 主容器 - 毛玻璃效果卡片（直接填充整个窗口，不留边距）
+    // 全屏背景区域 - 点击可关闭窗口
+    MouseArea {
+        anchors.fill: parent
+        onClicked: videoOperationsWindow.close()
+    }
+
+    // 主容器 - 毛玻璃效果卡片（居中显示）
     Rectangle {
         id: mainContainer
-        anchors.fill: parent
+        anchors.centerIn: parent
+        width: 1100
+        height: 850
         color: Qt.rgba(0.16, 0.16, 0.18, 0.90)
         radius: cornerRadius
         border.width: 2
         border.color: Qt.rgba(14, 165, 233, 0.3)
+
+        // 阻止点击事件传递到背景MouseArea
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {} // 阻止事件冒泡，保持窗口不关闭
+        }
 
         // 内层毛玻璃效果
         Rectangle {
