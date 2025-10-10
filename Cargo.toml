@@ -5,7 +5,8 @@ members = [
     "crates/smartscope-core",
     "crates/c-ffi",
     "crates/linux-video",
-    "crates/usb-camera"
+    "crates/usb-camera",
+    "crates/rockchip-rga"
 ]
 
 exclude = [

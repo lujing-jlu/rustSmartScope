@@ -11,6 +11,12 @@ pub enum SmartScopeError {
     #[error("IO错误: {0}")]
     Io(#[from] std::io::Error),
 
+    #[error("相机错误: {0}")]
+    CameraError(String),
+
+    #[error("视频处理错误: {0}")]
+    VideoProcessingError(String),
+
     #[error("未知错误: {0}")]
     Unknown(String),
 }

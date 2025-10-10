@@ -3,6 +3,15 @@
 #include <QBuffer>
 #include <QImageReader>
 #include <QMutexLocker>
+#include <QTransform>
+
+// Rust FFI for video transforms
+extern "C" {
+    uint32_t smartscope_video_get_rotation();
+    bool smartscope_video_get_flip_horizontal();
+    bool smartscope_video_get_flip_vertical();
+    bool smartscope_video_get_invert();
+}
 
 CameraManager::CameraManager(QObject *parent)
     : QObject(parent)
@@ -225,6 +234,9 @@ QImage CameraManager::processFrame(const CCameraFrame& frame)
         image = image.convertToFormat(QImage::Format_RGB888);
     }
 
+    // 应用视频变换（旋转、翻转、反色等）
+    image = applyVideoTransforms(image);
+
     return image;
 }
 
@@ -256,4 +268,38 @@ void CameraManager::updateStatus()
             emit cameraModeChanged();
         }
     }
+}
+
+QImage CameraManager::applyVideoTransforms(const QImage& image)
+{
+    if (image.isNull()) {
+        return image;
+    }
+
+    QImage result = image;
+
+    // 获取当前视频变换状态
+    uint32_t rotation = smartscope_video_get_rotation();
+    bool flipH = smartscope_video_get_flip_horizontal();
+    bool flipV = smartscope_video_get_flip_vertical();
+    bool invert = smartscope_video_get_invert();
+
+    // 应用旋转
+    if (rotation != 0) {
+        QTransform transform;
+        transform.rotate(rotation);
+        result = result.transformed(transform, Qt::SmoothTransformation);
+    }
+
+    // 应用翻转
+    if (flipH || flipV) {
+        result = result.mirrored(flipH, flipV);
+    }
+
+    // 应用反色
+    if (invert) {
+        result.invertPixels();
+    }
+
+    return result;
 }

@@ -96,6 +96,7 @@ private slots:
 
 private:
     QImage processFrame(const CCameraFrame& frame);
+    QImage applyVideoTransforms(const QImage& image);
     void updateStatus();
 
     QTimer* m_updateTimer;

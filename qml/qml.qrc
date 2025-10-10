@@ -56,6 +56,17 @@
         <file alias="icons/save.svg">../resources/icons/save.svg</file>
         <file alias="icons/screenshot.svg">../resources/icons/screenshot.svg</file>
 
+        <!-- 视频操作图标 -->
+        <file alias="icons/rotate.svg">../resources/icons/rotate.svg</file>
+        <file alias="icons/horizontal_filp.svg">../resources/icons/horizontal_filp.svg</file>
+        <file alias="icons/vertical_filp.svg">../resources/icons/vertical_filp.svg</file>
+        <file alias="icons/invert_color.svg">../resources/icons/invert_color.svg</file>
+        <file alias="icons/auto_exposure.svg">../resources/icons/auto_exposure.svg</file>
+        <file alias="icons/exposure.svg">../resources/icons/exposure.svg</file>
+        <file alias="icons/distortion.svg">../resources/icons/distortion.svg</file>
+        <file alias="icons/restore.svg">../resources/icons/restore.svg</file>
+        <file alias="icons/advanced_settings.svg">../resources/icons/advanced_settings.svg</file>
+
         <!-- 字体文件已移动到fonts.qrc -->
     </qresource>
 </RCC>

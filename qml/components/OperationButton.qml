@@ -1,17 +1,19 @@
 import QtQuick 2.15
+import QtGraphicalEffects 1.15
 
-// 操作按钮组件 - 用于视频操作窗口（毛玻璃效果风格，方形）
+// 操作按钮组件 - 用于视频操作窗口（毛玻璃效果风格，方形，图标在上文字在下）
 Rectangle {
     id: opBtn
-    width: 170
-    height: 75
-    radius: 8
+    width: 200
+    height: 170
+    radius: 12
 
     property string text: ""
+    property string iconSource: ""
     property bool isActive: false
     property bool hovered: false
-    property color buttonColor: Qt.rgba(0.12, 0.12, 0.12, 0.7)
-    property color hoverColor: Qt.rgba(0.2, 0.2, 0.2, 0.85)
+    property color buttonColor: Qt.rgba(58/255, 58/255, 58/255, 0.51)
+    property color hoverColor: Qt.rgba(74/255, 74/255, 74/255, 0.59)
     property color activeColor: Qt.rgba(14, 165, 233, 0.3)
 
     signal clicked()
@@ -23,7 +25,7 @@ Rectangle {
     }
 
     border.width: isActive ? 2 : 1
-    border.color: isActive ? Qt.rgba(14, 165, 233, 0.8) : Qt.rgba(1, 1, 1, 0.15)
+    border.color: isActive ? Qt.rgba(14, 165, 233, 0.8) : Qt.rgba(74/255, 74/255, 74/255, 0.63)
 
     // 内层高光效果
     Rectangle {
@@ -36,14 +38,38 @@ Rectangle {
         visible: !isActive
     }
 
-    Text {
+    // 内容列布局：图标在上，文字在下
+    Column {
         anchors.centerIn: parent
-        text: opBtn.text
-        font.family: "Inter"
-        font.pixelSize: 22
-        font.weight: Font.Medium
-        color: opBtn.isActive ? "#38BDF8" : "#FFFFFF"
-        z: 1
+        spacing: 10
+
+        // 图标
+        Image {
+            id: icon
+            source: opBtn.iconSource
+            width: 65
+            height: 65
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: opBtn.iconSource !== ""
+            fillMode: Image.PreserveAspectFit
+
+            // 图标颜色滤镜（活动状态时变蓝色）
+            layer.enabled: true
+            layer.effect: ColorOverlay {
+                color: opBtn.isActive ? "#38BDF8" : "#EEEEEE"
+            }
+        }
+
+        // 文字
+        Text {
+            text: opBtn.text
+            font.family: "Inter"
+            font.pixelSize: 26
+            font.weight: Font.Bold
+            color: opBtn.isActive ? "#38BDF8" : "#EEEEEE"
+            anchors.horizontalCenter: parent.horizontalCenter
+            z: 1
+        }
     }
 
     MouseArea {

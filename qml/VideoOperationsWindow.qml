@@ -38,6 +38,15 @@ Window {
     property bool flipVertical: false
     property bool invertColors: false
 
+    // 曝光控制状态
+    property bool autoExposureEnabled: true
+    property int exposurePresetIndex: 0
+    property var exposurePresets: [50, 100, 300, 500, 1000, 1500]
+
+    // 亮度控制状态
+    property int brightnessLevel: 0
+    property var brightnessLevels: [0, 25, 50, 75, 100]
+
     // 主容器 - 毛玻璃效果卡片（直接填充整个窗口，不留边距）
     Rectangle {
         id: mainContainer
@@ -144,7 +153,7 @@ Window {
                 z: 1
             }
 
-            // 按钮网格布局
+            // 按钮网格布局（3x3）
             Item {
                 width: parent.width
                 height: parent.height - 80 - 1
@@ -152,17 +161,18 @@ Window {
                 Grid {
                     anchors.centerIn: parent
                     columns: 3
-                    rows: 2
+                    rows: 3
                     columnSpacing: 20
-                    rowSpacing: 20
+                    rowSpacing: 18
 
+                    // 第一行
                     // 旋转按钮
                     OperationButton {
                         text: "旋转"
-                        width: 200
-                        height: 180
+                        iconSource: "qrc:/icons/rotate.svg"
                         onClicked: {
-                            rotationDegrees = (rotationDegrees + 90) % 360
+                            VideoTransformManager.applyRotation()
+                            rotationDegrees = VideoTransformManager.rotationDegrees
                             applyTransformations()
                         }
                     }
@@ -170,11 +180,11 @@ Window {
                     // 水平翻转按钮
                     OperationButton {
                         text: "水平翻转"
-                        width: 200
-                        height: 180
+                        iconSource: "qrc:/icons/horizontal_filp.svg"
                         isActive: flipHorizontal
                         onClicked: {
-                            flipHorizontal = !flipHorizontal
+                            VideoTransformManager.toggleFlipHorizontal()
+                            flipHorizontal = VideoTransformManager.flipHorizontal
                             applyTransformations()
                         }
                     }
@@ -182,47 +192,75 @@ Window {
                     // 垂直翻转按钮
                     OperationButton {
                         text: "垂直翻转"
-                        width: 200
-                        height: 180
+                        iconSource: "qrc:/icons/vertical_filp.svg"
                         isActive: flipVertical
                         onClicked: {
-                            flipVertical = !flipVertical
+                            VideoTransformManager.toggleFlipVertical()
+                            flipVertical = VideoTransformManager.flipVertical
                             applyTransformations()
                         }
                     }
 
+                    // 第二行
                     // 反色按钮
                     OperationButton {
                         text: "反色"
-                        width: 200
-                        height: 180
+                        iconSource: "qrc:/icons/invert_color.svg"
                         isActive: invertColors
                         onClicked: {
-                            invertColors = !invertColors
+                            VideoTransformManager.toggleInvert()
+                            invertColors = VideoTransformManager.invertColors
                             applyTransformations()
                         }
                     }
 
-                    // 占位按钮（可以后续扩展其他功能）
-                    Rectangle {
-                        width: 200
-                        height: 180
-                        color: "transparent"
+                    // 自动曝光按钮
+                    OperationButton {
+                        id: exposureButton
+                        text: autoExposureEnabled ? "自动曝光" : ("曝光 " + exposurePresets[exposurePresetIndex])
+                        iconSource: autoExposureEnabled ? "qrc:/icons/auto_exposure.svg" : "qrc:/icons/exposure.svg"
+                        onClicked: {
+                            cycleExposure()
+                        }
+                    }
+
+                    // 亮度按钮
+                    OperationButton {
+                        id: brightnessButton
+                        text: "亮度 " + brightnessLevels[brightnessLevel] + "%"
+                        iconSource: "qrc:/icons/brightness.svg"
+                        onClicked: {
+                            cycleBrightness()
+                        }
+                    }
+
+                    // 第三行
+                    // 畸变校正按钮
+                    OperationButton {
+                        text: "畸变校正"
+                        iconSource: "qrc:/icons/distortion.svg"
+                        onClicked: {
+                            toggleDistortionCorrection()
+                        }
                     }
 
                     // 还原按钮
                     OperationButton {
                         text: "还原"
-                        width: 200
-                        height: 180
+                        iconSource: "qrc:/icons/restore.svg"
                         buttonColor: Qt.rgba(0.7, 0.2, 0.2, 0.6)
                         hoverColor: Qt.rgba(0.85, 0.25, 0.25, 0.8)
                         onClicked: {
-                            rotationDegrees = 0
-                            flipHorizontal = false
-                            flipVertical = false
-                            invertColors = false
-                            applyTransformations()
+                            resetAll()
+                        }
+                    }
+
+                    // 高级模式按钮
+                    OperationButton {
+                        text: "高级模式"
+                        iconSource: "qrc:/icons/advanced_settings.svg"
+                        onClicked: {
+                            openAdvancedSettings()
                         }
                     }
                 }
@@ -259,11 +297,69 @@ Window {
 
     // 应用变换
     function applyTransformations() {
-        // TODO: 调用C++后端应用变换
         console.log("应用变换:")
         console.log("  旋转:", rotationDegrees, "度")
         console.log("  水平翻转:", flipHorizontal)
         console.log("  垂直翻转:", flipVertical)
         console.log("  反色:", invertColors)
+        // 变换会自动在C++端应用，这里仅用于日志
+    }
+
+    // 曝光循环：自动曝光 -> 50 -> 100 -> 300 -> 500 -> 1000 -> 1500 -> 自动曝光
+    function cycleExposure() {
+        if (autoExposureEnabled) {
+            // 从自动切换到手动第一档（50）
+            autoExposureEnabled = false
+            exposurePresetIndex = 0
+            console.log("曝光模式: 手动", exposurePresets[exposurePresetIndex])
+            // TODO: 调用C++后端设置曝光
+        } else {
+            // 手动模式下循环档位
+            exposurePresetIndex++
+            if (exposurePresetIndex >= exposurePresets.length) {
+                // 超过最后一档，回到自动曝光
+                autoExposureEnabled = true
+                exposurePresetIndex = 0
+                console.log("曝光模式: 自动")
+                // TODO: 调用C++后端设置自动曝光
+            } else {
+                console.log("曝光值:", exposurePresets[exposurePresetIndex])
+                // TODO: 调用C++后端设置曝光值
+            }
+        }
+    }
+
+    // 亮度循环：0% -> 25% -> 50% -> 75% -> 100% -> 0%
+    function cycleBrightness() {
+        brightnessLevel = (brightnessLevel + 1) % brightnessLevels.length
+        console.log("亮度:", brightnessLevels[brightnessLevel] + "%")
+        // TODO: 调用C++后端设置LED亮度
+    }
+
+    // 畸变校正开关
+    function toggleDistortionCorrection() {
+        console.log("畸变校正已触发")
+        // TODO: 调用C++后端切换畸变校正
+    }
+
+    // 还原所有设置
+    function resetAll() {
+        VideoTransformManager.resetAll()
+        rotationDegrees = VideoTransformManager.rotationDegrees
+        flipHorizontal = VideoTransformManager.flipHorizontal
+        flipVertical = VideoTransformManager.flipVertical
+        invertColors = VideoTransformManager.invertColors
+        autoExposureEnabled = true
+        exposurePresetIndex = 0
+        brightnessLevel = 0
+        console.log("已还原所有设置")
+        applyTransformations()
+    }
+
+    // 打开高级设置
+    function openAdvancedSettings() {
+        console.log("打开高级设置面板")
+        videoOperationsWindow.close()
+        // TODO: 打开高级设置窗口/面板
     }
 }

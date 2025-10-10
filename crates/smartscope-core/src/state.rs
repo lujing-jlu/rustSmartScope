@@ -4,6 +4,7 @@
 
 use crate::config::{SmartScopeConfig, PartialConfig};
 use crate::camera::CameraManager;
+use crate::video_transform::VideoTransformProcessor;
 use std::sync::{Arc, RwLock};
 use std::path::Path;
 use notify::{Watcher, RecommendedWatcher, RecursiveMode, Event};
@@ -16,6 +17,7 @@ pub struct AppState {
     pub config_watcher: Option<RecommendedWatcher>,
     pub config_path: Option<String>,
     pub camera_manager: Option<CameraManager>,
+    pub video_transform: Arc<RwLock<VideoTransformProcessor>>,
 }
 
 impl Clone for AppState {
@@ -26,6 +28,7 @@ impl Clone for AppState {
             config_watcher: None,  // Watcher不能clone，需要重新创建
             config_path: self.config_path.clone(),
             camera_manager: None,  // CameraManager不能clone，需要重新创建
+            video_transform: Arc::clone(&self.video_transform),
         }
     }
 }
@@ -38,6 +41,7 @@ impl AppState {
             config_watcher: None,
             config_path: None,
             camera_manager: None,
+            video_transform: Arc::new(RwLock::new(VideoTransformProcessor::new())),
         }
     }
 
@@ -210,6 +214,92 @@ impl AppState {
         self.camera_manager.as_ref()
             .map(|cm| cm.is_running())
             .unwrap_or(false)
+    }
+
+    // ============================================================================
+    // 视频变换相关方法
+    // ============================================================================
+
+    /// 设置旋转角度
+    pub fn video_set_rotation(&self, degrees: u32) -> crate::Result<()> {
+        let mut transform = self.video_transform.write().unwrap();
+        transform.get_config_mut().set_rotation(degrees);
+        tracing::debug!("视频旋转设置为: {}°", degrees);
+        Ok(())
+    }
+
+    /// 应用旋转（累加90度）
+    pub fn video_apply_rotation(&self) -> crate::Result<()> {
+        let mut transform = self.video_transform.write().unwrap();
+        transform.get_config_mut().apply_rotation();
+        let degrees = transform.get_config().rotation_degrees;
+        tracing::debug!("视频旋转: {}°", degrees);
+        Ok(())
+    }
+
+    /// 切换水平翻转
+    pub fn video_toggle_flip_horizontal(&self) -> crate::Result<()> {
+        let mut transform = self.video_transform.write().unwrap();
+        transform.get_config_mut().toggle_flip_horizontal();
+        let enabled = transform.get_config().flip_horizontal;
+        tracing::debug!("水平翻转: {}", enabled);
+        Ok(())
+    }
+
+    /// 切换垂直翻转
+    pub fn video_toggle_flip_vertical(&self) -> crate::Result<()> {
+        let mut transform = self.video_transform.write().unwrap();
+        transform.get_config_mut().toggle_flip_vertical();
+        let enabled = transform.get_config().flip_vertical;
+        tracing::debug!("垂直翻转: {}", enabled);
+        Ok(())
+    }
+
+    /// 切换反色
+    pub fn video_toggle_invert(&self) -> crate::Result<()> {
+        let mut transform = self.video_transform.write().unwrap();
+        transform.get_config_mut().toggle_invert();
+        let enabled = transform.get_config().invert_colors;
+        tracing::debug!("反色: {}", enabled);
+        Ok(())
+    }
+
+    /// 重置所有视频变换
+    pub fn video_reset_transforms(&self) -> crate::Result<()> {
+        let mut transform = self.video_transform.write().unwrap();
+        transform.get_config_mut().reset();
+        tracing::info!("视频变换已重置");
+        Ok(())
+    }
+
+    /// 获取当前旋转角度
+    pub fn video_get_rotation(&self) -> u32 {
+        let transform = self.video_transform.read().unwrap();
+        transform.get_config().rotation_degrees
+    }
+
+    /// 获取水平翻转状态
+    pub fn video_get_flip_horizontal(&self) -> bool {
+        let transform = self.video_transform.read().unwrap();
+        transform.get_config().flip_horizontal
+    }
+
+    /// 获取垂直翻转状态
+    pub fn video_get_flip_vertical(&self) -> bool {
+        let transform = self.video_transform.read().unwrap();
+        transform.get_config().flip_vertical
+    }
+
+    /// 获取反色状态
+    pub fn video_get_invert(&self) -> bool {
+        let transform = self.video_transform.read().unwrap();
+        transform.get_config().invert_colors
+    }
+
+    /// 检查RGA硬件是否可用
+    pub fn video_is_rga_available(&self) -> bool {
+        let transform = self.video_transform.read().unwrap();
+        transform.is_rga_available()
     }
 }
 

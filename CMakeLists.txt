@@ -67,6 +67,7 @@ set(SOURCES
     src/camera_manager.cpp
     src/video_widget.cpp
     src/qml_video_item.cpp
+    src/video_transform_manager.cpp
 )
 
 # QML资源文件（如果存在）
@@ -97,6 +98,7 @@ target_link_libraries(rustsmartscope
     ${CMAKE_DL_LIBS}
     -lpthread
     -lturbojpeg
+    -lrga
 )
 
 # 输出构建信息
