@@ -818,24 +818,20 @@ pub extern "C" fn smartscope_get_distortion_correction() -> bool {
 
 use smartscope_core::camera::CameraProperty;
 
-/// C FFI相机属性枚举
+/// C FFI相机属性枚举 - 匹配reference_code/SmartScope
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CCameraProperty {
     Brightness = 0,
     Contrast = 1,
     Saturation = 2,
-    Hue = 3,
-    Gain = 4,
-    Exposure = 5,
-    Focus = 6,
-    WhiteBalance = 7,
-    FrameRate = 8,
-    Resolution = 9,
-    Gamma = 10,
-    BacklightCompensation = 11,
-    AutoExposure = 12,
-    AutoWhiteBalance = 13,
+    Gain = 3,
+    ExposureTime = 4,     // 修改：Exposure -> ExposureTime
+    WhiteBalance = 5,
+    Gamma = 6,
+    BacklightCompensation = 7,
+    AutoExposure = 8,
+    AutoWhiteBalance = 9,
 }
 
 impl From<CCameraProperty> for CameraProperty {
@@ -844,13 +840,9 @@ impl From<CCameraProperty> for CameraProperty {
             CCameraProperty::Brightness => CameraProperty::Brightness,
             CCameraProperty::Contrast => CameraProperty::Contrast,
             CCameraProperty::Saturation => CameraProperty::Saturation,
-            CCameraProperty::Hue => CameraProperty::Hue,
             CCameraProperty::Gain => CameraProperty::Gain,
-            CCameraProperty::Exposure => CameraProperty::Exposure,
-            CCameraProperty::Focus => CameraProperty::Focus,
+            CCameraProperty::ExposureTime => CameraProperty::Exposure,  // 修改：映射到内部Exposure
             CCameraProperty::WhiteBalance => CameraProperty::WhiteBalance,
-            CCameraProperty::FrameRate => CameraProperty::FrameRate,
-            CCameraProperty::Resolution => CameraProperty::Resolution,
             CCameraProperty::Gamma => CameraProperty::Gamma,
             CCameraProperty::BacklightCompensation => CameraProperty::BacklightCompensation,
             CCameraProperty::AutoExposure => CameraProperty::AutoExposure,

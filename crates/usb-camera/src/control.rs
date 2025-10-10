@@ -89,16 +89,16 @@ impl CameraControl {
     /// Set camera parameter
     pub fn set_parameter(&mut self, property: &CameraProperty, value: i32) -> CameraResult<()> {
         let v4l2_property = self.property_to_v4l2(property)?;
-        
+
         // Check if value is within range
         let range = self.get_parameter_range(property)?;
         if value < range.min || value > range.max {
             return Err(CameraError::ConfigurationError(
-                format!("Value {} out of range [{}, {}] for property {:?}", 
+                format!("Value {} out of range [{}, {}] for property {:?}",
                         value, range.min, range.max, property)
             ));
         }
-        
+
         // Set parameter using v4l2-ctl
         let output = std::process::Command::new("v4l2-ctl")
             .arg("--device")
@@ -109,27 +109,48 @@ impl CameraControl {
             .map_err(|e| CameraError::ConfigurationError(
                 format!("Failed to run v4l2-ctl: {}", e)
             ))?;
-        
+
         if !output.status.success() {
             let error_msg = String::from_utf8_lossy(&output.stderr);
             return Err(CameraError::ConfigurationError(
                 format!("Failed to set parameter {}: {}", v4l2_property, error_msg)
             ));
         }
-        
-        // Update cached range
+
+        // Update cached range and invalidate cache to force refresh on next read
         if let Some(range) = self.parameter_ranges.get_mut(property) {
             range.current = value;
         }
-        
+
+        // Invalidate the cache for this parameter to ensure fresh read next time
+        self.parameter_ranges.remove(property);
+
         info!("Set {} to {} on device {}", v4l2_property, value, self.device_path);
         Ok(())
     }
     
     /// Get current parameter value
     pub fn get_parameter(&mut self, property: &CameraProperty) -> CameraResult<i32> {
+        // Force refresh by removing from cache
+        self.parameter_ranges.remove(property);
         let range = self.get_parameter_range(property)?;
         Ok(range.current)
+    }
+
+    /// Refresh current parameter values without clearing cache
+    pub fn refresh_current_values(&mut self) -> CameraResult<()> {
+        let properties: Vec<CameraProperty> = self.parameter_ranges.keys().cloned().collect();
+        for property in properties {
+            // Get fresh current value
+            if let Ok(v4l2_property) = self.property_to_v4l2(&property) {
+                if let Ok(current_value) = self.query_v4l2_current(&v4l2_property) {
+                    if let Some(range) = self.parameter_ranges.get_mut(&property) {
+                        range.current = current_value;
+                    }
+                }
+            }
+        }
+        Ok(())
     }
     
     /// Get all available parameters
@@ -205,11 +226,12 @@ impl CameraControl {
         let current_value = self.query_v4l2_current(v4l2_property)?;
         let range_info = self.query_v4l2_range(v4l2_property).unwrap_or_else(|err| {
             warn!("Failed to query range for {} on {}: {}", v4l2_property, self.device_path, err);
-            (0, 255, 1, current_value)
+            // Use a reasonable default range if we can't get the range
+            (current_value.saturating_sub(50), current_value.saturating_add(50), 1, current_value)
         });
 
         let (min, max, step, default) = range_info;
-        let current = current_value.clamp(min, max);
+        let current = current_value;
 
         Ok(ParameterRange {
             min,
