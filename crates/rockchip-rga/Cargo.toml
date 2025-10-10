@@ -22,3 +22,6 @@ bindgen = "0.69"
 
 [features]
 default = []
+
+[lints.rust]
+improper_ctypes = "allow"

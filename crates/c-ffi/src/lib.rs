@@ -75,6 +75,7 @@ pub extern "C" fn smartscope_init() -> c_int {
 
 /// 关闭SmartScope系统
 #[no_mangle]
+#[allow(static_mut_refs)]
 pub extern "C" fn smartscope_shutdown() -> c_int {
     unsafe {
         if let Some(mut state) = APP_STATE.take() {
@@ -86,6 +87,7 @@ pub extern "C" fn smartscope_shutdown() -> c_int {
 }
 
 /// 获取应用状态指针（内部使用）
+#[allow(static_mut_refs)]
 fn get_app_state() -> Result<&'static mut AppState, SmartScopeError> {
     unsafe {
         APP_STATE
@@ -96,6 +98,7 @@ fn get_app_state() -> Result<&'static mut AppState, SmartScopeError> {
 
 /// 检查系统是否已初始化
 #[no_mangle]
+#[allow(static_mut_refs)]
 pub extern "C" fn smartscope_is_initialized() -> bool {
     unsafe {
         APP_STATE

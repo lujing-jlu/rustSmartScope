@@ -216,6 +216,7 @@ pub fn init_global_logger(config: LoggerConfig) -> crate::Result<()> {
 }
 
 /// 获取全局日志实例
+#[allow(static_mut_refs)]
 pub fn get_global_logger() -> Option<&'static UnifiedLogger> {
     unsafe { GLOBAL_LOGGER.as_ref() }
 }
