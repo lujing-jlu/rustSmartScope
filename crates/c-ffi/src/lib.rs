@@ -834,6 +834,8 @@ pub enum CCameraProperty {
     Resolution = 9,
     Gamma = 10,
     BacklightCompensation = 11,
+    AutoExposure = 12,
+    AutoWhiteBalance = 13,
 }
 
 impl From<CCameraProperty> for CameraProperty {
@@ -851,6 +853,8 @@ impl From<CCameraProperty> for CameraProperty {
             CCameraProperty::Resolution => CameraProperty::Resolution,
             CCameraProperty::Gamma => CameraProperty::Gamma,
             CCameraProperty::BacklightCompensation => CameraProperty::BacklightCompensation,
+            CCameraProperty::AutoExposure => CameraProperty::AutoExposure,
+            CCameraProperty::AutoWhiteBalance => CameraProperty::AutoWhiteBalance,
         }
     }
 }

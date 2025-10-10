@@ -19,6 +19,8 @@ extern "C" {
         Resolution = 9,
         Gamma = 10,
         BacklightCompensation = 11,
+        AutoExposure = 12,
+        AutoWhiteBalance = 13
     };
 
     struct CCameraParameterRange {

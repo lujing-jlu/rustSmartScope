@@ -35,6 +35,10 @@ pub enum CameraProperty {
     Gamma,
     /// Backlight Compensation (背光补偿)
     BacklightCompensation,
+    /// Auto Exposure (自动曝光开关)
+    AutoExposure,
+    /// Auto White Balance (自动白平衡开关)
+    AutoWhiteBalance,
 }
 
 /// Parameter range information
@@ -141,6 +145,8 @@ impl CameraControl {
             CameraProperty::WhiteBalance,
             CameraProperty::Gamma,
             CameraProperty::BacklightCompensation,
+            CameraProperty::AutoExposure,
+            CameraProperty::AutoWhiteBalance,
         ];
         
         let mut result = HashMap::new();
@@ -186,6 +192,8 @@ impl CameraControl {
             CameraProperty::FrameRate => Ok("frame_rate"),
             CameraProperty::Gamma => Ok("gamma"),
             CameraProperty::BacklightCompensation => Ok("backlight_compensation"),
+            CameraProperty::AutoExposure => Ok("auto_exposure"),
+            CameraProperty::AutoWhiteBalance => Ok("white_balance_auto_preset"),
             CameraProperty::Resolution => Err(CameraError::ConfigurationError(
                 "Resolution is not a V4L2 control parameter".to_string()
             )),

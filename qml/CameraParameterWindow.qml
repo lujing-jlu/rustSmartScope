@@ -19,6 +19,7 @@ GlassPopupWindow {
     // 内部状态
     QtObject {
         id: internal
+        property bool syncing: true
 
         // 获取当前相机属性枚举值
         function getCameraPropertyEnum(name) {
@@ -34,9 +35,115 @@ GlassPopupWindow {
                 "frame_rate": 8,
                 "resolution": 9,
                 "gamma": 10,
-                "backlight": 11
+                "backlight": 11,
+                "auto_exposure": 12,
+                "auto_white_balance": 13
             }
             return propertyMap[name] || 0
+        }
+
+        function getCurrentParameterValue(propertyEnum) {
+            if (cameraParameterWindow.cameraMode === 1) {
+                return CameraParameterManager.getSingleCameraParameter(propertyEnum)
+            } else if (cameraParameterWindow.cameraMode === 2) {
+                var leftValue = CameraParameterManager.getLeftCameraParameter(propertyEnum)
+                if (leftValue !== -1) {
+                    return leftValue
+                }
+                return CameraParameterManager.getRightCameraParameter(propertyEnum)
+            }
+            return null
+        }
+
+        function getParameterRange(propertyEnum) {
+            if (cameraParameterWindow.cameraMode === 1) {
+                return CameraParameterManager.getSingleCameraParameterRange(propertyEnum)
+            } else if (cameraParameterWindow.cameraMode === 2) {
+                var leftRange = CameraParameterManager.getLeftCameraParameterRange(propertyEnum)
+                if (leftRange && leftRange.min !== undefined && leftRange.max !== undefined && leftRange.max > leftRange.min) {
+                    return leftRange
+                }
+                return CameraParameterManager.getRightCameraParameterRange(propertyEnum)
+            }
+            return null
+        }
+
+        function applyParameterToSlider(slider, propertyName) {
+            if (!slider) {
+                return
+            }
+
+            var propertyEnum = getCameraPropertyEnum(propertyName)
+            var range = getParameterRange(propertyEnum)
+
+            if (range) {
+                if (range.min !== undefined && range.max !== undefined && range.min !== range.max) {
+                    slider.from = range.min
+                    slider.to = range.max
+                }
+                if (range.step !== undefined && range.step > 0) {
+                    slider.stepSize = range.step
+                }
+            }
+
+            var current = getCurrentParameterValue(propertyEnum)
+            if (current !== null && current !== undefined && current !== -1) {
+                slider.value = current
+            }
+        }
+
+        function syncParametersFromCamera() {
+            syncing = true
+            if (typeof brightnessSlider === "undefined") {
+                syncing = false
+                return
+            }
+            if (cameraParameterWindow.cameraMode === 0) {
+                syncing = false
+                return
+            }
+
+            applyParameterToSlider(brightnessSlider, "brightness")
+            applyParameterToSlider(contrastSlider, "contrast")
+            applyParameterToSlider(saturationSlider, "saturation")
+            applyParameterToSlider(backlightSlider, "backlight")
+            applyParameterToSlider(gammaSlider, "gamma")
+            applyParameterToSlider(exposureSlider, "exposure")
+            applyParameterToSlider(gainSlider, "gain")
+            applyParameterToSlider(whiteBalanceSlider, "white_balance")
+
+            var autoExposureEnum = getCameraPropertyEnum("auto_exposure")
+            var autoExposureValue = getCurrentParameterValue(autoExposureEnum)
+            if (autoExposureValue !== null && autoExposureValue !== undefined && autoExposureValue !== -1) {
+                var isAutoExposure = autoExposureValue !== 1
+                autoExposureCheck.checked = isAutoExposure
+                exposureSlider.enabled = !isAutoExposure
+            }
+
+            var autoWhiteBalanceEnum = getCameraPropertyEnum("auto_white_balance")
+            var autoWhiteBalanceValue = getCurrentParameterValue(autoWhiteBalanceEnum)
+            if (autoWhiteBalanceValue !== null && autoWhiteBalanceValue !== undefined && autoWhiteBalanceValue !== -1) {
+                var isAutoWhiteBalance = autoWhiteBalanceValue !== 0
+                autoWhiteBalanceCheck.checked = isAutoWhiteBalance
+                whiteBalanceSlider.enabled = !isAutoWhiteBalance
+            }
+            syncing = false
+        }
+
+        function handleSliderChange(propertyName, value) {
+            if (syncing) {
+                return
+            }
+            var intValue = Math.round(value)
+            var propertyEnum = getCameraPropertyEnum(propertyName)
+            var current = getCurrentParameterValue(propertyEnum)
+            if (current !== null && current !== undefined && current === intValue) {
+                return
+            }
+            var applied = setParameter(propertyName, intValue)
+            if (!applied) {
+                console.error("参数同步失败:", propertyName, intValue)
+            }
         }
 
         // 调用FFI设置参数
@@ -52,6 +159,7 @@ GlassPopupWindow {
                 } else {
                     console.error("设置单相机参数失败:", propertyName, "=", value)
                 }
+                return success
             } else if (cameraParameterWindow.cameraMode === 2) {
                 // 双相机模式 - 同时设置左右相机
                 var leftSuccess = CameraParameterManager.setLeftCameraParameter(propertyEnum, value)
@@ -62,7 +170,9 @@ GlassPopupWindow {
                 } else {
                     console.error("设置相机参数失败:", propertyName, "左:", leftSuccess, "右:", rightSuccess)
                 }
+                return leftSuccess && rightSuccess
             }
+            return false
         }
 
         // 重置参数到默认值（从V4L2获取真实默认值）
@@ -75,6 +185,9 @@ GlassPopupWindow {
                 // 双相机模式 - 使用左相机的默认值
                 loadDefaultValues("left")
             }
+            Qt.callLater(function() {
+                syncParametersFromCamera()
+            })
         }
 
         // 从FFI加载默认值
@@ -84,6 +197,12 @@ GlassPopupWindow {
                 "backlight", "gamma", "exposure", "white_balance"
             ]
 
+            if (typeof brightnessSlider === "undefined") {
+                console.warn("CameraParameterWindow: 滑块控件尚未初始化，无法加载默认参数")
+                return
+            }
+
+            syncing = true
             for (var i = 0; i < properties.length; i++) {
                 var propName = properties[i]
                 var propEnum = getCameraPropertyEnum(propName)
@@ -125,11 +244,21 @@ GlassPopupWindow {
                     }
                 }
             }
-
             // 设置自动曝光和自动白平衡为默认状态
             autoExposureCheck.checked = true
+            exposureSlider.enabled = false
             autoWhiteBalanceCheck.checked = true
+            whiteBalanceSlider.enabled = false
+            syncing = false
         }
+    }
+
+    Timer {
+        id: parameterPoller
+        interval: 1000
+        repeat: true
+        running: cameraParameterWindow.visible
+        onTriggered: internal.syncParametersFromCamera()
     }
 
     // 窗口内容
@@ -179,7 +308,7 @@ GlassPopupWindow {
                             value: 0
                             stepSize: 1
                             onValueChanged: {
-                                internal.setParameter("brightness", value)
+                                internal.handleSliderChange("brightness", value)
                             }
 
                             background: Rectangle {
@@ -241,7 +370,7 @@ GlassPopupWindow {
                             value: 0
                             stepSize: 1
                             onValueChanged: {
-                                internal.setParameter("contrast", value)
+                                internal.handleSliderChange("contrast", value)
                             }
 
                             background: Rectangle {
@@ -303,7 +432,7 @@ GlassPopupWindow {
                             value: 50
                             stepSize: 1
                             onValueChanged: {
-                                internal.setParameter("saturation", value)
+                                internal.handleSliderChange("saturation", value)
                             }
 
                             background: Rectangle {
@@ -365,7 +494,7 @@ GlassPopupWindow {
                             value: 0
                             stepSize: 1
                             onValueChanged: {
-                                internal.setParameter("backlight", value)
+                                internal.handleSliderChange("backlight", value)
                             }
 
                             background: Rectangle {
@@ -427,7 +556,7 @@ GlassPopupWindow {
                             value: 100
                             stepSize: 1
                             onValueChanged: {
-                                internal.setParameter("gamma", value)
+                                internal.handleSliderChange("gamma", value)
                             }
 
                             background: Rectangle {
@@ -517,6 +646,35 @@ GlassPopupWindow {
                                 anchors.centerIn: parent
                             }
                         }
+
+                        onToggled: {
+                            if (internal.syncing) {
+                                exposureSlider.enabled = !checked
+                                return
+                            }
+
+                            var targetValue = checked ? 3 : 1
+                            var success = internal.setParameter("auto_exposure", targetValue)
+                            if (!success) {
+                                console.error("切换自动曝光失败, 恢复原状态")
+                                internal.syncing = true
+                                autoExposureCheck.checked = !checked
+                                internal.syncing = false
+                                exposureSlider.enabled = !autoExposureCheck.checked
+                                Qt.callLater(function() { internal.syncParametersFromCamera() })
+                                return
+                            }
+
+                            exposureSlider.enabled = !checked
+
+                            if (!checked) {
+                                internal.handleSliderChange("exposure", exposureSlider.value)
+                            }
+
+                            Qt.callLater(function() {
+                                internal.syncParametersFromCamera()
+                            })
+                        }
                     }
 
                     // 曝光时间
@@ -541,7 +699,7 @@ GlassPopupWindow {
                             stepSize: 1
                             onValueChanged: {
                                 if (!autoExposureCheck.checked) {
-                                    internal.setParameter("exposure", value)
+                                    internal.handleSliderChange("exposure", value)
                                 }
                             }
 
@@ -606,7 +764,7 @@ GlassPopupWindow {
                             stepSize: 1
                             onValueChanged: {
                                 if (!autoExposureCheck.checked) {
-                                    internal.setParameter("gain", value)
+                                    internal.handleSliderChange("gain", value)
                                 }
                             }
 
@@ -683,6 +841,35 @@ GlassPopupWindow {
                                 anchors.centerIn: parent
                             }
                         }
+
+                        onToggled: {
+                            if (internal.syncing) {
+                                whiteBalanceSlider.enabled = !checked
+                                return
+                            }
+
+                            var targetValue = checked ? 1 : 0
+                            var success = internal.setParameter("auto_white_balance", targetValue)
+                            if (!success) {
+                                console.error("切换自动白平衡失败, 恢复原状态")
+                                internal.syncing = true
+                                autoWhiteBalanceCheck.checked = !checked
+                                internal.syncing = false
+                                whiteBalanceSlider.enabled = !autoWhiteBalanceCheck.checked
+                                Qt.callLater(function() { internal.syncParametersFromCamera() })
+                                return
+                            }
+
+                            whiteBalanceSlider.enabled = !checked
+
+                            if (!checked) {
+                                internal.handleSliderChange("white_balance", whiteBalanceSlider.value)
+                            }
+
+                            Qt.callLater(function() {
+                                internal.syncParametersFromCamera()
+                            })
+                        }
                     }
 
                     // 白平衡温度
@@ -707,7 +894,7 @@ GlassPopupWindow {
                             stepSize: 100
                             onValueChanged: {
                                 if (!autoWhiteBalanceCheck.checked) {
-                                    internal.setParameter("white_balance", value)
+                                    internal.handleSliderChange("white_balance", value)
                                 }
                             }
 
@@ -796,12 +983,30 @@ GlassPopupWindow {
             }
         }
 
+    Connections {
+        target: CameraParameterManager
+        function onParameterChanged() {
+            internal.syncParametersFromCamera()
+        }
+    }
+
+    Component.onCompleted: {
+        cameraMode = Qt.binding(function() { return CameraManager.cameraMode })
+        internal.syncParametersFromCamera()
+        internal.syncing = false
+    }
+
+    onCameraModeChanged: {
+        internal.syncParametersFromCamera()
+    }
+
     // 窗口事件处理
     onVisibleChanged: {
         if (visible) {
             console.log("相机参数设置窗口已打开")
             raise()
             requestActivate()
+            internal.syncParametersFromCamera()
         } else {
             console.log("相机参数设置窗口已关闭")
         }
@@ -815,5 +1020,6 @@ GlassPopupWindow {
 
         // 绑定相机模式
         cameraMode = Qt.binding(function() { return CameraManager.cameraMode })
+        internal.syncParametersFromCamera()
     }
 }
