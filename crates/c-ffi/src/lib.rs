@@ -4,14 +4,13 @@
 
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int};
-use std::sync::{Once, Mutex};
+use std::sync::{Mutex, Once};
 
-use smartscope_core::{
-    AppState, SmartScopeError,
-    LoggerConfig, LogLevel, LogRotation, init_global_logger, log_from_cpp,
-    CameraStatus, CameraMode, VideoFrame
-};
 use smartscope_core::config::SmartScopeConfig;
+use smartscope_core::{
+    init_global_logger, log_from_cpp, AppState, CameraMode, CameraStatus, LogLevel, LogRotation,
+    LoggerConfig, SmartScopeError, VideoFrame,
+};
 
 #[macro_use]
 extern crate lazy_static;
@@ -63,7 +62,7 @@ pub extern "C" fn smartscope_init() -> c_int {
             match state.initialize() {
                 Ok(_) => {
                     APP_STATE = Some(state);
-                },
+                }
                 Err(e) => {
                     eprintln!("Failed to initialize: {}", e);
                 }
@@ -89,9 +88,9 @@ pub extern "C" fn smartscope_shutdown() -> c_int {
 /// 获取应用状态指针（内部使用）
 fn get_app_state() -> Result<&'static mut AppState, SmartScopeError> {
     unsafe {
-        APP_STATE.as_mut().ok_or_else(|| {
-            SmartScopeError::Unknown("SmartScope not initialized".to_string())
-        })
+        APP_STATE
+            .as_mut()
+            .ok_or_else(|| SmartScopeError::Unknown("SmartScope not initialized".to_string()))
     }
 }
 
@@ -99,7 +98,10 @@ fn get_app_state() -> Result<&'static mut AppState, SmartScopeError> {
 #[no_mangle]
 pub extern "C" fn smartscope_is_initialized() -> bool {
     unsafe {
-        APP_STATE.as_ref().map(|s| s.is_initialized()).unwrap_or(false)
+        APP_STATE
+            .as_ref()
+            .map(|s| s.is_initialized())
+            .unwrap_or(false)
     }
 }
 
@@ -127,7 +129,7 @@ pub extern "C" fn smartscope_load_config(config_path: *const c_char) -> c_int {
             *app_state.config.write().unwrap() = config;
             tracing::info!("Configuration loaded from: {}", path_str);
             ErrorCode::Success as c_int
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to load config: {}", e);
             ErrorCode::from(e) as c_int
@@ -159,7 +161,7 @@ pub extern "C" fn smartscope_save_config(config_path: *const c_char) -> c_int {
         Ok(_) => {
             tracing::info!("Configuration saved to: {}", path_str);
             ErrorCode::Success as c_int
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to save config: {}", e);
             ErrorCode::from(e) as c_int
@@ -231,7 +233,7 @@ impl From<CLogLevel> for LogLevel {
 pub extern "C" fn smartscope_log(
     level: CLogLevel,
     module: *const c_char,
-    message: *const c_char
+    message: *const c_char,
 ) -> c_int {
     if module.is_null() || message.is_null() {
         return ErrorCode::Error as c_int;
@@ -253,10 +255,7 @@ pub extern "C" fn smartscope_log(
 
 /// QML调用的日志函数
 #[no_mangle]
-pub extern "C" fn smartscope_log_qml(
-    level: CLogLevel,
-    message: *const c_char
-) -> c_int {
+pub extern "C" fn smartscope_log_qml(level: CLogLevel, message: *const c_char) -> c_int {
     if message.is_null() {
         return ErrorCode::Error as c_int;
     }
@@ -274,8 +273,11 @@ pub extern "C" fn smartscope_log_qml(
 #[no_mangle]
 pub extern "C" fn smartscope_set_log_level(level: CLogLevel) -> c_int {
     // TODO: 实现动态日志级别设置
-    log_from_cpp(LogLevel::Info, "Logger",
-        &format!("Log level change requested: {:?}", level));
+    log_from_cpp(
+        LogLevel::Info,
+        "Logger",
+        &format!("Log level change requested: {:?}", level),
+    );
     ErrorCode::Success as c_int
 }
 
@@ -318,7 +320,7 @@ pub struct CCameraFrame {
 #[repr(C)]
 pub struct CCameraStatus {
     pub running: bool,
-    pub mode: u32,  // CCameraMode as u32
+    pub mode: u32, // CCameraMode as u32
     pub left_camera_connected: bool,
     pub right_camera_connected: bool,
     pub last_left_frame_sec: u64,
@@ -337,7 +339,7 @@ pub extern "C" fn smartscope_start_camera() -> c_int {
         Ok(_) => {
             tracing::info!("相机系统启动成功");
             ErrorCode::Success as c_int
-        },
+        }
         Err(e) => {
             tracing::error!("相机系统启动失败: {}", e);
             ErrorCode::Error as c_int
@@ -357,7 +359,7 @@ pub extern "C" fn smartscope_stop_camera() -> c_int {
         Ok(_) => {
             tracing::info!("相机系统停止成功");
             ErrorCode::Success as c_int
-        },
+        }
         Err(e) => {
             tracing::error!("相机系统停止失败: {}", e);
             ErrorCode::Error as c_int
@@ -397,7 +399,9 @@ pub extern "C" fn smartscope_get_left_frame(frame_out: *mut CCameraFrame) -> c_i
     };
 
     if let Some(frame) = app_state.get_left_camera_frame() {
-        let timestamp = frame.timestamp.duration_since(std::time::UNIX_EPOCH)
+        let timestamp = frame
+            .timestamp
+            .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default();
 
         // 将帧数据复制到静态缓冲区，确保指针在FFI调用期间有效
@@ -405,8 +409,13 @@ pub extern "C" fn smartscope_get_left_frame(frame_out: *mut CCameraFrame) -> c_i
         buffer.clear();
         buffer.extend_from_slice(&frame.data);
 
-        tracing::debug!("FFI: 返回左相机帧 - 大小: {} 字节, 尺寸: {}x{}, 格式: {}",
-                       buffer.len(), frame.width, frame.height, frame.format);
+        tracing::debug!(
+            "FFI: 返回左相机帧 - 大小: {} 字节, 尺寸: {}x{}, 格式: {}",
+            buffer.len(),
+            frame.width,
+            frame.height,
+            frame.format
+        );
 
         unsafe {
             (*frame_out) = CCameraFrame {
@@ -438,7 +447,9 @@ pub extern "C" fn smartscope_get_right_frame(frame_out: *mut CCameraFrame) -> c_
     };
 
     if let Some(frame) = app_state.get_right_camera_frame() {
-        let timestamp = frame.timestamp.duration_since(std::time::UNIX_EPOCH)
+        let timestamp = frame
+            .timestamp
+            .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default();
 
         // 将帧数据复制到静态缓冲区，确保指针在FFI调用期间有效
@@ -446,8 +457,13 @@ pub extern "C" fn smartscope_get_right_frame(frame_out: *mut CCameraFrame) -> c_
         buffer.clear();
         buffer.extend_from_slice(&frame.data);
 
-        tracing::debug!("FFI: 返回右相机帧 - 大小: {} 字节, 尺寸: {}x{}, 格式: {}",
-                       buffer.len(), frame.width, frame.height, frame.format);
+        tracing::debug!(
+            "FFI: 返回右相机帧 - 大小: {} 字节, 尺寸: {}x{}, 格式: {}",
+            buffer.len(),
+            frame.width,
+            frame.height,
+            frame.format
+        );
 
         unsafe {
             (*frame_out) = CCameraFrame {
@@ -479,7 +495,9 @@ pub extern "C" fn smartscope_get_single_frame(frame_out: *mut CCameraFrame) -> c
     };
 
     if let Some(frame) = app_state.get_single_camera_frame() {
-        let timestamp = frame.timestamp.duration_since(std::time::UNIX_EPOCH)
+        let timestamp = frame
+            .timestamp
+            .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default();
 
         // 将帧数据复制到静态缓冲区，确保指针在FFI调用期间有效
@@ -487,8 +505,13 @@ pub extern "C" fn smartscope_get_single_frame(frame_out: *mut CCameraFrame) -> c
         buffer.clear();
         buffer.extend_from_slice(&frame.data);
 
-        tracing::debug!("FFI: 返回单相机帧 - 大小: {} 字节, 尺寸: {}x{}, 格式: {}",
-                       buffer.len(), frame.width, frame.height, frame.format);
+        tracing::debug!(
+            "FFI: 返回单相机帧 - 大小: {} 字节, 尺寸: {}x{}, 格式: {}",
+            buffer.len(),
+            frame.width,
+            frame.height,
+            frame.format
+        );
 
         unsafe {
             (*frame_out) = CCameraFrame {
@@ -520,12 +543,14 @@ pub extern "C" fn smartscope_get_camera_status(status_out: *mut CCameraStatus) -
     };
 
     if let Some(status) = app_state.get_camera_status() {
-        let left_time = status.last_left_frame_time
+        let left_time = status
+            .last_left_frame_time
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|d| d.as_secs())
             .unwrap_or(0);
 
-        let right_time = status.last_right_frame_time
+        let right_time = status
+            .last_right_frame_time
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|d| d.as_secs())
             .unwrap_or(0);
