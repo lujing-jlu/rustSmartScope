@@ -13,6 +13,8 @@
         <file>components/StatusBar.qml</file>
         <file>components/NavigationBar.qml</file>
         <file>components/OperationButton.qml</file>
+        <file>components/GlassPopupWindow.qml</file>
+        <file>components/VideoAdjustmentContent.qml</file>
 
         <!-- 窗口 -->
         <file>Measurement3DWindow.qml</file>
