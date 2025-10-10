@@ -386,7 +386,7 @@ lazy_static! {
     static ref SINGLE_FRAME_BUFFER: Mutex<Vec<u8>> = Mutex::new(Vec::new());
 }
 
-/// 获取左相机最新帧
+/// 获取左相机最新帧（已处理：MJPEG解码 + 畸变校正 + 视频变换）
 #[no_mangle]
 pub extern "C" fn smartscope_get_left_frame(frame_out: *mut CCameraFrame) -> c_int {
     if frame_out.is_null() {
@@ -398,7 +398,8 @@ pub extern "C" fn smartscope_get_left_frame(frame_out: *mut CCameraFrame) -> c_i
         Err(_) => return ErrorCode::Error as c_int,
     };
 
-    if let Some(frame) = app_state.get_left_camera_frame() {
+    // 使用处理后的帧（包含畸变校正）
+    if let Some(frame) = app_state.get_processed_left_frame() {
         let timestamp = frame
             .timestamp
             .duration_since(std::time::UNIX_EPOCH)
@@ -434,7 +435,7 @@ pub extern "C" fn smartscope_get_left_frame(frame_out: *mut CCameraFrame) -> c_i
     }
 }
 
-/// 获取右相机最新帧
+/// 获取右相机最新帧（已处理：MJPEG解码 + 畸变校正 + 视频变换）
 #[no_mangle]
 pub extern "C" fn smartscope_get_right_frame(frame_out: *mut CCameraFrame) -> c_int {
     if frame_out.is_null() {
@@ -446,7 +447,8 @@ pub extern "C" fn smartscope_get_right_frame(frame_out: *mut CCameraFrame) -> c_
         Err(_) => return ErrorCode::Error as c_int,
     };
 
-    if let Some(frame) = app_state.get_right_camera_frame() {
+    // 使用处理后的帧（包含畸变校正）
+    if let Some(frame) = app_state.get_processed_right_frame() {
         let timestamp = frame
             .timestamp
             .duration_since(std::time::UNIX_EPOCH)
@@ -756,4 +758,53 @@ pub extern "C" fn smartscope_video_is_rga_available() -> bool {
     };
 
     app_state.video_is_rga_available()
+}
+
+// ============================================================================
+// 畸变校正相关C FFI接口
+// ============================================================================
+
+/// 切换畸变校正
+#[no_mangle]
+pub extern "C" fn smartscope_toggle_distortion_correction() -> c_int {
+    let app_state = match get_app_state() {
+        Ok(state) => state,
+        Err(_) => return ErrorCode::Error as c_int,
+    };
+
+    match app_state.toggle_distortion_correction() {
+        Ok(_) => ErrorCode::Success as c_int,
+        Err(e) => {
+            tracing::error!("切换畸变校正失败: {}", e);
+            ErrorCode::Error as c_int
+        }
+    }
+}
+
+/// 设置畸变校正状态
+#[no_mangle]
+pub extern "C" fn smartscope_set_distortion_correction(enabled: bool) -> c_int {
+    let app_state = match get_app_state() {
+        Ok(state) => state,
+        Err(_) => return ErrorCode::Error as c_int,
+    };
+
+    match app_state.set_distortion_correction(enabled) {
+        Ok(_) => ErrorCode::Success as c_int,
+        Err(e) => {
+            tracing::error!("设置畸变校正失败: {}", e);
+            ErrorCode::Error as c_int
+        }
+    }
+}
+
+/// 获取畸变校正状态
+#[no_mangle]
+pub extern "C" fn smartscope_get_distortion_correction() -> bool {
+    let app_state = match get_app_state() {
+        Ok(state) => state,
+        Err(_) => return false,
+    };
+
+    app_state.get_distortion_correction()
 }

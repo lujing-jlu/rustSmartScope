@@ -15,6 +15,7 @@ class VideoTransformManager : public QObject
     Q_PROPERTY(bool flipVertical READ flipVertical NOTIFY flipVerticalChanged)
     Q_PROPERTY(bool invertColors READ invertColors NOTIFY invertColorsChanged)
     Q_PROPERTY(bool rgaAvailable READ rgaAvailable CONSTANT)
+    Q_PROPERTY(bool distortionCorrectionEnabled READ distortionCorrectionEnabled NOTIFY distortionCorrectionChanged)
 
 public:
     explicit VideoTransformManager(QObject *parent = nullptr);
@@ -26,6 +27,7 @@ public:
     bool flipVertical() const;
     bool invertColors() const;
     bool rgaAvailable() const;
+    bool distortionCorrectionEnabled() const;
 
 public slots:
     // 视频变换操作
@@ -36,6 +38,10 @@ public slots:
     void toggleInvert();
     void resetAll();
 
+    // 畸变校正操作
+    void toggleDistortionCorrection();
+    void setDistortionCorrection(bool enabled);
+
     // 刷新状态
     void refreshStatus();
 
@@ -45,6 +51,7 @@ signals:
     void flipHorizontalChanged();
     void flipVerticalChanged();
     void invertColorsChanged();
+    void distortionCorrectionChanged();
     void transformApplied();
     void error(const QString &message);
 
@@ -55,6 +62,7 @@ private:
     bool m_flipVertical;
     bool m_invertColors;
     bool m_rgaAvailable;
+    bool m_distortionCorrectionEnabled;
 
     // 内部辅助函数
     void updateStatus();

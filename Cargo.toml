@@ -6,7 +6,10 @@ members = [
     "crates/c-ffi",
     "crates/linux-video",
     "crates/usb-camera",
-    "crates/rockchip-rga"
+    "crates/rockchip-rga",
+    "crates/stereo-calibration-reader",
+    "crates/camera-correction",
+    "crates/stereo-rectifier"
 ]
 
 exclude = [
@@ -25,7 +28,7 @@ description = "Modular stereo camera 3D reconstruction system built with Rust an
 # Core dependencies
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-toml = "0.8"
+toml = "0.9.8"
 
 # Error handling & Logging
 anyhow = "1.0"
@@ -36,7 +39,7 @@ log = "0.4"
 env_logger = "0.11"
 
 # C FFI support
-cbindgen = "0.26"
+cbindgen = "0.29.0"
 libc = "0.2"
 
 # Async runtime
@@ -48,3 +51,4 @@ nix = { version = "0.30.1", features = ["fs", "mman"] }
 crossbeam-channel = "0.5"
 chrono = { version = "0.4", features = ["serde"] }
 base64 = "0.22"
+opencv = { version = "0.95", default-features = false, features = ["calib3d", "imgproc", "highgui", "imgcodecs", "clang-runtime"] }

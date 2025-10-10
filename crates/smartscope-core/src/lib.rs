@@ -8,6 +8,7 @@ pub mod error;
 pub mod logger;
 pub mod camera;
 pub mod video_transform;
+pub mod image_pipeline;
 
 // Re-export core types
 pub use config::AppConfig;
@@ -19,3 +20,4 @@ pub use logger::{
 };
 pub use camera::{CameraManager, CameraStatus, CameraMode, VideoFrame};
 pub use video_transform::{VideoTransform, VideoTransformConfig, apply_transform, apply_transforms};
+pub use image_pipeline::ImagePipeline;

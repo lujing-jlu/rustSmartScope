@@ -239,6 +239,7 @@ Window {
                     OperationButton {
                         text: "畸变校正"
                         iconSource: "qrc:/icons/distortion.svg"
+                        isActive: VideoTransformManager.distortionCorrectionEnabled
                         onClicked: {
                             toggleDistortionCorrection()
                         }
@@ -338,8 +339,8 @@ Window {
 
     // 畸变校正开关
     function toggleDistortionCorrection() {
-        console.log("畸变校正已触发")
-        // TODO: 调用C++后端切换畸变校正
+        VideoTransformManager.toggleDistortionCorrection()
+        console.log("畸变校正: ", VideoTransformManager.distortionCorrectionEnabled ? "启用" : "禁用")
     }
 
     // 还原所有设置

@@ -5,7 +5,8 @@
 use crate::config::{SmartScopeConfig, PartialConfig};
 use crate::camera::CameraManager;
 use crate::video_transform::VideoTransformProcessor;
-use std::sync::{Arc, RwLock};
+use crate::image_pipeline::ImagePipeline;
+use std::sync::{Arc, RwLock, Mutex};
 use std::path::Path;
 use notify::{Watcher, RecommendedWatcher, RecursiveMode, Event};
 use std::sync::mpsc;
@@ -18,6 +19,10 @@ pub struct AppState {
     pub config_path: Option<String>,
     pub camera_manager: Option<CameraManager>,
     pub video_transform: Arc<RwLock<VideoTransformProcessor>>,
+    /// 畸变校正启用状态
+    pub distortion_correction_enabled: Arc<RwLock<bool>>,
+    /// 图像处理管道
+    pub image_pipeline: Option<Arc<Mutex<ImagePipeline>>>,
 }
 
 impl Clone for AppState {
@@ -29,6 +34,8 @@ impl Clone for AppState {
             config_path: self.config_path.clone(),
             camera_manager: None,  // CameraManager不能clone，需要重新创建
             video_transform: Arc::clone(&self.video_transform),
+            distortion_correction_enabled: Arc::clone(&self.distortion_correction_enabled),
+            image_pipeline: self.image_pipeline.as_ref().map(Arc::clone),
         }
     }
 }
@@ -42,6 +49,8 @@ impl AppState {
             config_path: None,
             camera_manager: None,
             video_transform: Arc::new(RwLock::new(VideoTransformProcessor::new())),
+            distortion_correction_enabled: Arc::new(RwLock::new(false)),
+            image_pipeline: None,
         }
     }
 
@@ -53,6 +62,21 @@ impl AppState {
         config.validate()?;
 
         *self.config.write().unwrap() = config.clone();
+
+        // 初始化图像处理管道
+        let video_transform = Arc::clone(&self.video_transform);
+        let camera_params_dir = Some("camera_parameters");
+
+        match ImagePipeline::new(camera_params_dir, video_transform) {
+            Ok(pipeline) => {
+                self.image_pipeline = Some(Arc::new(Mutex::new(pipeline)));
+                tracing::info!("图像处理管道初始化成功");
+            }
+            Err(e) => {
+                tracing::warn!("图像处理管道初始化失败: {}, 将使用降级模式", e);
+                self.image_pipeline = None;
+            }
+        }
 
         // 初始化相机管理器
         let mut camera_manager = CameraManager::new(config);
@@ -197,6 +221,78 @@ impl AppState {
         self.camera_manager.as_ref()?.get_single_frame()
     }
 
+    /// 获取处理后的左相机帧（应用畸变校正和视频变换）
+    pub fn get_processed_left_frame(&self) -> Option<crate::camera::VideoFrame> {
+        let raw_frame = self.camera_manager.as_ref()?.get_left_frame()?;
+
+        // 如果有 ImagePipeline，使用它处理
+        if let Some(ref pipeline) = self.image_pipeline {
+            if let Ok(mut pipeline) = pipeline.lock() {
+                // 同步畸变校正状态到 pipeline
+                let distortion_enabled = *self.distortion_correction_enabled.read().unwrap();
+                pipeline.set_distortion_correction_enabled(distortion_enabled);
+
+                // 处理帧数据
+                match pipeline.process_mjpeg_frame(&raw_frame.data, true) {
+                    Ok((rgb_data, width, height)) => {
+                        // 返回处理后的帧（RGB格式）
+                        return Some(crate::camera::VideoFrame {
+                            data: rgb_data,
+                            width,
+                            height,
+                            format: 0, // RGB format
+                            timestamp: raw_frame.timestamp,
+                            camera_name: raw_frame.camera_name.clone(),
+                            frame_id: raw_frame.frame_id,
+                        });
+                    }
+                    Err(e) => {
+                        tracing::error!("图像处理失败: {}", e);
+                    }
+                }
+            }
+        }
+
+        // 降级：返回原始帧
+        Some(raw_frame)
+    }
+
+    /// 获取处理后的右相机帧（应用畸变校正和视频变换）
+    pub fn get_processed_right_frame(&self) -> Option<crate::camera::VideoFrame> {
+        let raw_frame = self.camera_manager.as_ref()?.get_right_frame()?;
+
+        // 如果有 ImagePipeline，使用它处理
+        if let Some(ref pipeline) = self.image_pipeline {
+            if let Ok(mut pipeline) = pipeline.lock() {
+                // 同步畸变校正状态到 pipeline
+                let distortion_enabled = *self.distortion_correction_enabled.read().unwrap();
+                pipeline.set_distortion_correction_enabled(distortion_enabled);
+
+                // 处理帧数据
+                match pipeline.process_mjpeg_frame(&raw_frame.data, false) {
+                    Ok((rgb_data, width, height)) => {
+                        // 返回处理后的帧（RGB格式）
+                        return Some(crate::camera::VideoFrame {
+                            data: rgb_data,
+                            width,
+                            height,
+                            format: 0, // RGB format
+                            timestamp: raw_frame.timestamp,
+                            camera_name: raw_frame.camera_name.clone(),
+                            frame_id: raw_frame.frame_id,
+                        });
+                    }
+                    Err(e) => {
+                        tracing::error!("图像处理失败: {}", e);
+                    }
+                }
+            }
+        }
+
+        // 降级：返回原始帧
+        Some(raw_frame)
+    }
+
     /// 获取相机状态
     pub fn get_camera_status(&self) -> Option<crate::camera::CameraStatus> {
         self.camera_manager.as_ref().map(|cm| cm.get_status())
@@ -300,6 +396,30 @@ impl AppState {
     pub fn video_is_rga_available(&self) -> bool {
         let transform = self.video_transform.read().unwrap();
         transform.is_rga_available()
+    }
+
+    // ============================================================================
+    // 畸变校正相关方法
+    // ============================================================================
+
+    /// 切换畸变校正
+    pub fn toggle_distortion_correction(&self) -> crate::Result<()> {
+        let mut enabled = self.distortion_correction_enabled.write().unwrap();
+        *enabled = !*enabled;
+        tracing::info!("畸变校正: {}", if *enabled { "启用" } else { "禁用" });
+        Ok(())
+    }
+
+    /// 设置畸变校正状态
+    pub fn set_distortion_correction(&self, enabled: bool) -> crate::Result<()> {
+        *self.distortion_correction_enabled.write().unwrap() = enabled;
+        tracing::debug!("畸变校正设置为: {}", enabled);
+        Ok(())
+    }
+
+    /// 获取畸变校正状态
+    pub fn get_distortion_correction(&self) -> bool {
+        *self.distortion_correction_enabled.read().unwrap()
     }
 }
 

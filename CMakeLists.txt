@@ -42,6 +42,10 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets Quick Qml Svg)
 message(STATUS "Using Qt5.${Qt5Core_VERSION}")
 
+# 查找OpenCV
+find_package(OpenCV REQUIRED COMPONENTS core imgproc calib3d highgui imgcodecs)
+message(STATUS "Using OpenCV ${OpenCV_VERSION}")
+
 # 查找线程库
 find_package(Threads REQUIRED)
 
@@ -95,6 +99,7 @@ target_link_libraries(rustsmartscope
     Qt5::Svg
     Threads::Threads
     ${RUST_SMARTSCOPE_LIB}
+    ${OpenCV_LIBS}
     ${CMAKE_DL_LIBS}
     -lpthread
     -lturbojpeg

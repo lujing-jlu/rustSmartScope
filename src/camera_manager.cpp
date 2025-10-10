@@ -215,29 +215,39 @@ QImage CameraManager::processFrame(const CCameraFrame& frame)
         return QImage();
     }
 
-    // 深拷贝MJPEG数据到C++管理的内存（关键：Rust的指针在返回后会失效）
-    QByteArray imageData(reinterpret_cast<const char*>(frame.data), static_cast<int>(frame.data_len));
+    // 检查帧格式：0 表示 RGB，其他值表示 MJPEG
+    if (frame.format == 0) {
+        // Rust端已经处理好的RGB数据（包含畸变校正和视频变换）
+        // 直接创建QImage，不需要解码或变换
+        QImage image(frame.data, frame.width, frame.height, frame.width * 3, QImage::Format_RGB888);
 
-    QBuffer buffer(&imageData);
-    buffer.open(QIODevice::ReadOnly);
+        // 深拷贝数据（因为Rust的指针会失效）
+        return image.copy();
+    } else {
+        // 旧的MJPEG处理流程（降级模式）
+        QByteArray imageData(reinterpret_cast<const char*>(frame.data), static_cast<int>(frame.data_len));
 
-    QImageReader reader(&buffer, "JPEG");
-    QImage image = reader.read();
+        QBuffer buffer(&imageData);
+        buffer.open(QIODevice::ReadOnly);
 
-    if (image.isNull()) {
-        qDebug() << "Failed to decode MJPEG frame:" << reader.errorString();
-        return QImage();
+        QImageReader reader(&buffer, "JPEG");
+        QImage image = reader.read();
+
+        if (image.isNull()) {
+            qDebug() << "Failed to decode MJPEG frame:" << reader.errorString();
+            return QImage();
+        }
+
+        // 确保图像格式适合显示
+        if (image.format() != QImage::Format_RGB888) {
+            image = image.convertToFormat(QImage::Format_RGB888);
+        }
+
+        // 应用视频变换（旋转、翻转、反色等）
+        image = applyVideoTransforms(image);
+
+        return image;
     }
-
-    // 确保图像格式适合显示
-    if (image.format() != QImage::Format_RGB888) {
-        image = image.convertToFormat(QImage::Format_RGB888);
-    }
-
-    // 应用视频变换（旋转、翻转、反色等）
-    image = applyVideoTransforms(image);
-
-    return image;
 }
 
 void CameraManager::updateStatus()
