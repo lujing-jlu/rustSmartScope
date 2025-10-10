@@ -9,12 +9,12 @@ categories = ["multimedia::video", "os::linux-apis"]
 keywords = ["linux", "video", "webcam"]
 
 [dependencies]
-log = "0.4.14"
-uoctl = "1.0.1"
-libc = "0.2.172"
-bitflags = "1.2.1"
+log = { workspace = true }
+uoctl = { workspace = true }
+libc = { workspace = true }
+bitflags = { workspace = true }
 
 [dev-dependencies]
-env_logger = { version = "0.11.8", default-features = false }
-anyhow = "1.0.68"
-png = "0.17.13"
+env_logger = { workspace = true }
+anyhow = { workspace = true }
+png = { workspace = true }

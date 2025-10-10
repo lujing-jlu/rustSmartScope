@@ -26,29 +26,43 @@ description = "Modular stereo camera 3D reconstruction system built with Rust an
 
 [workspace.dependencies]
 # Core dependencies
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
 toml = "0.9.8"
 
 # Error handling & Logging
-anyhow = "1.0"
-thiserror = "1.0"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-log = "0.4"
-env_logger = "0.11"
+anyhow = "1.0.100"
+thiserror = "2.0.17"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
+log = "0.4.28"
+env_logger = "0.11.8"
 
 # C FFI support
 cbindgen = "0.29.0"
-libc = "0.2"
+libc = "0.2.177"
 
 # Async runtime
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1.47.1", features = ["full"] }
 
 # Camera and video
-turbojpeg = "1.3"
+turbojpeg = "1.3.3"
 nix = { version = "0.30.1", features = ["fs", "mman"] }
-crossbeam-channel = "0.5"
-chrono = { version = "0.4", features = ["serde"] }
-base64 = "0.22"
-opencv = { version = "0.95", default-features = false, features = ["calib3d", "imgproc", "highgui", "imgcodecs", "clang-runtime", "rgb"] }
+crossbeam-channel = "0.5.15"
+chrono = { version = "0.4.42", features = ["serde"] }
+base64 = "0.22.1"
+opencv = { version = "0.96.0", default-features = false, features = ["calib3d", "imgproc", "highgui", "imgcodecs", "clang-runtime", "rgb"] }
+
+# Additional dependencies for individual crates
+image = "0.25.8"
+pkg-config = "0.3.32"
+bindgen = "0.72.1"
+tracing-appender = "0.2.3"
+notify = "8.2.0"
+tempfile = "3.23.0"
+clap = { version = "4.5.48", features = ["derive"] }
+ctrlc = "3.5.0"
+uoctl = "1.0.1"
+bitflags = "1.3.2"
+png = "0.18.0"
+lazy_static = "1.5.0"
