@@ -98,17 +98,28 @@ impl ImagePipeline {
         is_left_camera: bool,
     ) -> Result<(Vec<u8>, u32, u32)> {
         // 1. 解码 MJPEG 到 RGB
-        let (rgb_data, width, height) = self.decode_mjpeg(mjpeg_data)?;
+        let (rgb_data, mut width, mut height) = self.decode_mjpeg(mjpeg_data)?;
 
         // 2. 应用畸变校正（如果启用且可用）
+        // 注意：畸变校正包含旋转补偿，但最终会旋转回来，所以宽高不变
         let corrected_data = if self.distortion_correction_enabled {
             self.apply_distortion_correction(&rgb_data, width, height, is_left_camera)?
         } else {
             rgb_data
         };
 
-        // 3. 应用 RGA 变换（旋转、翻转、反色）
+        // 3. 应用 RGA 视频变换（旋转、翻转、反色）
+        // 需要检查是否有90度或270度旋转，这会交换宽高
+        let video_transform = self.video_transform.read().unwrap();
+        let rotation = video_transform.get_config().rotation_degrees;
+        drop(video_transform); // 释放锁
+
         let final_data = self.apply_video_transforms(&corrected_data, width, height)?;
+
+        // 如果用户旋转了90度或270度，需要交换宽高
+        if rotation == 90 || rotation == 270 {
+            std::mem::swap(&mut width, &mut height);
+        }
 
         Ok((final_data, width, height))
     }
@@ -238,60 +249,63 @@ impl ImagePipeline {
         }
     }
 
-    /// 将 RGB 数据转换为 OpenCV Mat (BGR格式)
+    /// 将 RGB 数据转换为 OpenCV Mat (BGR格式) - 优化版本
     fn rgb_to_mat(&self, rgb_data: &[u8], width: u32, height: u32) -> Result<Mat> {
-        use opencv::core::{Vec3b, CV_8UC3};
+        use opencv::core::{Mat_AUTO_STEP, CV_8UC3};
 
-        let mut mat = Mat::new_rows_cols_with_default(
-            height as i32,
-            width as i32,
-            CV_8UC3,
-            opencv::core::Scalar::default(),
-        ).map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to create Mat: {}", e)))?;
+        // 从 RGB 数据创建 Mat（使用 unsafe 接口以获得更好的性能）
+        let rgb_mat = unsafe {
+            Mat::new_rows_cols_with_data_unsafe(
+                height as i32,
+                width as i32,
+                CV_8UC3,
+                rgb_data.as_ptr() as *mut std::ffi::c_void,
+                Mat_AUTO_STEP,
+            ).map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to create Mat from RGB data: {}", e)))?
+        };
 
-        // RGB 转 BGR (OpenCV使用BGR格式)
-        let pixel_count = (width * height) as usize;
-        for i in 0..pixel_count {
-            let y = (i as u32 / width) as i32;
-            let x = (i as u32 % width) as i32;
-            let idx = i * 3;
+        // RGB → BGR 颜色转换（使用 OpenCV 优化的函数）
+        let mut bgr_mat = Mat::default();
+        opencv::imgproc::cvt_color(&rgb_mat, &mut bgr_mat, opencv::imgproc::COLOR_RGB2BGR, 0)
+            .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to convert RGB to BGR: {}", e)))?;
 
-            if idx + 2 < rgb_data.len() {
-                let pixel = Vec3b::from_array([
-                    rgb_data[idx + 2], // B
-                    rgb_data[idx + 1], // G
-                    rgb_data[idx],     // R
-                ]);
-                *mat.at_2d_mut::<Vec3b>(y, x)
-                    .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to set pixel: {}", e)))? = pixel;
-            }
-        }
-
-        Ok(mat)
+        Ok(bgr_mat)
     }
 
-    /// 将 OpenCV Mat (BGR格式) 转换为 RGB 数据
+    /// 将 OpenCV Mat (BGR格式) 转换为 RGB 数据 - 优化版本
     fn mat_to_rgb(&self, mat: &Mat) -> Result<Vec<u8>> {
-        use opencv::core::Vec3b;
-
         let height = mat.rows();
         let width = mat.cols();
-        let mut rgb_data = Vec::with_capacity((width * height * 3) as usize);
 
-        // BGR 转 RGB
-        for y in 0..height {
-            for x in 0..width {
-                let pixel = mat.at_2d::<Vec3b>(y, x)
-                    .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to get pixel: {}", e)))?;
+        // BGR → RGB 颜色转换（使用 OpenCV 优化的函数）
+        let mut rgb_mat = Mat::default();
+        opencv::imgproc::cvt_color(mat, &mut rgb_mat, opencv::imgproc::COLOR_BGR2RGB, 0)
+            .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to convert BGR to RGB: {}", e)))?;
 
-                // OpenCV 是 BGR，转换为 RGB
-                rgb_data.push(pixel[2]); // R
-                rgb_data.push(pixel[1]); // G
-                rgb_data.push(pixel[0]); // B
+        // 检查是否连续存储
+        if rgb_mat.is_continuous() {
+            // 连续存储，直接复制整个数据块（最快）
+            let data_size = (width * height * 3) as usize;
+            let mut rgb_data = vec![0u8; data_size];
+
+            unsafe {
+                let src_ptr = rgb_mat.ptr(0).map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to get Mat data pointer: {}", e)))?;
+                std::ptr::copy_nonoverlapping(src_ptr, rgb_data.as_mut_ptr(), data_size);
             }
-        }
 
-        Ok(rgb_data)
+            Ok(rgb_data)
+        } else {
+            // 非连续存储，按行复制
+            let mut rgb_data = Vec::with_capacity((width * height * 3) as usize);
+
+            for row in 0..height {
+                let row_data = rgb_mat.at_row::<u8>(row)
+                    .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to get row data: {}", e)))?;
+                rgb_data.extend_from_slice(row_data);
+            }
+
+            Ok(rgb_data)
+        }
     }
 
     /// 旋转 OpenCV Mat（逆时针90度）
