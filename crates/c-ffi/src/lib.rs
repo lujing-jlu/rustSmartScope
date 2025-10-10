@@ -8,8 +8,8 @@ use std::sync::{Mutex, Once};
 
 use smartscope_core::config::SmartScopeConfig;
 use smartscope_core::{
-    init_global_logger, log_from_cpp, AppState, CameraMode, CameraStatus, LogLevel, LogRotation,
-    LoggerConfig, SmartScopeError, VideoFrame,
+    init_global_logger, log_from_cpp, AppState, CameraMode, LogLevel, LogRotation,
+    LoggerConfig, SmartScopeError,
 };
 
 #[macro_use]

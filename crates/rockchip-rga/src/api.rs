@@ -97,7 +97,7 @@ impl RgaProcessor {
     /// 旋转90度
     pub fn rotate_90(&self, image: &RgaImage) -> Result<RgaImage, RgaError> {
         let (new_width, new_height) = (image.height(), image.width());
-        let mut result = RgaImage::new(new_width, new_height, image.format());
+        let result = RgaImage::new(new_width, new_height, image.format());
         
         unsafe {
             let src = image.to_rga_buffer()?;
@@ -120,7 +120,7 @@ impl RgaProcessor {
 
     /// 旋转180度
     pub fn rotate_180(&self, image: &RgaImage) -> Result<RgaImage, RgaError> {
-        let mut result = RgaImage::new(image.width(), image.height(), image.format());
+        let result = RgaImage::new(image.width(), image.height(), image.format());
         
         unsafe {
             let src = image.to_rga_buffer()?;
@@ -144,7 +144,7 @@ impl RgaProcessor {
     /// 旋转270度
     pub fn rotate_270(&self, image: &RgaImage) -> Result<RgaImage, RgaError> {
         let (new_width, new_height) = (image.height(), image.width());
-        let mut result = RgaImage::new(new_width, new_height, image.format());
+        let result = RgaImage::new(new_width, new_height, image.format());
         
         unsafe {
             let src = image.to_rga_buffer()?;
@@ -167,7 +167,7 @@ impl RgaProcessor {
 
     /// 水平翻转
     pub fn flip_horizontal(&self, image: &RgaImage) -> Result<RgaImage, RgaError> {
-        let mut result = RgaImage::new(image.width(), image.height(), image.format());
+        let result = RgaImage::new(image.width(), image.height(), image.format());
         
         unsafe {
             let src = image.to_rga_buffer()?;
@@ -190,7 +190,7 @@ impl RgaProcessor {
 
     /// 垂直翻转
     pub fn flip_vertical(&self, image: &RgaImage) -> Result<RgaImage, RgaError> {
-        let mut result = RgaImage::new(image.width(), image.height(), image.format());
+        let result = RgaImage::new(image.width(), image.height(), image.format());
         
         unsafe {
             let src = image.to_rga_buffer()?;
@@ -227,7 +227,7 @@ impl RgaProcessor {
 
     /// 缩放图像
     pub fn scale(&self, image: &RgaImage, new_width: u32, new_height: u32) -> Result<RgaImage, RgaError> {
-        let mut result = RgaImage::new(new_width, new_height, image.format());
+        let result = RgaImage::new(new_width, new_height, image.format());
         
         unsafe {
             let src = image.to_rga_buffer()?;
@@ -275,7 +275,7 @@ impl RgaProcessor {
             return Err(RgaError::InvalidParameter("裁剪区域超出图像边界".to_string()));
         }
         
-        let mut result = RgaImage::new(width, height, image.format());
+        let result = RgaImage::new(width, height, image.format());
         
         unsafe {
             let src = image.to_rga_buffer()?;

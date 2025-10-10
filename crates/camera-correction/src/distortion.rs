@@ -124,6 +124,75 @@ impl DistortionCorrector {
         Ok(corrected)
     }
 
+    /// Correct distortion directly on RGB data (ultra-optimized version)
+    /// This completely eliminates RGB↔BGR conversions by using OpenCV's RGB support
+    #[cfg(feature = "opencv")]
+    pub fn correct_distortion_rgb(
+        &self,
+        rgb_data: &[u8],
+        width: u32,
+        height: u32
+    ) -> CorrectionResult<Vec<u8>> {
+        if self.map_x.is_none() || self.map_y.is_none() {
+            return Err(CorrectionError::RemapMapsNotGenerated(
+                "Distortion correction maps not initialized".to_string(),
+            ));
+        }
+
+        // Check image size matches map size
+        let map_size = self.map_size.as_ref().unwrap();
+        if width as i32 != map_size.width || height as i32 != map_size.height {
+            return Err(CorrectionError::RemapMapsNotGenerated(format!(
+                "Image size {}x{} doesn't match map size {}x{}",
+                width, height, map_size.width, map_size.height
+            )));
+        }
+
+        // Create RGB Mat directly (zero copy, no color conversion!)
+        let rgb_mat = unsafe {
+            opencv::core::Mat::new_rows_cols_with_data_unsafe(
+                height as i32,
+                width as i32,
+                opencv::core::CV_8UC3,
+                rgb_data.as_ptr() as *mut std::ffi::c_void,
+                (width * 3) as usize,
+            )?
+        };
+
+        // Apply distortion correction directly on RGB data
+        let mut corrected = Mat::default();
+        opencv::imgproc::remap(
+            &rgb_mat,
+            &mut corrected,
+            self.map_x.as_ref().unwrap(),
+            self.map_y.as_ref().unwrap(),
+            crate::FAST_INTERPOLATION, // 最近邻插值，最快速度
+            opencv::core::BORDER_CONSTANT,
+            opencv::core::Scalar::default(),
+        )?;
+
+        // Extract RGB data directly (no color conversion needed)
+        if corrected.is_continuous() {
+            let data_size = (width * height * 3) as usize;
+            let mut rgb_data = vec![0u8; data_size];
+
+            unsafe {
+                let src_ptr = corrected.ptr(0)?;
+                std::ptr::copy_nonoverlapping(src_ptr, rgb_data.as_mut_ptr(), data_size);
+            }
+
+            Ok(rgb_data)
+        } else {
+            // Fallback for non-continuous data (rare case)
+            let mut rgb_data = Vec::with_capacity((width * height * 3) as usize);
+            for row in 0..height {
+                let row_data = corrected.at_row::<u8>(row as i32)?;
+                rgb_data.extend_from_slice(row_data);
+            }
+            Ok(rgb_data)
+        }
+    }
+
     /// Get camera intrinsics
     pub fn get_intrinsics(&self) -> &CameraIntrinsics {
         &self.intrinsics

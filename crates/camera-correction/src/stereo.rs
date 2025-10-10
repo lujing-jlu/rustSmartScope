@@ -1,15 +1,14 @@
 //! Stereo rectification for camera pairs
 
 use crate::error::{CorrectionError, CorrectionResult};
-use crate::parameters::{CameraMatrix, CameraParameters, DistortionCoeffs, StereoParameters};
+use crate::parameters::{CameraParameters, StereoParameters};
 use stereo_calibration_reader as calib;
 #[cfg(feature = "opencv")]
 use stereo_rectifier as rect;
 
 #[cfg(feature = "opencv")]
 use opencv::{
-    calib3d,
-    core::{Mat, Size, CV_32FC1, CV_64F},
+    core::{Mat, Size, CV_64F},
     prelude::*,
 };
 

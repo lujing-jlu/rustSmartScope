@@ -63,6 +63,12 @@ pub const CAMERA1_ROT_TRANS_FILE: &str = "camera1_rot_trans.dat";
 /// Default interpolation method for remapping
 pub const DEFAULT_INTERPOLATION: i32 = 1; // INTER_LINEAR
 
+/// Fast interpolation method for real-time applications
+pub const FAST_INTERPOLATION: i32 = 0; // INTER_NEAREST
+
+/// High-quality interpolation method for static images
+pub const HIGH_QUALITY_INTERPOLATION: i32 = 2; // INTER_CUBIC
+
 /// Default alpha value for stereo rectification (good compromise)
 pub const DEFAULT_ALPHA: f64 = -1.0;
 

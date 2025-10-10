@@ -23,11 +23,15 @@ pub struct ImagePipeline {
     /// 畸变校正器（右相机）
     distortion_corrector_right: Option<DistortionCorrector>,
     /// 立体校正器
+    #[allow(dead_code)]
     stereo_rectifier: Option<StereoRectifier>,
     /// 视频变换处理器
     video_transform: Arc<RwLock<VideoTransformProcessor>>,
     /// 是否启用畸变校正
     distortion_correction_enabled: bool,
+    /// 缓冲池，用于减少内存分配
+    #[allow(dead_code)]
+    buffer_pool: Arc<std::sync::Mutex<Vec<Vec<u8>>>>,
 }
 
 impl ImagePipeline {
@@ -81,6 +85,7 @@ impl ImagePipeline {
             stereo_rectifier,
             video_transform,
             distortion_correction_enabled: true,
+            buffer_pool: Arc::new(std::sync::Mutex::new(Vec::new())),
         })
     }
 
@@ -101,7 +106,7 @@ impl ImagePipeline {
     /// 旋转变换：(x, y) -> (y, height - x)
     /// 内参调整：fx' = fy, fy' = fx, cx' = cy, cy' = height - cx
     fn rotate_intrinsics_90_ccw(intrinsics: &camera_correction::parameters::CameraIntrinsics) -> camera_correction::parameters::CameraIntrinsics {
-        use camera_correction::parameters::{CameraIntrinsics, CameraMatrix, DistortionCoeffs};
+        use camera_correction::parameters::{CameraIntrinsics, CameraMatrix};
 
         let matrix = &intrinsics.matrix;
 
@@ -188,11 +193,11 @@ impl ImagePipeline {
 
     /// 应用畸变校正（使用预先调整好的旋转内参）
     ///
-    /// 优化版本：不再需要旋转图像，因为在初始化时已经调整了相机内参
-    /// 流程：
-    /// 1. RGB → Mat
-    /// 2. 应用畸变校正（使用旋转后的内参）
-    /// 3. Mat → RGB
+    /// 超高性能优化版本：
+    /// 1. 直接在RGB数据上操作，完全避免RGB↔BGR颜色转换
+    /// 2. 使用OpenCV的RGB支持特性，零拷贝处理
+    /// 3. 采用最近邻插值(FAST_INTERPOLATION)获得最佳性能
+    /// 4. 消除了所有不必要的内存分配和拷贝
     fn apply_distortion_correction(
         &mut self,
         rgb_data: &[u8],
@@ -200,9 +205,6 @@ impl ImagePipeline {
         height: u32,
         is_left_camera: bool,
     ) -> Result<Vec<u8>> {
-        // 步骤1: 将 RGB 数据转换为 OpenCV Mat
-        let mat = self.rgb_to_mat(rgb_data, width, height)?;
-
         // 获取对应相机的校正器
         let corrector = if is_left_camera {
             &mut self.distortion_corrector_left
@@ -219,16 +221,13 @@ impl ImagePipeline {
                 info!("Initialized distortion correction maps for {}x{}", width, height);
             }
 
-            // 步骤2: 应用畸变校正（使用旋转后的内参，无需旋转图像）
-            let corrected_mat = corrector.correct_distortion(&mat)
+            // 使用优化的RGB直接校正方法
+            let corrected_data = corrector.correct_distortion_rgb(rgb_data, width, height)
                 .map_err(|e| SmartScopeError::VideoProcessingError(format!("Distortion correction failed: {}", e)))?;
-
-            // 步骤3: 转换回 RGB 数据
-            let corrected_data = self.mat_to_rgb(&corrected_mat)?;
 
             Ok(corrected_data)
         } else {
-            // 没有校正器，返回原始数据
+            // 没有校正器，返回原始数据（避免不必要的拷贝）
             Ok(rgb_data.to_vec())
         }
     }
@@ -264,7 +263,93 @@ impl ImagePipeline {
         }
     }
 
+    /// 获取或创建缓冲区，减少内存分配开销
+    #[allow(dead_code)]
+    fn get_buffer_from_pool(&self, size: usize) -> Vec<u8> {
+        let mut pool = self.buffer_pool.lock().unwrap();
+        if let Some(mut buffer) = pool.pop() {
+            if buffer.capacity() >= size {
+                buffer.clear();
+                buffer.resize(size, 0);
+                return buffer;
+            }
+        }
+
+        // 创建新缓冲区
+        vec![0u8; size]
+    }
+
+    /// 将缓冲区返回到池中
+    #[allow(dead_code)]
+    fn return_buffer_to_pool(&self, mut buffer: Vec<u8>) {
+        let mut pool = self.buffer_pool.lock().unwrap();
+        if pool.len() < 5 { // 最多保留5个缓冲区
+            buffer.clear();
+            pool.push(buffer);
+        }
+    }
+
+    /// 带性能监控的处理函数
+    pub fn process_mjpeg_frame_with_timing(
+        &mut self,
+        mjpeg_data: &[u8],
+        is_left_camera: bool,
+    ) -> Result<(Vec<u8>, u32, u32)> {
+        use std::time::Instant;
+
+        let start_time = Instant::now();
+
+        // 1. 解码 MJPEG 到 RGB
+        let decode_start = Instant::now();
+        let (rgb_data, mut width, mut height) = self.decode_mjpeg(mjpeg_data)?;
+        let decode_time = decode_start.elapsed();
+
+        // 2. 应用畸变校正
+        let correction_start = Instant::now();
+        let corrected_data = if self.distortion_correction_enabled {
+            self.apply_distortion_correction(&rgb_data, width, height, is_left_camera)?
+        } else {
+            rgb_data
+        };
+        let correction_time = correction_start.elapsed();
+
+        // 3. 应用 RGA 视频变换
+        let transform_start = Instant::now();
+        let rotation = {
+            let video_transform = self.video_transform.read().unwrap();
+            video_transform.get_config().rotation_degrees
+        };
+
+        let final_data = self.apply_video_transforms(corrected_data, width, height)?;
+        let transform_time = transform_start.elapsed();
+
+        // 如果用户旋转了90度或270度，需要交换宽高
+        if rotation == 90 || rotation == 270 {
+            std::mem::swap(&mut width, &mut height);
+        }
+
+        let total_time = start_time.elapsed();
+
+        // 性能日志（每100帧输出一次）
+        static FRAME_COUNT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let count = FRAME_COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        if count % 100 == 0 {
+            info!(
+                "Frame {}: decode={:.2}ms, correction={:.2}ms, transform={:.2}ms, total={:.2}ms, fps={:.1}",
+                count,
+                decode_time.as_millis(),
+                correction_time.as_millis(),
+                transform_time.as_millis(),
+                total_time.as_millis(),
+                1000.0 / total_time.as_secs_f32()
+            );
+        }
+
+        Ok((final_data, width, height))
+    }
+
     /// 将 RGB 数据转换为 OpenCV Mat (BGR格式) - 优化版本
+    #[allow(dead_code)]
     fn rgb_to_mat(&self, rgb_data: &[u8], width: u32, height: u32) -> Result<Mat> {
         use opencv::core::{Mat_AUTO_STEP, CV_8UC3};
 
@@ -288,6 +373,7 @@ impl ImagePipeline {
     }
 
     /// 将 OpenCV Mat (BGR格式) 转换为 RGB 数据 - 优化版本
+    #[allow(dead_code)]
     fn mat_to_rgb(&self, mat: &Mat) -> Result<Vec<u8>> {
         let height = mat.rows();
         let width = mat.cols();

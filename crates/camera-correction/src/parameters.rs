@@ -1,7 +1,6 @@
 //! Camera parameter management and validation
 
 use crate::error::{CorrectionError, CorrectionResult};
-use crate::{CAMERA0_INTRINSICS_FILE, CAMERA1_INTRINSICS_FILE, CAMERA1_ROT_TRANS_FILE};
 use std::path::Path;
 use stereo_calibration_reader as calib;
 
@@ -210,6 +209,7 @@ impl CameraParameters {
     }
 
     /// Parse intrinsics file
+    #[allow(dead_code)]
     fn parse_intrinsics_file<P: AsRef<Path>>(file_path: P) -> CorrectionResult<CameraIntrinsics> {
         let content = std::fs::read_to_string(file_path)?;
         let lines: Vec<&str> = content.lines().collect();
@@ -270,6 +270,7 @@ impl CameraParameters {
     }
 
     /// Parse rotation/translation file
+    #[allow(dead_code)]
     fn parse_rot_trans_file<P: AsRef<Path>>(file_path: P) -> CorrectionResult<CameraExtrinsics> {
         let content = std::fs::read_to_string(file_path)?;
         let lines: Vec<&str> = content.lines().collect();
