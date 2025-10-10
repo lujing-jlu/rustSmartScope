@@ -47,15 +47,21 @@ impl ImagePipeline {
                     let stereo = params.get_stereo_parameters()
                         .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to get stereo parameters: {}", e)))?;
 
-                    // 创建左右相机的畸变校正器
-                    let left_corrector = DistortionCorrector::new(stereo.left_intrinsics.clone());
-                    let right_corrector = DistortionCorrector::new(stereo.right_intrinsics.clone());
+                    // 调整相机内参以适配旋转90度的图像（标定时相机是旋转的）
+                    // 对于逆时针旋转90度：(x, y) -> (y, height - x)
+                    // 内参调整：cx' = cy, cy' = width - cx (width和height是旋转前的)
+                    let left_intrinsics_rotated = Self::rotate_intrinsics_90_ccw(&stereo.left_intrinsics);
+                    let right_intrinsics_rotated = Self::rotate_intrinsics_90_ccw(&stereo.right_intrinsics);
+
+                    // 创建左右相机的畸变校正器（使用调整后的内参）
+                    let left_corrector = DistortionCorrector::new(left_intrinsics_rotated);
+                    let right_corrector = DistortionCorrector::new(right_intrinsics_rotated);
 
                     // 创建立体校正器
                     let rectifier = StereoRectifier::from_parameters(&params)
                         .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to create stereo rectifier: {}", e)))?;
 
-                    info!("Distortion correctors and stereo rectifier initialized for stereo cameras");
+                    info!("Distortion correctors with rotated intrinsics and stereo rectifier initialized");
                     (Some(left_corrector), Some(right_corrector), Some(rectifier))
                 }
                 Err(e) => {
@@ -87,6 +93,30 @@ impl ImagePipeline {
     /// 检查畸变校正是否可用
     pub fn is_distortion_correction_available(&self) -> bool {
         self.distortion_corrector_left.is_some() || self.distortion_corrector_right.is_some()
+    }
+
+    /// 旋转相机内参以适配逆时针90度旋转的图像
+    ///
+    /// 标定时相机顺时针旋转90度拍摄，所以需要将内参调整为逆时针90度
+    /// 旋转变换：(x, y) -> (y, height - x)
+    /// 内参调整：fx' = fy, fy' = fx, cx' = cy, cy' = height - cx
+    fn rotate_intrinsics_90_ccw(intrinsics: &camera_correction::parameters::CameraIntrinsics) -> camera_correction::parameters::CameraIntrinsics {
+        use camera_correction::parameters::{CameraIntrinsics, CameraMatrix, DistortionCoeffs};
+
+        let matrix = &intrinsics.matrix;
+
+        // 注意：这里假设标定图像的原始尺寸
+        // 由于我们在initialize_maps时会使用实际的旋转后尺寸，
+        // 这里只需要交换 fx/fy 和 cx/cy
+        let rotated_matrix = CameraMatrix {
+            fx: matrix.fy,  // 交换焦距
+            fy: matrix.fx,
+            cx: matrix.cy,  // 交换主点
+            cy: matrix.cx,
+        };
+
+        // 畸变系数保持不变
+        CameraIntrinsics::new(rotated_matrix, intrinsics.distortion.clone())
     }
 
     /// 处理 MJPEG 帧（完整流程）
@@ -156,14 +186,13 @@ impl ImagePipeline {
         Ok((rgb_buffer, width, height))
     }
 
-    /// 应用畸变校正（包含旋转补偿）
+    /// 应用畸变校正（使用预先调整好的旋转内参）
     ///
+    /// 优化版本：不再需要旋转图像，因为在初始化时已经调整了相机内参
     /// 流程：
     /// 1. RGB → Mat
-    /// 2. 逆时针旋转90度（补偿标定时的顺时针旋转）
-    /// 3. 应用畸变校正
-    /// 4. 顺时针旋转90度（恢复正常方向）
-    /// 5. Mat → RGB
+    /// 2. 应用畸变校正（使用旋转后的内参）
+    /// 3. Mat → RGB
     fn apply_distortion_correction(
         &mut self,
         rgb_data: &[u8],
@@ -174,9 +203,6 @@ impl ImagePipeline {
         // 步骤1: 将 RGB 数据转换为 OpenCV Mat
         let mat = self.rgb_to_mat(rgb_data, width, height)?;
 
-        // 步骤2: 逆时针旋转90度（补偿标定时相机的顺时针90度旋转）
-        let rotated_mat = self.rotate_mat_counter_clockwise_90(&mat)?;
-
         // 获取对应相机的校正器
         let corrector = if is_left_camera {
             &mut self.distortion_corrector_left
@@ -185,34 +211,25 @@ impl ImagePipeline {
         };
 
         if let Some(corrector) = corrector {
-            // 注意：旋转后图像尺寸会交换（width ↔ height）
-            let rotated_width = rotated_mat.cols() as u32;
-            let rotated_height = rotated_mat.rows() as u32;
-
             // 初始化校正映射表（如果还未初始化）
-            // 使用旋转后的尺寸初始化
+            // 使用原始图像尺寸（已经是旋转后的方向）
             if !corrector.are_maps_initialized() {
-                corrector.initialize_maps(rotated_width, rotated_height)
+                corrector.initialize_maps(width, height)
                     .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to initialize distortion maps: {}", e)))?;
-                info!("Initialized distortion correction maps for {}x{} (rotated)", rotated_width, rotated_height);
+                info!("Initialized distortion correction maps for {}x{}", width, height);
             }
 
-            // 步骤3: 应用畸变校正
-            let corrected_mat = corrector.correct_distortion(&rotated_mat)
+            // 步骤2: 应用畸变校正（使用旋转后的内参，无需旋转图像）
+            let corrected_mat = corrector.correct_distortion(&mat)
                 .map_err(|e| SmartScopeError::VideoProcessingError(format!("Distortion correction failed: {}", e)))?;
 
-            // 步骤4: 顺时针旋转90度（恢复到正常方向）
-            let final_mat = self.rotate_mat_clockwise_90(&corrected_mat)?;
+            // 步骤3: 转换回 RGB 数据
+            let corrected_data = self.mat_to_rgb(&corrected_mat)?;
 
-            // 步骤5: 转换回 RGB 数据
-            let final_data = self.mat_to_rgb(&final_mat)?;
-
-            Ok(final_data)
+            Ok(corrected_data)
         } else {
-            // 没有校正器，需要将旋转后的图像转回来
-            let final_mat = self.rotate_mat_clockwise_90(&rotated_mat)?;
-            let final_data = self.mat_to_rgb(&final_mat)?;
-            Ok(final_data)
+            // 没有校正器，返回原始数据
+            Ok(rgb_data.to_vec())
         }
     }
 
@@ -306,23 +323,6 @@ impl ImagePipeline {
         }
     }
 
-    /// 旋转 OpenCV Mat（逆时针90度）
-    fn rotate_mat_counter_clockwise_90(&self, mat: &Mat) -> Result<Mat> {
-        use opencv::core::ROTATE_90_COUNTERCLOCKWISE;
-        let mut rotated = Mat::default();
-        opencv::core::rotate(mat, &mut rotated, ROTATE_90_COUNTERCLOCKWISE)
-            .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to rotate image counter-clockwise: {}", e)))?;
-        Ok(rotated)
-    }
-
-    /// 旋转 OpenCV Mat（顺时针90度）
-    fn rotate_mat_clockwise_90(&self, mat: &Mat) -> Result<Mat> {
-        use opencv::core::ROTATE_90_CLOCKWISE;
-        let mut rotated = Mat::default();
-        opencv::core::rotate(mat, &mut rotated, ROTATE_90_CLOCKWISE)
-            .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to rotate image clockwise: {}", e)))?;
-        Ok(rotated)
-    }
 }
 
 #[cfg(test)]
