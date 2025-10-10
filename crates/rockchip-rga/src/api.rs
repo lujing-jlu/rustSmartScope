@@ -1,8 +1,5 @@
-use crate::{
-    error::RgaError,
-    buffer::RgaFormat,
-    context::RgaContext,
-};
+use crate::{buffer::RgaFormat, context::RgaContext, error::RgaError};
+use image::ImageReader;
 use std::path::Path;
 
 /// RGA图像变换类型
@@ -61,7 +58,11 @@ impl RgaProcessor {
     }
 
     /// 应用变换到图像
-    pub fn transform(&self, image: &RgaImage, transform: &RgaTransform) -> Result<RgaImage, RgaError> {
+    pub fn transform(
+        &self,
+        image: &RgaImage,
+        transform: &RgaTransform,
+    ) -> Result<RgaImage, RgaError> {
         match transform {
             RgaTransform::Rotate90 => self.rotate_90(image),
             RgaTransform::Rotate180 => self.rotate_180(image),
@@ -98,46 +99,38 @@ impl RgaProcessor {
     pub fn rotate_90(&self, image: &RgaImage) -> Result<RgaImage, RgaError> {
         let (new_width, new_height) = (image.height(), image.width());
         let result = RgaImage::new(new_width, new_height, image.format());
-        
+
         unsafe {
             let src = image.to_rga_buffer()?;
             let dst = result.to_rga_buffer()?;
-            
-            let status = crate::imrotate_t(
-                src,
-                dst,
-                crate::IM_USAGE_IM_HAL_TRANSFORM_ROT_90 as i32,
-                1,
-            );
-            
+
+            let status =
+                crate::imrotate_t(src, dst, crate::IM_USAGE_IM_HAL_TRANSFORM_ROT_90 as i32, 1);
+
             if status != crate::IM_STATUS_IM_STATUS_SUCCESS {
                 return Err(RgaError::RgaError(status));
             }
         }
-        
+
         Ok(result)
     }
 
     /// 旋转180度
     pub fn rotate_180(&self, image: &RgaImage) -> Result<RgaImage, RgaError> {
         let result = RgaImage::new(image.width(), image.height(), image.format());
-        
+
         unsafe {
             let src = image.to_rga_buffer()?;
             let dst = result.to_rga_buffer()?;
-            
-            let status = crate::imrotate_t(
-                src,
-                dst,
-                crate::IM_USAGE_IM_HAL_TRANSFORM_ROT_180 as i32,
-                1,
-            );
-            
+
+            let status =
+                crate::imrotate_t(src, dst, crate::IM_USAGE_IM_HAL_TRANSFORM_ROT_180 as i32, 1);
+
             if status != crate::IM_STATUS_IM_STATUS_SUCCESS {
                 return Err(RgaError::RgaError(status));
             }
         }
-        
+
         Ok(result)
     }
 
@@ -145,69 +138,57 @@ impl RgaProcessor {
     pub fn rotate_270(&self, image: &RgaImage) -> Result<RgaImage, RgaError> {
         let (new_width, new_height) = (image.height(), image.width());
         let result = RgaImage::new(new_width, new_height, image.format());
-        
+
         unsafe {
             let src = image.to_rga_buffer()?;
             let dst = result.to_rga_buffer()?;
-            
-            let status = crate::imrotate_t(
-                src,
-                dst,
-                crate::IM_USAGE_IM_HAL_TRANSFORM_ROT_270 as i32,
-                1,
-            );
-            
+
+            let status =
+                crate::imrotate_t(src, dst, crate::IM_USAGE_IM_HAL_TRANSFORM_ROT_270 as i32, 1);
+
             if status != crate::IM_STATUS_IM_STATUS_SUCCESS {
                 return Err(RgaError::RgaError(status));
             }
         }
-        
+
         Ok(result)
     }
 
     /// 水平翻转
     pub fn flip_horizontal(&self, image: &RgaImage) -> Result<RgaImage, RgaError> {
         let result = RgaImage::new(image.width(), image.height(), image.format());
-        
+
         unsafe {
             let src = image.to_rga_buffer()?;
             let dst = result.to_rga_buffer()?;
-            
-            let status = crate::imflip_t(
-                src,
-                dst,
-                crate::IM_USAGE_IM_HAL_TRANSFORM_FLIP_H as i32,
-                1,
-            );
-            
+
+            let status =
+                crate::imflip_t(src, dst, crate::IM_USAGE_IM_HAL_TRANSFORM_FLIP_H as i32, 1);
+
             if status != crate::IM_STATUS_IM_STATUS_SUCCESS {
                 return Err(RgaError::RgaError(status));
             }
         }
-        
+
         Ok(result)
     }
 
     /// 垂直翻转
     pub fn flip_vertical(&self, image: &RgaImage) -> Result<RgaImage, RgaError> {
         let result = RgaImage::new(image.width(), image.height(), image.format());
-        
+
         unsafe {
             let src = image.to_rga_buffer()?;
             let dst = result.to_rga_buffer()?;
-            
-            let status = crate::imflip_t(
-                src,
-                dst,
-                crate::IM_USAGE_IM_HAL_TRANSFORM_FLIP_V as i32,
-                1,
-            );
-            
+
+            let status =
+                crate::imflip_t(src, dst, crate::IM_USAGE_IM_HAL_TRANSFORM_FLIP_V as i32, 1);
+
             if status != crate::IM_STATUS_IM_STATUS_SUCCESS {
                 return Err(RgaError::RgaError(status));
             }
         }
-        
+
         Ok(result)
     }
 
@@ -215,28 +196,36 @@ impl RgaProcessor {
     pub fn rotate_angle(&self, image: &RgaImage, angle: f32) -> Result<RgaImage, RgaError> {
         // 标准化角度到0-360度
         let normalized_angle = ((angle % 360.0) + 360.0) % 360.0;
-        
+
         match normalized_angle {
             0.0 => Ok(image.clone()),
             90.0 => self.rotate_90(image),
             180.0 => self.rotate_180(image),
             270.0 => self.rotate_270(image),
-            _ => Err(RgaError::InvalidParameter(format!("不支持的角度: {}", angle))),
+            _ => Err(RgaError::InvalidParameter(format!(
+                "不支持的角度: {}",
+                angle
+            ))),
         }
     }
 
     /// 缩放图像
-    pub fn scale(&self, image: &RgaImage, new_width: u32, new_height: u32) -> Result<RgaImage, RgaError> {
+    pub fn scale(
+        &self,
+        image: &RgaImage,
+        new_width: u32,
+        new_height: u32,
+    ) -> Result<RgaImage, RgaError> {
         let result = RgaImage::new(new_width, new_height, image.format());
-        
+
         unsafe {
             let src = image.to_rga_buffer()?;
             let dst = result.to_rga_buffer()?;
-            
+
             // 先进行参数校验
             let empty_buffer = std::mem::zeroed::<crate::rga_buffer_t>();
             let empty_rect = std::mem::zeroed::<crate::im_rect>();
-            
+
             let check_status = crate::imcheck_t(
                 src,
                 dst,
@@ -246,11 +235,11 @@ impl RgaProcessor {
                 empty_rect,
                 0,
             );
-            
+
             if check_status != crate::IM_STATUS_IM_STATUS_NOERROR {
                 return Err(RgaError::RgaError(check_status));
             }
-            
+
             // 执行缩放
             let status = crate::imresize_t(
                 src,
@@ -260,27 +249,36 @@ impl RgaProcessor {
                 crate::IM_INTER_MODE_IM_INTERP_LINEAR as i32,
                 1,
             );
-            
+
             if status != crate::IM_STATUS_IM_STATUS_SUCCESS {
                 return Err(RgaError::RgaError(status));
             }
         }
-        
+
         Ok(result)
     }
 
     /// 裁剪图像
-    pub fn crop(&self, image: &RgaImage, x: u32, y: u32, width: u32, height: u32) -> Result<RgaImage, RgaError> {
+    pub fn crop(
+        &self,
+        image: &RgaImage,
+        x: u32,
+        y: u32,
+        width: u32,
+        height: u32,
+    ) -> Result<RgaImage, RgaError> {
         if x + width > image.width() || y + height > image.height() {
-            return Err(RgaError::InvalidParameter("裁剪区域超出图像边界".to_string()));
+            return Err(RgaError::InvalidParameter(
+                "裁剪区域超出图像边界".to_string(),
+            ));
         }
-        
+
         let result = RgaImage::new(width, height, image.format());
-        
+
         unsafe {
             let src = image.to_rga_buffer()?;
             let dst = result.to_rga_buffer()?;
-            
+
             let status = crate::imcrop_t(
                 src,
                 dst,
@@ -292,31 +290,35 @@ impl RgaProcessor {
                 },
                 1,
             );
-            
+
             if status != crate::IM_STATUS_IM_STATUS_SUCCESS {
                 return Err(RgaError::RgaError(status));
             }
         }
-        
+
         Ok(result)
     }
 
     /// 反色 (软件实现)
     pub fn invert(&self, image: &RgaImage) -> Result<RgaImage, RgaError> {
         let mut result = image.clone();
-        
+
         // 软件反色实现
         for pixel in result.data_mut().chunks_mut(3) {
             pixel[0] = 255 - pixel[0]; // R
             pixel[1] = 255 - pixel[1]; // G
             pixel[2] = 255 - pixel[2]; // B
         }
-        
+
         Ok(result)
     }
 
     /// 应用组合变换
-    fn apply_composite(&self, image: &RgaImage, transforms: &[RgaTransform]) -> Result<RgaImage, RgaError> {
+    fn apply_composite(
+        &self,
+        image: &RgaImage,
+        transforms: &[RgaTransform],
+    ) -> Result<RgaImage, RgaError> {
         let mut result = image.clone();
         for transform in transforms {
             result = self.transform(&result, transform)?;
@@ -342,7 +344,7 @@ impl RgaImage {
             RgaFormat::Rgba8888 => width * height * 4,
             _ => width * height * 3, // 默认RGB
         };
-        
+
         Self {
             data: vec![0; size as usize],
             width,
@@ -353,16 +355,14 @@ impl RgaImage {
 
     /// 从文件加载图像
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, RgaError> {
-        use image::io::Reader as ImageReader;
-        
         let img = ImageReader::open(path)
             .map_err(|e| RgaError::IoError(e.into()))?
             .decode()
             .map_err(|e| RgaError::Unknown(format!("图像解码失败: {}", e)))?;
-        
+
         let rgb_img = img.to_rgb8();
         let (width, height) = rgb_img.dimensions();
-        
+
         Ok(Self {
             data: rgb_img.into_raw(),
             width,
@@ -372,13 +372,18 @@ impl RgaImage {
     }
 
     /// 从内存数据创建图像
-    pub fn from_data(data: Vec<u8>, width: u32, height: u32, format: RgaFormat) -> Result<Self, RgaError> {
+    pub fn from_data(
+        data: Vec<u8>,
+        width: u32,
+        height: u32,
+        format: RgaFormat,
+    ) -> Result<Self, RgaError> {
         let expected_size = match format {
             RgaFormat::Rgb888 => width * height * 3,
             RgaFormat::Rgba8888 => width * height * 4,
             _ => width * height * 3,
         };
-        
+
         if data.len() != expected_size as usize {
             return Err(RgaError::InvalidParameter(format!(
                 "数据大小不匹配: 期望 {}, 实际 {}",
@@ -386,7 +391,7 @@ impl RgaImage {
                 data.len()
             )));
         }
-        
+
         Ok(Self {
             data,
             width,
@@ -423,13 +428,14 @@ impl RgaImage {
     /// 保存图像到文件
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), RgaError> {
         use image::{ImageBuffer, Rgb};
-        
-        let img: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::from_raw(self.width, self.height, self.data.clone())
-            .ok_or_else(|| RgaError::InvalidParameter("无法创建图像缓冲区".to_string()))?;
-        
+
+        let img: ImageBuffer<Rgb<u8>, Vec<u8>> =
+            ImageBuffer::from_raw(self.width, self.height, self.data.clone())
+                .ok_or_else(|| RgaError::InvalidParameter("无法创建图像缓冲区".to_string()))?;
+
         img.save(path)
             .map_err(|e| RgaError::Unknown(format!("保存图像失败: {}", e)))?;
-        
+
         Ok(())
     }
 
@@ -437,7 +443,7 @@ impl RgaImage {
     fn to_rga_buffer(&self) -> Result<crate::rga_buffer_t, RgaError> {
         let stride = self.align_stride(self.width);
         let height_stride = self.align_stride(self.height);
-        
+
         unsafe {
             Ok(crate::wrapbuffer_virtualaddr_t(
                 self.data.as_ptr() as *mut std::ffi::c_void,
