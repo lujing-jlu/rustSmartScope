@@ -276,6 +276,13 @@ GlassPopupWindow {
             }
             var intValue = Math.round(value)
             var propertyEnum = getCameraPropertyEnum(propertyName)
+            
+            // 调试日志：打印滑杆原始值、枚举值、四舍五入后的值
+            console.log("🔧 handleSliderChange:", propertyName, 
+                       "原始value =", value, 
+                       "四舍五入 =", intValue,
+                       "枚举ID =", propertyEnum)
+            
             var current = getCurrentParameterValue(propertyEnum)
             if (current !== null && current !== undefined && current === intValue) {
                 return
@@ -286,6 +293,7 @@ GlassPopupWindow {
                 var min = range.min !== undefined ? range.min : intValue
                 var max = range.max !== undefined ? range.max : intValue
                 intValue = Math.max(min, Math.min(max, intValue))
+                console.log("🔧 经过范围限制:", propertyName, "最终值 =", intValue, "范围:", min, "-", max)
             }
 
             var applied = setParameter(propertyName, intValue)
@@ -976,10 +984,17 @@ GlassPopupWindow {
 
                         if (typeof exposureSlider !== "undefined") {
                             exposureSlider.enabled = !checked
-                        }
-
-                        if (!checked && typeof exposureSlider !== "undefined") {
-                            internal.handleSliderChange("exposure_time", exposureSlider.value)  // 修改：exposure -> exposure_time
+                            
+                            // 切换到自动曝光时，将滑杆重置到默认值
+                            if (checked) {
+                                internal.syncing = true
+                                exposureSlider.value = 3  // 重置到默认值
+                                internal.syncing = false
+                                console.log("切换到自动曝光，曝光时间滑杆重置为默认值: 3")
+                            } else {
+                                // 切换到手动曝光时，设置当前滑杆值
+                                internal.handleSliderChange("exposure_time", exposureSlider.value)
+                            }
                         }
 
                         Qt.callLater(function() {
@@ -1074,7 +1089,7 @@ GlassPopupWindow {
                         value: internal.gainValue
                         stepSize: 1
                         onValueChanged: {
-                            if (!internal.syncing && !autoExposureCheck.checked) {
+                            if (!internal.syncing) {
                                 internal.handleSliderChange("gain", value)
                             }
                         }

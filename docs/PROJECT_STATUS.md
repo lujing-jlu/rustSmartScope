@@ -133,6 +133,145 @@ RustSmartScope/
    - 运行环境检查：图形界面环境验证 ✅
    - 错误处理：详细的错误信息和解决建议 ✅
 
+## 🐛 最近Bug修复
+
+### 2025-10-10 (5) 改进自动曝光切换时的滑杆行为
+**需求描述：**
+- 切换自动曝光时，曝光时间滑杆需要回到默认值位置
+- 手动滑动设置的值需要是滑杆滑到的绝对值（不做映射转换）
+
+**实现内容：**
+- ✅ 切换到自动曝光时，将曝光时间滑杆重置为默认值3
+  ```qml
+  if (checked) {  // 开启自动曝光
+      internal.syncing = true
+      exposureSlider.value = 3  // 重置到默认值
+      internal.syncing = false
+      console.log("切换到自动曝光，曝光时间滑杆重置为默认值: 3")
+  }
+  ```
+- ✅ 确认滑杆值就是传递的绝对值：
+  - 滑杆范围：from: 3, to: 2047
+  - 显示值：Math.round(exposureSlider.value)
+  - 传递值：直接使用 Math.round(value)，无映射转换
+
+**效果：**
+- 打开自动曝光 → 曝光时间滑杆立即回到最左端（值=3）
+- 关闭自动曝光 → 保持当前滑杆位置，用户可手动调整
+- 滑杆显示的数字就是实际传递给相机的值
+
+### 2025-10-10 (4) 修复增益参数绑定并添加参数调试日志
+**问题描述：**
+- 增益（gain）滑杆滑动没有任何日志打印，参数未生效
+- gamma和exposure_time界面显示的数字与日志打印不匹配
+- 用户无法正常调整增益参数
+
+**问题原因：**
+- 增益滑杆的onValueChanged绑定中有错误的条件：`!autoExposureCheck.checked`
+- 导致只有关闭自动曝光时才会触发增益设置
+- 缺少详细的参数传递调试日志
+
+**修复内容：**
+- ✅ 移除增益滑杆的自动曝光条件限制
+  ```qml
+  // 修复前：
+  if (!internal.syncing && !autoExposureCheck.checked)
+  
+  // 修复后：
+  if (!internal.syncing)
+  ```
+- ✅ 添加详细的参数调试日志到handleSliderChange：
+  - 打印原始value、四舍五入后的值
+  - 打印参数枚举ID
+  - 打印经过范围限制后的最终值
+  - 使用🔧标记便于识别
+
+**调试信息格式：**
+```
+🔧 handleSliderChange: gamma 原始value = 150 四舍五入 = 150 枚举ID = 6
+🔧 经过范围限制: gamma 最终值 = 150 范围: 32 - 300
+```
+
+**影响范围：**
+- 增益参数现在可以随时调整
+- 添加了详细的参数传递日志，便于调试gamma和exposure_time的显示不匹配问题
+
+**下一步：**
+- 请测试并提供QML控制台日志，查看gamma和exposure_time的实际传递值
+
+### 2025-10-10 (3) 修正背光补偿参数范围为参考代码标准值
+**问题描述：**
+- 背光补偿滑杆范围被错误设置为 0-500，导致滑杆视觉位置与实际值不匹配
+- 用户反馈"横杆的最左和设置范围的最小值不匹配"
+- 参考代码中背光补偿实际范围是 0-8
+
+**修复内容：**
+- ✅ 将背光补偿范围从 0-500 改回参考代码标准：**0-8**
+- ✅ 将背光补偿默认值从 100 改回参考代码标准：**0**
+- ✅ 更新两个文件的滑杆配置和默认值：
+  - `CameraParameterWindow.qml`
+  - `CameraParameterPanel.qml`
+
+**参考代码标准值（已全部对齐）：**
+```
+brightness:     -64 ~ 64,    默认 0    ✅
+contrast:       0 ~ 95,      默认 0    ✅
+saturation:     0 ~ 100,     默认 50   ✅
+backlight:      0 ~ 8,       默认 0    ✅ (已修正)
+gamma:          32 ~ 300,    默认 100  ✅
+exposure_time:  3 ~ 2047,    默认 3    ✅
+gain:           0 ~ 3,       默认 0    ✅
+```
+
+**影响范围：**
+- 背光补偿滑杆现在与参考代码完全一致
+- 滑杆视觉位置与实际值正确对应
+
+### 2025-10-10 (2) 修复参数枚举映射错误并移除不支持的白平衡功能
+**问题描述：**
+- QML中的参数枚举值与C FFI枚举定义不匹配
+- QML中 `gamma: 5` 映射到后端 `WhiteBalance: 5`，导致设置gamma时实际调用white_balance_temperature
+- white_balance_temperature 不被相机支持，导致Permission denied错误
+- 所有参数枚举值都错位了
+
+**修复内容：**
+- ✅ 修正 QML 枚举映射，与 C FFI 定义一致：
+  - brightness: 0
+  - contrast: 1
+  - saturation: 2
+  - gain: 3
+  - exposure_time: 4
+  - ~~white_balance: 5~~ (已移除)
+  - gamma: 6 (修正：5 → 6)
+  - backlight: 7 (修正：6 → 7)
+  - auto_exposure: 8 (修正：7 → 8)
+- ✅ 从 UI 中完全移除白平衡控件（不支持的功能）
+  - 移除 autoWhiteBalanceCheck
+  - 移除 whiteBalanceSlider
+- ✅ 更新两个文件的枚举映射：
+  - `CameraParameterWindow.qml`
+  - `CameraParameterPanel.qml`
+
+**影响范围：**
+- 所有相机参数设置
+- Gamma 参数现在可以正常工作
+- 不再出现 white_balance_temperature Permission denied 错误
+
+### 2025-10-10 (1) 修复背光补偿滑杆范围问题
+**问题描述：**
+- 背光补偿滑杆的范围被硬编码为 0-8，导致无法设置到实际相机支持的范围（0-300+）
+- 用户调整滑杆时，值总是被限制在8以内，无法正常控制背光补偿
+
+**修复内容：**
+- ✅ 将 `CameraParameterWindow.qml` 中背光补偿滑杆范围改为 0-500
+- ✅ 将 `CameraParameterPanel.qml` 中背光补偿滑杆范围改为 0-500
+- ✅ 更新默认值从0改为100，更符合实际使用
+- ✅ 保持动态范围同步机制，可以根据相机实际支持的范围自动调整
+
+**影响范围：**
+- 相机参数设置窗口
+- 相机参数调节面板
+
 ## 📈 构建产物
 
 ### 生成的文件
