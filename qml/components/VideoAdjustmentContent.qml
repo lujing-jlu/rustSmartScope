@@ -184,7 +184,20 @@ Item {
             exposurePresetIndex = 0
             console.log("曝光模式: 手动", exposurePresets[exposurePresetIndex])
             exposureChanged(0, exposurePresets[exposurePresetIndex])
-            // TODO: 调用C++后端设置曝光
+
+            // 设置手动曝光模式
+            var autoExposureSuccess = CameraParameterManager.setSingleCameraParameter(8, 1) // 8=AutoExposure, 1=Manual
+            if (autoExposureSuccess) {
+                // 设置曝光时间值
+                var exposureSuccess = CameraParameterManager.setSingleCameraParameter(4, exposurePresets[exposurePresetIndex]) // 4=ExposureTime
+                if (exposureSuccess) {
+                    console.log("成功设置手动曝光:", exposurePresets[exposurePresetIndex])
+                } else {
+                    console.error("设置曝光时间失败")
+                }
+            } else {
+                console.error("设置手动曝光模式失败")
+            }
         } else {
             // 手动模式下循环档位
             exposurePresetIndex++
@@ -194,11 +207,25 @@ Item {
                 exposurePresetIndex = 0
                 console.log("曝光模式: 自动")
                 exposureChanged(1, 0)
-                // TODO: 调用C++后端设置自动曝光
+
+                // 设置自动曝光模式
+                var autoSuccess = CameraParameterManager.setSingleCameraParameter(8, 3) // 8=AutoExposure, 3=Auto
+                if (autoSuccess) {
+                    console.log("成功设置自动曝光")
+                } else {
+                    console.error("设置自动曝光失败")
+                }
             } else {
                 console.log("曝光值:", exposurePresets[exposurePresetIndex])
                 exposureChanged(0, exposurePresets[exposurePresetIndex])
-                // TODO: 调用C++后端设置曝光值
+
+                // 设置新的曝光时间值
+                var success = CameraParameterManager.setSingleCameraParameter(4, exposurePresets[exposurePresetIndex]) // 4=ExposureTime
+                if (success) {
+                    console.log("成功设置曝光值:", exposurePresets[exposurePresetIndex])
+                } else {
+                    console.error("设置曝光值失败")
+                }
             }
         }
     }
@@ -206,9 +233,21 @@ Item {
     // 亮度循环：0% -> 25% -> 50% -> 75% -> 100% -> 0%
     function cycleBrightness() {
         brightnessLevel = (brightnessLevel + 1) % brightnessLevels.length
-        console.log("亮度:", brightnessLevels[brightnessLevel] + "%")
-        brightnessChanged(brightnessLevels[brightnessLevel])
-        // TODO: 调用C++后端设置LED亮度
+        var brightnessPercent = brightnessLevels[brightnessLevel]
+        console.log("亮度:", brightnessPercent + "%")
+        brightnessChanged(brightnessPercent)
+
+        // 将百分比转换为相机亮度值（范围：-64到64）
+        // 0% -> -64, 50% -> 0, 100% -> 64
+        var brightnessValue = Math.round((brightnessPercent / 100.0) * 128 - 64)
+
+        // 设置相机亮度
+        var success = CameraParameterManager.setSingleCameraParameter(0, brightnessValue) // 0=Brightness
+        if (success) {
+            console.log("成功设置亮度:", brightnessValue, "(", brightnessPercent + "% )")
+        } else {
+            console.error("设置亮度失败")
+        }
     }
 
     // 畸变校正开关
@@ -228,6 +267,16 @@ Item {
         exposurePresetIndex = 0
         brightnessLevel = 0
         console.log("已还原所有设置")
+
+        // 还原相机参数到默认值
+        // 设置自动曝光模式
+        CameraParameterManager.setSingleCameraParameter(8, 3) // 8=AutoExposure, 3=Auto
+        console.log("已还原自动曝光")
+
+        // 还原亮度到0（相机默认值）
+        CameraParameterManager.setSingleCameraParameter(0, 0) // 0=Brightness, 0=默认值
+        console.log("已还原亮度到默认值0")
+
         applyTransformations()
         resetRequested()
     }
