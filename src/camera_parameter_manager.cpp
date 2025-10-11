@@ -79,6 +79,7 @@ int CameraParameterManager::getSingleCameraParameter(int propertyId)
 {
     CCameraProperty property = toCCameraProperty(propertyId);
     int32_t value = smartscope_get_single_camera_parameter(property);
+    qDebug() << "getSingleCameraParameter: propertyId=" << propertyId << " value=" << value;
     return value;
 }
 

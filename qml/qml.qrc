@@ -16,6 +16,7 @@
         <file>components/GlassPopupWindow.qml</file>
         <file>components/VideoAdjustmentContent.qml</file>
         <file>components/CameraParameterPanel.qml</file>
+        <file>components/CustomSlider.qml</file>
 
         <!-- 窗口 -->
         <file>Measurement3DWindow.qml</file>

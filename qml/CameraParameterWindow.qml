@@ -24,6 +24,15 @@ GlassPopupWindow {
         property var parameterRanges: ({})
         property var supportedParameters: ({})
 
+        // 可观察的参数值属性 - UI绑定到这些属性
+        property int brightnessValue: 0
+        property int contrastValue: 0
+        property int saturationValue: 50
+        property int backlightValue: 0
+        property int gammaValue: 100
+        property int exposureTimeValue: 100
+        property int gainValue: 0
+
         // 清除参数范围缓存
         function clearParameterRanges() {
             parameterRanges = {}
@@ -73,15 +82,22 @@ GlassPopupWindow {
         }
 
         function getCurrentParameterValue(propertyEnum) {
+            var value
             if (cameraParameterWindow.cameraMode === 1) {
-                return CameraParameterManager.getSingleCameraParameter(propertyEnum)
+                value = CameraParameterManager.getSingleCameraParameter(propertyEnum)
+                console.log("获取单相机参数 propertyEnum:", propertyEnum, "value:", value)
+                return value
             } else if (cameraParameterWindow.cameraMode === 2) {
                 var leftValue = CameraParameterManager.getLeftCameraParameter(propertyEnum)
+                console.log("获取左相机参数 propertyEnum:", propertyEnum, "value:", leftValue)
                 if (leftValue !== -1) {
                     return leftValue
                 }
-                return CameraParameterManager.getRightCameraParameter(propertyEnum)
+                var rightValue = CameraParameterManager.getRightCameraParameter(propertyEnum)
+                console.log("获取右相机参数 propertyEnum:", propertyEnum, "value:", rightValue)
+                return rightValue
             }
+            console.log("无法获取参数值 propertyEnum:", propertyEnum)
             return null
         }
 
@@ -100,6 +116,7 @@ GlassPopupWindow {
 
         function applyParameterToSlider(slider, propertyName) {
             if (!slider) {
+                console.log("滑块不存在:", propertyName)
                 return
             }
 
@@ -121,8 +138,36 @@ GlassPopupWindow {
 
             var current = getCurrentParameterValue(propertyEnum)
             if (current !== null && current !== undefined && current !== -1) {
-                slider.value = current
+                console.log("更新", propertyName, "值从", slider.value, "到", current)
+
+                // 更新对应的属性值，这会触发UI更新
+                switch(propertyName) {
+                    case "brightness":
+                        internal.brightnessValue = current
+                        break
+                    case "contrast":
+                        internal.contrastValue = current
+                        break
+                    case "saturation":
+                        internal.saturationValue = current
+                        break
+                    case "backlight":
+                        internal.backlightValue = current
+                        break
+                    case "gamma":
+                        internal.gammaValue = current
+                        break
+                    case "exposure_time":
+                        internal.exposureTimeValue = current
+                        break
+                    case "gain":
+                        internal.gainValue = current
+                        break
+                }
+
                 console.log("设置", propertyName, "当前值:", current)
+            } else {
+                console.log("无法获取", propertyName, "的当前值")
             }
         }
 
@@ -250,6 +295,31 @@ GlassPopupWindow {
                 return
             }
 
+            // 更新对应的属性值（这样用户手动拖动滑块也会触发响应式更新）
+            switch(propertyName) {
+                case "brightness":
+                    internal.brightnessValue = intValue
+                    break
+                case "contrast":
+                    internal.contrastValue = intValue
+                    break
+                case "saturation":
+                    internal.saturationValue = intValue
+                    break
+                case "backlight":
+                    internal.backlightValue = intValue
+                    break
+                case "gamma":
+                    internal.gammaValue = intValue
+                    break
+                case "exposure_time":
+                    internal.exposureTimeValue = intValue
+                    break
+                case "gain":
+                    internal.gainValue = intValue
+                    break
+            }
+
             if (range && (range.current !== intValue)) {
                 range.current = intValue
             }
@@ -258,30 +328,59 @@ GlassPopupWindow {
         // 调用FFI设置参数
         function setParameter(propertyName, value) {
             var propertyEnum = getCameraPropertyEnum(propertyName)
+            var intValue = Math.round(value)
+            var success = false
 
             // 根据相机模式选择设置哪个相机
             if (cameraParameterWindow.cameraMode === 1) {
                 // 单相机模式
-                var success = CameraParameterManager.setSingleCameraParameter(propertyEnum, value)
+                success = CameraParameterManager.setSingleCameraParameter(propertyEnum, intValue)
                 if (success) {
-                    console.log("设置单相机参数成功:", propertyName, "=", value)
+                    console.log("设置单相机参数成功:", propertyName, "=", intValue)
                 } else {
-                    console.error("设置单相机参数失败:", propertyName, "=", value)
+                    console.error("设置单相机参数失败:", propertyName, "=", intValue)
                 }
-                return success
             } else if (cameraParameterWindow.cameraMode === 2) {
                 // 双相机模式 - 同时设置左右相机
-                var leftSuccess = CameraParameterManager.setLeftCameraParameter(propertyEnum, value)
-                var rightSuccess = CameraParameterManager.setRightCameraParameter(propertyEnum, value)
+                var leftSuccess = CameraParameterManager.setLeftCameraParameter(propertyEnum, intValue)
+                var rightSuccess = CameraParameterManager.setRightCameraParameter(propertyEnum, intValue)
 
                 if (leftSuccess && rightSuccess) {
-                    console.log("设置左右相机参数成功:", propertyName, "=", value)
+                    console.log("设置左右相机参数成功:", propertyName, "=", intValue)
+                    success = true
                 } else {
                     console.error("设置相机参数失败:", propertyName, "左:", leftSuccess, "右:", rightSuccess)
                 }
-                return leftSuccess && rightSuccess
             }
-            return false
+
+            // 如果设置成功，更新对应的属性值（这会触发UI更新）
+            if (success) {
+                switch(propertyName) {
+                    case "brightness":
+                        internal.brightnessValue = intValue
+                        break
+                    case "contrast":
+                        internal.contrastValue = intValue
+                        break
+                    case "saturation":
+                        internal.saturationValue = intValue
+                        break
+                    case "backlight":
+                        internal.backlightValue = intValue
+                        break
+                    case "gamma":
+                        internal.gammaValue = intValue
+                        break
+                    case "exposure_time":
+                        internal.exposureTimeValue = intValue
+                        break
+                    case "gain":
+                        internal.gainValue = intValue
+                        break
+                }
+            }
+
+            return success
         }
 
         // 重置参数到默认值（逐个参数单独设置）
@@ -497,46 +596,19 @@ GlassPopupWindow {
                         Layout.preferredWidth: 100
                     }
 
-                    Slider {
+                    CustomSlider {
                         id: brightnessSlider
                         Layout.fillWidth: true
                         from: -64
                         to: 64
-                        value: 0
+                        value: internal.brightnessValue
                         stepSize: 1
-                        onValueChanged: {
+                        height: 40
+
+                        onSliderValueChanged: {
                             if (!internal.syncing) {
                                 internal.handleSliderChange("brightness", value)
                             }
-                        }
-
-                        background: Rectangle {
-                            x: brightnessSlider.leftPadding
-                            y: brightnessSlider.topPadding + brightnessSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 200
-                            implicitHeight: 10
-                            width: brightnessSlider.availableWidth
-                            height: implicitHeight
-                            radius: 5
-                            color: "#555"
-
-                            Rectangle {
-                                width: brightnessSlider.visualPosition * parent.width
-                                height: parent.height
-                                color: "#FFC107"
-                                radius: 5
-                            }
-                        }
-
-                        handle: Rectangle {
-                            x: brightnessSlider.leftPadding + brightnessSlider.visualPosition * (brightnessSlider.availableWidth - width)
-                            y: brightnessSlider.topPadding + brightnessSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 56
-                            implicitHeight: 56
-                            radius: 28
-                            color: brightnessSlider.pressed ? "#666666" : "#888888"
-                            border.color: "#000000"
-                            border.width: 2
                         }
                     }
 
@@ -566,7 +638,7 @@ GlassPopupWindow {
                         Layout.fillWidth: true
                         from: 0
                         to: 95
-                        value: 0
+                        value: internal.contrastValue
                         stepSize: 1
                         onValueChanged: {
                             if (!internal.syncing) {
@@ -630,7 +702,7 @@ GlassPopupWindow {
                         Layout.fillWidth: true
                         from: 0
                         to: 100
-                        value: 50
+                        value: internal.saturationValue
                         stepSize: 1
                         onValueChanged: {
                             if (!internal.syncing) {
@@ -694,7 +766,7 @@ GlassPopupWindow {
                         Layout.fillWidth: true
                         from: 0
                         to: 8
-                        value: 0
+                        value: internal.backlightValue
                         stepSize: 1
                         onValueChanged: {
                             if (!internal.syncing) {
@@ -758,7 +830,7 @@ GlassPopupWindow {
                         Layout.fillWidth: true
                         from: 32
                         to: 300
-                        value: 100
+                        value: internal.gammaValue
                         stepSize: 1
                         onValueChanged: {
                             if (!internal.syncing) {
@@ -907,7 +979,7 @@ GlassPopupWindow {
                         Layout.fillWidth: true
                         from: 3
                         to: 2047
-                        value: 3
+                        value: internal.exposureTimeValue
                         enabled: !autoExposureCheck.checked
                         stepSize: 1
                         onValueChanged: {
@@ -973,7 +1045,7 @@ GlassPopupWindow {
                         Layout.fillWidth: true
                         from: 0
                         to: 3
-                        value: 0
+                        value: internal.gainValue
                         stepSize: 1
                         onValueChanged: {
                             if (!internal.syncing && !autoExposureCheck.checked) {
