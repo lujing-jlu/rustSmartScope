@@ -278,16 +278,16 @@ impl CameraControl {
         let output = std::process::Command::new("v4l2-ctl")
             .arg("--device")
             .arg(&self.device_path)
-            .arg(format!("--queryctrl={}", v4l2_property))
+            .arg("--list-ctrls")
             .output()
             .map_err(|e| CameraError::ConfigurationError(
-                format!("Failed to run v4l2-ctl --queryctrl: {}", e)
+                format!("Failed to run v4l2-ctl --list-ctrls: {}", e)
             ))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(CameraError::ConfigurationError(
-                format!("Failed to query control {} on {}: {}", v4l2_property, self.device_path, stderr.trim())
+                format!("Failed to list controls on {}: {}", self.device_path, stderr.trim())
             ));
         }
 
@@ -299,35 +299,47 @@ impl CameraControl {
         let mut step = None;
         let mut default = None;
 
+        // Parse compact format: brightness 0x00980900 (int)    : min=-64 max=64 step=1 default=0 value=59
         for line in trimmed.lines() {
             let line = line.trim();
-            if let Some(value) = line.strip_prefix("Minimum:") {
-                min = value.trim().parse::<i32>().ok();
-            } else if let Some(value) = line.strip_prefix("Maximum:") {
-                max = value.trim().parse::<i32>().ok();
-            } else if let Some(value) = line.strip_prefix("Step:") {
-                step = value.trim().parse::<i32>().ok();
-            } else if let Some(value) = line.strip_prefix("Default value:") {
-                default = value.trim().parse::<i32>().ok();
-            } else if let Some(value) = line.strip_prefix("default=") {
-                default = value.trim().parse::<i32>().ok();
-            } else if let Some(value) = line.strip_prefix("min=") {
-                min = value.trim().parse::<i32>().ok();
-            } else if let Some(value) = line.strip_prefix("max=") {
-                max = value.trim().parse::<i32>().ok();
-            } else if let Some(value) = line.strip_prefix("step=") {
-                step = value.trim().parse::<i32>().ok();
+            // Check if this line contains our target parameter
+            if line.starts_with(v4l2_property) {
+                // Parse the compact format using regex-style parsing
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                for part in parts {
+                    if part.starts_with("min=") {
+                        if let Some(value_str) = part.strip_prefix("min=") {
+                            min = value_str.trim_end_matches(',').parse::<i32>().ok();
+                        }
+                    } else if part.starts_with("max=") {
+                        if let Some(value_str) = part.strip_prefix("max=") {
+                            max = value_str.trim_end_matches(',').parse::<i32>().ok();
+                        }
+                    } else if part.starts_with("step=") {
+                        if let Some(value_str) = part.strip_prefix("step=") {
+                            step = value_str.trim_end_matches(',').parse::<i32>().ok();
+                        }
+                    } else if part.starts_with("default=") {
+                        if let Some(value_str) = part.strip_prefix("default=") {
+                            default = value_str.trim_end_matches(',').parse::<i32>().ok();
+                        }
+                    }
+                }
+                break; // Found our parameter, exit loop
             }
         }
 
         let min = min.ok_or_else(|| CameraError::ConfigurationError(
-            format!("Failed to parse min value for {}", v4l2_property)
+            format!("Failed to parse min value for {} in list-ctrls output", v4l2_property)
         ))?;
         let max = max.ok_or_else(|| CameraError::ConfigurationError(
-            format!("Failed to parse max value for {}", v4l2_property)
+            format!("Failed to parse max value for {} in list-ctrls output", v4l2_property)
         ))?;
         let step = step.unwrap_or(1).max(1);
         let default = default.unwrap_or(min);
+
+        debug!("Parsed range for {}: min={}, max={}, step={}, default={}",
+               v4l2_property, min, max, step, default);
 
         Ok((min, max, step, default))
     }

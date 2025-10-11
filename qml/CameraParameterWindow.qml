@@ -1087,9 +1087,9 @@ GlassPopupWindow {
             requestActivate()
 
             // 强制清除缓存并重新同步参数
-            clearParameterRanges()
-            clearSupportedParameters()
-            syncParametersFromCamera()
+            internal.clearParameterRanges()
+            internal.clearSupportedParameters()
+            internal.syncParametersFromCamera()
         } else {
             console.log("相机参数设置窗口已关闭")
         }
