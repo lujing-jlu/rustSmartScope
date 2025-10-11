@@ -1,7 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import "components"
 
 // 相机参数设置窗口 - 使用GlassPopupWindow包装
 GlassPopupWindow {
@@ -596,19 +595,46 @@ GlassPopupWindow {
                         Layout.preferredWidth: 100
                     }
 
-                    CustomSlider {
+                    Slider {
                         id: brightnessSlider
                         Layout.fillWidth: true
                         from: -64
                         to: 64
                         value: internal.brightnessValue
                         stepSize: 1
-                        height: 40
-
-                        onSliderValueChanged: {
+                        onValueChanged: {
                             if (!internal.syncing) {
                                 internal.handleSliderChange("brightness", value)
                             }
+                        }
+
+                        background: Rectangle {
+                            x: brightnessSlider.leftPadding
+                            y: brightnessSlider.topPadding + brightnessSlider.availableHeight / 2 - height / 2
+                            implicitWidth: 200
+                            implicitHeight: 10
+                            width: brightnessSlider.availableWidth
+                            height: implicitHeight
+                            radius: 5
+                            color: "#555"
+
+                            Rectangle {
+                                width: brightnessSlider.visualPosition * parent.width
+                                height: parent.height
+                                color: "#2196F3"
+                                radius: 5
+                            }
+                        }
+
+                        handle: Rectangle {
+                            x: brightnessSlider.leftPadding + brightnessSlider.visualPosition * (brightnessSlider.availableWidth - width)
+                            y: brightnessSlider.topPadding + brightnessSlider.availableHeight / 2 - height / 2
+                            implicitWidth: 56
+                            implicitHeight: 56
+                            radius: 28
+                            color: brightnessSlider.pressed ? "#666666" : "#888888"
+                            border.color: "#000000"
+                            border.width: 2
                         }
                     }
 
