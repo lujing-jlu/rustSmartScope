@@ -29,6 +29,120 @@ Item {
     signal resetRequested()
     signal advancedSettingsRequested()
 
+    // 初始化相机参数控制
+    function initializeCameraParameters() {
+        // 确保相机参数管理器已初始化
+        console.log("初始化相机参数控制，相机模式:", CameraManager.cameraMode)
+
+        // 检查相机模式
+        if (CameraManager.cameraMode === 0) {
+            console.log("相机未连接或模式无效")
+            return false
+        }
+
+        // 通过获取参数范围来初始化相机参数控制
+        try {
+            var brightnessRange = null
+            var exposureRange = null
+
+            if (CameraManager.cameraMode === 1) {
+                // 单相机模式
+                brightnessRange = CameraParameterManager.getSingleCameraParameterRange(0) // brightness
+                exposureRange = CameraParameterManager.getSingleCameraParameterRange(8) // auto_exposure
+                console.log("单相机模式参数范围检查 - 亮度:", brightnessRange, "自动曝光:", exposureRange)
+            } else if (CameraManager.cameraMode === 2) {
+                // 双相机模式
+                var leftBrightnessRange = CameraParameterManager.getLeftCameraParameterRange(0)
+                var rightBrightnessRange = CameraParameterManager.getRightCameraParameterRange(0)
+                var leftExposureRange = CameraParameterManager.getLeftCameraParameterRange(8)
+                var rightExposureRange = CameraParameterManager.getRightCameraParameterRange(8)
+
+                console.log("双相机模式参数范围检查:")
+                console.log("  左相机亮度范围:", leftBrightnessRange)
+                console.log("  右相机亮度范围:", rightBrightnessRange)
+                console.log("  左相机曝光范围:", leftExposureRange)
+                console.log("  右相机曝光范围:", rightExposureRange)
+
+                // 以左相机为准
+                brightnessRange = leftBrightnessRange
+                exposureRange = leftExposureRange
+            }
+
+            // 检查参数范围是否有效
+            var brightnessValid = brightnessRange && brightnessRange.min !== undefined && brightnessRange.max !== undefined
+            var exposureValid = exposureRange && exposureRange.min !== undefined && exposureRange.max !== undefined
+
+            if (brightnessValid && exposureValid) {
+                console.log("相机参数控制初始化成功")
+                return true
+            } else {
+                console.log("相机参数初始化部分失败 - 亮度有效:", brightnessValid, "曝光有效:", exposureValid)
+                return false
+            }
+        } catch (error) {
+            console.error("相机参数初始化异常:", error)
+            return false
+        }
+    }
+
+    // 设置相机参数的统一方法
+    function setCameraParameter(propertyName, value) {
+        // 先确保初始化
+        if (!initializeCameraParameters()) {
+            console.error("相机参数未初始化，无法设置:", propertyName)
+            return false
+        }
+
+        // 获取参数枚举值
+        var propertyEnum = getCameraPropertyEnum(propertyName)
+        if (propertyEnum === undefined) {
+            console.error("未知的相机参数:", propertyName)
+            return false
+        }
+
+        var intValue = Math.round(value)
+        var success = false
+
+        // 根据相机模式选择设置方法
+        if (CameraManager.cameraMode === 1) {
+            // 单相机模式
+            success = CameraParameterManager.setSingleCameraParameter(propertyEnum, intValue)
+            if (success) {
+                console.log("设置单相机参数成功:", propertyName, "=", intValue)
+            } else {
+                console.error("设置单相机参数失败:", propertyName, "=", intValue)
+            }
+        } else if (CameraManager.cameraMode === 2) {
+            // 双相机模式 - 同时设置左右相机
+            var leftSuccess = CameraParameterManager.setLeftCameraParameter(propertyEnum, intValue)
+            var rightSuccess = CameraParameterManager.setRightCameraParameter(propertyEnum, intValue)
+            success = leftSuccess && rightSuccess
+            if (success) {
+                console.log("设置左右相机参数成功:", propertyName, "=", intValue)
+            } else {
+                console.error("设置相机参数失败:", propertyName, "左:", leftSuccess, "右:", rightSuccess)
+            }
+        } else {
+            console.error("无效的相机模式:", CameraManager.cameraMode)
+            return false
+        }
+
+        return success
+    }
+
+    // 获取相机参数枚举值
+    function getCameraPropertyEnum(propertyName) {
+        var propertyMap = {
+            "brightness": 0,
+            "contrast": 1,
+            "saturation": 2,
+            "auto_exposure": 8,
+            "exposure_time_absolute": 4,
+            // 可以根据需要添加更多参数
+        }
+        return propertyMap[propertyName]
+    }
+
     // 按钮网格布局（3x3）
     Grid {
         anchors.centerIn: parent
@@ -186,10 +300,11 @@ Item {
             exposureChanged(0, exposurePresets[exposurePresetIndex])
 
             // 设置手动曝光模式
-            var autoExposureSuccess = CameraParameterManager.setSingleCameraParameter(8, 1) // 8=AutoExposure, 1=Manual
+            var autoExposureSuccess = setCameraParameter("auto_exposure", 1) // 1=Manual
             if (autoExposureSuccess) {
+                console.log("成功设置手动曝光模式")
                 // 设置曝光时间值
-                var exposureSuccess = CameraParameterManager.setSingleCameraParameter(4, exposurePresets[exposurePresetIndex]) // 4=ExposureTime
+                var exposureSuccess = setCameraParameter("exposure_time_absolute", exposurePresets[exposurePresetIndex])
                 if (exposureSuccess) {
                     console.log("成功设置手动曝光:", exposurePresets[exposurePresetIndex])
                 } else {
@@ -209,7 +324,7 @@ Item {
                 exposureChanged(1, 0)
 
                 // 设置自动曝光模式
-                var autoSuccess = CameraParameterManager.setSingleCameraParameter(8, 3) // 8=AutoExposure, 3=Auto
+                var autoSuccess = setCameraParameter("auto_exposure", 3) // 3=Auto
                 if (autoSuccess) {
                     console.log("成功设置自动曝光")
                 } else {
@@ -220,7 +335,7 @@ Item {
                 exposureChanged(0, exposurePresets[exposurePresetIndex])
 
                 // 设置新的曝光时间值
-                var success = CameraParameterManager.setSingleCameraParameter(4, exposurePresets[exposurePresetIndex]) // 4=ExposureTime
+                var success = setCameraParameter("exposure_time_absolute", exposurePresets[exposurePresetIndex])
                 if (success) {
                     console.log("成功设置曝光值:", exposurePresets[exposurePresetIndex])
                 } else {
@@ -241,8 +356,11 @@ Item {
         // 0% -> -64, 50% -> 0, 100% -> 64
         var brightnessValue = Math.round((brightnessPercent / 100.0) * 128 - 64)
 
-        // 设置相机亮度
-        var success = CameraParameterManager.setSingleCameraParameter(0, brightnessValue) // 0=Brightness
+        // 添加调试信息
+        console.log("计算出的亮度值:", brightnessValue, "从百分比:", brightnessPercent + "%")
+
+        // 使用新的参数设置方法
+        var success = setCameraParameter("brightness", brightnessValue)
         if (success) {
             console.log("成功设置亮度:", brightnessValue, "(", brightnessPercent + "% )")
         } else {
@@ -270,12 +388,20 @@ Item {
 
         // 还原相机参数到默认值
         // 设置自动曝光模式
-        CameraParameterManager.setSingleCameraParameter(8, 3) // 8=AutoExposure, 3=Auto
-        console.log("已还原自动曝光")
+        var autoSuccess = setCameraParameter("auto_exposure", 3) // 3=Auto
+        if (autoSuccess) {
+            console.log("已还原自动曝光")
+        } else {
+            console.error("还原自动曝光失败")
+        }
 
         // 还原亮度到0（相机默认值）
-        CameraParameterManager.setSingleCameraParameter(0, 0) // 0=Brightness, 0=默认值
-        console.log("已还原亮度到默认值0")
+        var brightnessSuccess = setCameraParameter("brightness", 0) // 0=默认值
+        if (brightnessSuccess) {
+            console.log("已还原亮度到默认值0")
+        } else {
+            console.error("还原亮度失败")
+        }
 
         applyTransformations()
         resetRequested()
