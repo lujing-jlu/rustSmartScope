@@ -254,16 +254,13 @@ GlassPopupWindow {
                 var autoExposureValue = getCurrentParameterValue(autoExposureEnum)
                 if (autoExposureValue !== null && autoExposureValue !== undefined && autoExposureValue !== -1) {
                     var isAutoExposure = autoExposureValue !== 1
-                    autoExposureCheck.checked = isAutoExposure
-                    autoExposureCheck.visible = true
+                    autoExposureButton.checked = isAutoExposure
+                    autoExposureButton.visible = true
 
-                    if (typeof exposureSlider !== "undefined" && exposureSlider.visible) {
-                        exposureSlider.enabled = !isAutoExposure
-                        console.log("自动曝光状态:", isAutoExposure, "曝光滑块启用:", !isAutoExposure)
-                    }
+                    console.log("自动曝光状态:", isAutoExposure)
                 }
             } else {
-                autoExposureCheck.visible = false
+                autoExposureButton.visible = false
                 console.log("自动曝光参数不被硬件支持，已隐藏")
             }
 
@@ -408,11 +405,8 @@ GlassPopupWindow {
                     syncParametersFromCamera()
 
                     // 设置UI状态
-                    if (typeof autoExposureCheck !== "undefined") {
-                        autoExposureCheck.checked = true
-                    }
-                    if (typeof exposureSlider !== "undefined") {
-                        exposureSlider.enabled = false
+                    if (typeof autoExposureButton !== "undefined") {
+                        autoExposureButton.checked = true
                     }
 
                     console.log("重置完成，UI已同步到相机当前值")
@@ -570,19 +564,12 @@ GlassPopupWindow {
             Layout.fillHeight: true
             spacing: 30
 
-            // 左侧列 - 基础参数
+            // 左侧列
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredWidth: parent.width / 2 - 15
                 spacing: 20
-
-                Label {
-                    text: "基础参数"
-                    font.pixelSize: 22 * cameraParameterWindow.textScale
-                    font.bold: true
-                    color: "#4CAF50"
-                }
 
                 // 亮度
                 RowLayout {
@@ -905,94 +892,75 @@ GlassPopupWindow {
                 }
             }
 
-            // 右侧列 - 曝光和白平衡
+            // 右侧列
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredWidth: parent.width / 2 - 15
                 spacing: 20
 
-                Label {
-                    text: "高级参数"
-                    font.pixelSize: 22 * cameraParameterWindow.textScale
-                    font.bold: true
-                    color: "#2196F3"
-                }
+                // 自动曝光按钮
+                Rectangle {
+                    id: autoExposureButton
+                    Layout.fillWidth: true
+                    height: 50
+                    radius: 8
+                    color: autoExposureButton.checked ? "#4CAF50" : "#555555"
+                    border.color: "#000000"
+                    border.width: 2
 
-                // 自动曝光
-                CheckBox {
-                    id: autoExposureCheck
-                    text: "自动曝光"
-                    checked: true
-                    font.pixelSize: 18 * cameraParameterWindow.textScale
+                    property bool checked: true
 
-                    contentItem: Text {
-                        text: autoExposureCheck.text
-                        font: autoExposureCheck.font
+                    Text {
+                        text: autoExposureButton.checked ? "自动曝光 (开)" : "手动曝光 (关)"
+                        font.pixelSize: 18 * cameraParameterWindow.textScale
+                        font.bold: true
                         color: "white"
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: autoExposureCheck.indicator.width + autoExposureCheck.spacing
+                        anchors.centerIn: parent
                     }
 
-                    indicator: Rectangle {
-                        implicitWidth: 24
-                        implicitHeight: 24
-                        x: autoExposureCheck.leftPadding
-                        y: parent.height / 2 - height / 2
-                        radius: 4
-                        border.color: "#000000"
-                        border.width: 2
-                        color: autoExposureCheck.checked ? "#555555" : "transparent"
-
-                        Text {
-                            visible: autoExposureCheck.checked
-                            text: "✓"
-                            color: "white"
-                            font.pixelSize: 16 * cameraParameterWindow.textScale
-                            anchors.centerIn: parent
-                        }
-                    }
-
-                    onToggled: {
-                        if (internal.syncing) {
-                            if (typeof exposureSlider !== "undefined") {
-                                exposureSlider.enabled = !checked
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onPressed: parent.color = Qt.darker(parent.color, 1.2)
+                        onReleased: parent.color = autoExposureButton.checked ? "#4CAF50" : "#555555"
+                        onClicked: {
+                            if (internal.syncing) {
+                                return
                             }
-                            return
-                        }
 
-                        var targetValue = checked ? 3 : 1
-                        var success = internal.setParameter("auto_exposure", targetValue)
-                        if (!success) {
-                            console.error("切换自动曝光失败, 恢复原状态")
-                            internal.syncing = true
-                            autoExposureCheck.checked = !checked
-                            internal.syncing = false
-                            if (typeof exposureSlider !== "undefined") {
-                                exposureSlider.enabled = !autoExposureCheck.checked
+                            var newState = !autoExposureButton.checked
+                            var targetValue = newState ? 3 : 1
+
+                            console.log("点击自动曝光按钮 - 新状态:", newState, "目标值:", targetValue)
+
+                            var success = internal.setParameter("auto_exposure", targetValue)
+
+                            if (!success) {
+                                console.error("切换自动曝光失败")
+                                return
                             }
-                            Qt.callLater(function() { internal.syncParametersFromCamera() })
-                            return
-                        }
 
-                        if (typeof exposureSlider !== "undefined") {
-                            exposureSlider.enabled = !checked
-                        }
+                            autoExposureButton.checked = newState
+                            console.log("自动曝光按钮状态已更新为:", newState)
 
-                        if (!checked && typeof exposureSlider !== "undefined") {
-                            internal.handleSliderChange("exposure_time", exposureSlider.value)  // 修改：exposure -> exposure_time
-                        }
+                            if (!newState && typeof exposureSlider !== "undefined") {
+                                internal.handleSliderChange("exposure_time", exposureSlider.value)
+                            }
 
-                        Qt.callLater(function() {
-                            internal.syncParametersFromCamera()
-                        })
+                            Qt.callLater(function() {
+                                internal.syncParametersFromCamera()
+                            })
+                        }
                     }
                 }
 
-                // 曝光时间
+                // 曝光时间 - 仅在手动曝光模式下显示
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 10
+                    visible: !autoExposureButton.checked
 
                     Label {
                         text: "曝光时间:"
@@ -1007,10 +975,9 @@ GlassPopupWindow {
                         from: 3
                         to: 2047
                         value: internal.exposureTimeValue
-                        enabled: !autoExposureCheck.checked
                         stepSize: 1
                         onValueChanged: {
-                            if (!internal.syncing && !autoExposureCheck.checked) {
+                            if (!internal.syncing && !autoExposureButton.checked) {
                                 internal.handleSliderChange("exposure_time", value)
                             }
                         }
@@ -1075,7 +1042,7 @@ GlassPopupWindow {
                         value: internal.gainValue
                         stepSize: 1
                         onValueChanged: {
-                            if (!internal.syncing && !autoExposureCheck.checked) {
+                            if (!internal.syncing && !autoExposureButton.checked) {
                                 internal.handleSliderChange("gain", value)
                             }
                         }
