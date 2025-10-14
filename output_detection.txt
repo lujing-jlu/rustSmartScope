@@ -1,0 +1,76 @@
+YOLOv8 Detection Results
+=========================
+Total detections: 12
+
+Detection #0:
+  Class: car (ID: 2)
+  Confidence: 94.40%
+  Bounding Box: [328, 176, 633, 315]
+  Size: 305x139
+
+Detection #1:
+  Class: car (ID: 2)
+  Confidence: 92.49%
+  Bounding Box: [42, 62, 309, 191]
+  Size: 267x129
+
+Detection #2:
+  Class: bicycle (ID: 1)
+  Confidence: 90.01%
+  Bounding Box: [50, 270, 180, 356]
+  Size: 130x86
+
+Detection #3:
+  Class: person (ID: 0)
+  Confidence: 87.80%
+  Bounding Box: [80, 213, 144, 334]
+  Size: 64x121
+
+Detection #4:
+  Class: person (ID: 0)
+  Confidence: 87.80%
+  Bounding Box: [267, 185, 313, 305]
+  Size: 46x120
+
+Detection #5:
+  Class: umbrella (ID: 25)
+  Confidence: 84.37%
+  Bounding Box: [185, 174, 255, 205]
+  Size: 70x31
+
+Detection #6:
+  Class: person (ID: 0)
+  Confidence: 84.11%
+  Bounding Box: [180, 199, 227, 308]
+  Size: 47x109
+
+Detection #7:
+  Class: motorcycle (ID: 3)
+  Confidence: 82.63%
+  Bounding Box: [442, 15, 540, 110]
+  Size: 98x95
+
+Detection #8:
+  Class: person (ID: 0)
+  Confidence: 82.26%
+  Bounding Box: [386, 13, 436, 112]
+  Size: 50x99
+
+Detection #9:
+  Class: bicycle (ID: 1)
+  Confidence: 80.79%
+  Bounding Box: [381, 50, 438, 123]
+  Size: 57x73
+
+Detection #10:
+  Class: motorcycle (ID: 3)
+  Confidence: 36.52%
+  Bounding Box: [117, 37, 167, 87]
+  Size: 50x50
+
+Detection #11:
+  Class: person (ID: 0)
+  Confidence: 36.15%
+  Bounding Box: [120, 11, 167, 82]
+  Size: 47x71
+

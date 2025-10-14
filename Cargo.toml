@@ -9,7 +9,8 @@ members = [
     "crates/rockchip-rga",
     "crates/stereo-calibration-reader",
     "crates/camera-correction",
-    "crates/stereo-rectifier"
+    "crates/stereo-rectifier",
+    "crates/rknn-inference"
 ]
 
 exclude = [
