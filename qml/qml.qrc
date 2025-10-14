@@ -52,6 +52,7 @@
         <file alias="icons/recording.svg">../resources/icons/recording.svg</file>
         <file alias="icons/zoom_in.svg">../resources/icons/zoom_in.svg</file>
         <file alias="icons/zoom_out.svg">../resources/icons/zoom_out.svg</file>
+        <file alias="icons/zoom_reset.svg">../resources/icons/zoom_reset.svg</file>
         <file alias="icons/brightness.svg">../resources/icons/brightness.svg</file>
         <file alias="icons/back.svg">../resources/icons/back.svg</file>
         <file alias="icons/close.svg">../resources/icons/close.svg</file>

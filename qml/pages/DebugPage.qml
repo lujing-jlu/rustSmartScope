@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import RustSmartScope.Logger 1.0
 
 Page {
     id: debugPage
@@ -492,6 +493,6 @@ Page {
     }
 
     Component.onCompleted: {
-        console.log("DebugPage initialized")
+        Logger.info("DebugPage initialized")
     }
 }

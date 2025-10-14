@@ -5,6 +5,7 @@ import QtQuick.Window 2.15
 import QtGraphicalEffects 1.15
 import "pages"
 import "components"
+import RustSmartScope.Logger 1.0
 
 ApplicationWindow {
     id: measurement3DWindow

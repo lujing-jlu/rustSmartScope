@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "components"
+import RustSmartScope.Logger 1.0
 
 // 相机参数设置窗口 - 使用GlassPopupWindow包装
 GlassPopupWindow {
@@ -61,7 +62,7 @@ GlassPopupWindow {
                              !isNaN(range.max)
 
             supportedParameters[propertyName] = isSupported
-            console.log("检查参数", propertyName, "支持状态:", isSupported)
+            Logger.info("检查参数", propertyName, "支持状态:", isSupported)
             return isSupported
         }
 
@@ -85,19 +86,19 @@ GlassPopupWindow {
             var value
             if (cameraParameterWindow.cameraMode === 1) {
                 value = CameraParameterManager.getSingleCameraParameter(propertyEnum)
-                console.log("获取单相机参数 propertyEnum:", propertyEnum, "value:", value)
+                Logger.info("获取单相机参数 propertyEnum:", propertyEnum, "value:", value)
                 return value
             } else if (cameraParameterWindow.cameraMode === 2) {
                 var leftValue = CameraParameterManager.getLeftCameraParameter(propertyEnum)
-                console.log("获取左相机参数 propertyEnum:", propertyEnum, "value:", leftValue)
+                Logger.info("获取左相机参数 propertyEnum:", propertyEnum, "value:", leftValue)
                 if (leftValue !== -1) {
                     return leftValue
                 }
                 var rightValue = CameraParameterManager.getRightCameraParameter(propertyEnum)
-                console.log("获取右相机参数 propertyEnum:", propertyEnum, "value:", rightValue)
+                Logger.info("获取右相机参数 propertyEnum:", propertyEnum, "value:", rightValue)
                 return rightValue
             }
-            console.log("无法获取参数值 propertyEnum:", propertyEnum)
+            Logger.info("无法获取参数值 propertyEnum:", propertyEnum)
             return null
         }
 
@@ -116,7 +117,7 @@ GlassPopupWindow {
 
         function applyParameterToSlider(slider, propertyName) {
             if (!slider) {
-                console.log("滑块不存在:", propertyName)
+                Logger.info("滑块不存在:", propertyName)
                 return
             }
 
@@ -128,17 +129,17 @@ GlassPopupWindow {
                 if (range.min !== undefined && range.max !== undefined && range.min !== range.max) {
                     slider.from = range.min
                     slider.to = range.max
-                    console.log("设置", propertyName, "范围:", range.min, "-", range.max)
+                    Logger.info("设置", propertyName, "范围:", range.min, "-", range.max)
                 }
                 if (range.step !== undefined && range.step > 0) {
                     slider.stepSize = range.step
-                    console.log("设置", propertyName, "步长:", range.step)
+                    Logger.info("设置", propertyName, "步长:", range.step)
                 }
             }
 
             var current = getCurrentParameterValue(propertyEnum)
             if (current !== null && current !== undefined && current !== -1) {
-                console.log("更新", propertyName, "值从", slider.value, "到", current)
+                Logger.info("更新", propertyName, "值从", slider.value, "到", current)
 
                 // 更新对应的属性值，这会触发UI更新
                 switch(propertyName) {
@@ -165,9 +166,9 @@ GlassPopupWindow {
                         break
                 }
 
-                console.log("设置", propertyName, "当前值:", current)
+                Logger.info("设置", propertyName, "当前值:", current)
             } else {
-                console.log("无法获取", propertyName, "的当前值")
+                Logger.info("无法获取", propertyName, "的当前值")
             }
         }
 
@@ -182,7 +183,7 @@ GlassPopupWindow {
                 return
             }
 
-            console.log("同步相机参数，相机模式:", cameraParameterWindow.cameraMode)
+            Logger.info("同步相机参数，相机模式:", cameraParameterWindow.cameraMode)
 
             // 清除支持状态缓存，重新检查
             clearSupportedParameters()
@@ -193,7 +194,7 @@ GlassPopupWindow {
                 brightnessSlider.visible = true
             } else {
                 brightnessSlider.visible = false
-                console.log("亮度参数不被硬件支持，已隐藏")
+                Logger.info("亮度参数不被硬件支持，已隐藏")
             }
 
             if (isParameterSupported("contrast")) {
@@ -201,7 +202,7 @@ GlassPopupWindow {
                 contrastSlider.visible = true
             } else {
                 contrastSlider.visible = false
-                console.log("对比度参数不被硬件支持，已隐藏")
+                Logger.info("对比度参数不被硬件支持，已隐藏")
             }
 
             if (isParameterSupported("saturation")) {
@@ -209,7 +210,7 @@ GlassPopupWindow {
                 saturationSlider.visible = true
             } else {
                 saturationSlider.visible = false
-                console.log("饱和度参数不被硬件支持，已隐藏")
+                Logger.info("饱和度参数不被硬件支持，已隐藏")
             }
 
             if (isParameterSupported("backlight")) {
@@ -217,7 +218,7 @@ GlassPopupWindow {
                 backlightSlider.visible = true
             } else {
                 backlightSlider.visible = false
-                console.log("背光补偿参数不被硬件支持，已隐藏")
+                Logger.info("背光补偿参数不被硬件支持，已隐藏")
             }
 
             if (isParameterSupported("gamma")) {
@@ -225,7 +226,7 @@ GlassPopupWindow {
                 gammaSlider.visible = true
             } else {
                 gammaSlider.visible = false
-                console.log("伽马参数不被硬件支持，已隐藏")
+                Logger.info("伽马参数不被硬件支持，已隐藏")
             }
 
             // 处理曝光相关参数
@@ -235,7 +236,7 @@ GlassPopupWindow {
                 exposureSlider.visible = true
             } else {
                 exposureSlider.visible = false
-                console.log("曝光时间参数不被硬件支持，已隐藏")
+                Logger.info("曝光时间参数不被硬件支持，已隐藏")
             }
 
             // 检查增益参数（通常不被UVC相机支持）
@@ -244,7 +245,7 @@ GlassPopupWindow {
                 gainSlider.visible = true
             } else {
                 gainSlider.visible = false
-                console.log("增益参数不被硬件支持，已隐藏")
+                Logger.info("增益参数不被硬件支持，已隐藏")
             }
 
             // 处理自动曝光状态
@@ -257,15 +258,15 @@ GlassPopupWindow {
                     autoExposureButton.checked = isAutoExposure
                     autoExposureButton.visible = true
 
-                    console.log("自动曝光状态:", isAutoExposure)
+                    Logger.info("自动曝光状态:", isAutoExposure)
                 }
             } else {
                 autoExposureButton.visible = false
-                console.log("自动曝光参数不被硬件支持，已隐藏")
+                Logger.info("自动曝光参数不被硬件支持，已隐藏")
             }
 
             syncing = false
-            console.log("相机参数同步完成，已隐藏不支持的参数")
+            Logger.info("相机参数同步完成，已隐藏不支持的参数")
         }
 
         function handleSliderChange(propertyName, value) {
@@ -288,7 +289,7 @@ GlassPopupWindow {
 
             var applied = setParameter(propertyName, intValue)
             if (!applied) {
-                console.error("参数同步失败:", propertyName, intValue)
+                Logger.error("参数同步失败:", propertyName, intValue)
                 return
             }
 
@@ -333,9 +334,9 @@ GlassPopupWindow {
                 // 单相机模式
                 success = CameraParameterManager.setSingleCameraParameter(propertyEnum, intValue)
                 if (success) {
-                    console.log("设置单相机参数成功:", propertyName, "=", intValue)
+                    Logger.info("设置单相机参数成功:", propertyName, "=", intValue)
                 } else {
-                    console.error("设置单相机参数失败:", propertyName, "=", intValue)
+                    Logger.error("设置单相机参数失败:", propertyName, "=", intValue)
                 }
             } else if (cameraParameterWindow.cameraMode === 2) {
                 // 双相机模式 - 同时设置左右相机
@@ -343,10 +344,10 @@ GlassPopupWindow {
                 var rightSuccess = CameraParameterManager.setRightCameraParameter(propertyEnum, intValue)
 
                 if (leftSuccess && rightSuccess) {
-                    console.log("设置左右相机参数成功:", propertyName, "=", intValue)
+                    Logger.info("设置左右相机参数成功:", propertyName, "=", intValue)
                     success = true
                 } else {
-                    console.error("设置相机参数失败:", propertyName, "左:", leftSuccess, "右:", rightSuccess)
+                    Logger.error("设置相机参数失败:", propertyName, "左:", leftSuccess, "右:", rightSuccess)
                 }
             }
 
@@ -382,7 +383,7 @@ GlassPopupWindow {
 
         // 重置参数到默认值（逐个参数单独设置）
         function resetParameters() {
-            console.log("重置相机参数到默认值")
+            Logger.info("重置相机参数到默认值")
 
             // 根据相机模式选择重置哪个相机
             if (cameraParameterWindow.cameraMode === 1) {
@@ -409,19 +410,19 @@ GlassPopupWindow {
                         autoExposureButton.checked = true
                     }
 
-                    console.log("重置完成，UI已同步到相机当前值")
+                    Logger.info("重置完成，UI已同步到相机当前值")
                 })
             })
         }
 
         // 重置单个相机参数到默认值（仅重置硬件支持的参数）
         function resetSingleCameraParameters() {
-            console.log("开始重置相机参数到固件默认值")
+            Logger.info("开始重置相机参数到固件默认值")
 
             // 先设置自动曝光模式（如果支持）- 重置到自动曝光
             if (isParameterSupported("auto_exposure")) {
                 var autoExposureSuccess = setParameter("auto_exposure", 3)
-                console.log("重置自动曝光:", autoExposureSuccess ? "成功" : "失败")
+                Logger.info("重置自动曝光:", autoExposureSuccess ? "成功" : "失败")
             }
 
             // 只重置基础参数（不包括曝光时间，因为重置时启用自动曝光）
@@ -438,7 +439,7 @@ GlassPopupWindow {
 
                 // 检查参数是否被硬件支持
                 if (!isParameterSupported(paramName)) {
-                    console.log("跳过不支持的参数:", paramName)
+                    Logger.info("跳过不支持的参数:", paramName)
                     continue
                 }
 
@@ -456,27 +457,27 @@ GlassPopupWindow {
                     // 验证默认值是否合理，如果不合理则使用合理的默认值
                     var defaultValue = range.default_value
                     if (paramName === "exposure_time" && (defaultValue < range.min || defaultValue > range.max)) {
-                        console.warn("曝光时间默认值不合理:", defaultValue, "使用合理默认值")
+                        Logger.warn("曝光时间默认值不合理:", defaultValue, "使用合理默认值")
                         defaultValue = Math.round((range.min + range.max) / 2)
                     }
 
                     // 使用相机固件默认值
                     var success = setParameter(paramName, defaultValue)
-                    console.log("重置", paramName, "到默认值", defaultValue, ":", success ? "成功" : "失败")
+                    Logger.info("重置", paramName, "到默认值", defaultValue, ":", success ? "成功" : "失败")
 
                     // 显示参数信息用于调试
-                    console.log("  - 当前值:", range.current, "默认值:", defaultValue, "范围:", range.min + "-" + range.max)
+                    Logger.info("  - 当前值:", range.current, "默认值:", defaultValue, "范围:", range.min + "-" + range.max)
                 } else {
-                    console.warn("无法获取", paramName, "的默认值信息")
+                    Logger.warn("无法获取", paramName, "的默认值信息")
                 }
             }
 
-            console.log("相机参数重置完成")
+            Logger.info("相机参数重置完成")
         }
 
         // 强制刷新所有参数信息（包括范围、默认值、当前值）
         function forceRefreshAllParameters() {
-            console.log("强制刷新相机参数信息")
+            Logger.info("强制刷新相机参数信息")
 
             // 清除所有内部缓存
             clearParameterRanges()
@@ -933,17 +934,17 @@ GlassPopupWindow {
                             var newState = !autoExposureButton.checked
                             var targetValue = newState ? 3 : 1
 
-                            console.log("点击自动曝光按钮 - 新状态:", newState, "目标值:", targetValue)
+                            Logger.info("点击自动曝光按钮 - 新状态:", newState, "目标值:", targetValue)
 
                             var success = internal.setParameter("auto_exposure", targetValue)
 
                             if (!success) {
-                                console.error("切换自动曝光失败")
+                                Logger.error("切换自动曝光失败")
                                 return
                             }
 
                             autoExposureButton.checked = newState
-                            console.log("自动曝光按钮状态已更新为:", newState)
+                            Logger.info("自动曝光按钮状态已更新为:", newState)
 
                             if (!newState && typeof exposureSlider !== "undefined") {
                                 internal.handleSliderChange("exposure_time", exposureSlider.value)
@@ -1118,7 +1119,7 @@ GlassPopupWindow {
 
                 onClicked: {
                     internal.resetParameters()
-                    console.log("重置相机参数到默认值")
+                    Logger.info("重置相机参数到默认值")
                 }
             }
             }
@@ -1138,7 +1139,7 @@ GlassPopupWindow {
     }
 
     onCameraModeChanged: {
-        console.log("相机模式已切换到:", cameraMode)
+        Logger.info("相机模式已切换到:", cameraMode)
         // 强制重新同步所有参数，包括范围和默认值
         Qt.callLater(function() {
             internal.forceRefreshAllParameters()
@@ -1148,7 +1149,7 @@ GlassPopupWindow {
     // 窗口事件处理
     onVisibleChanged: {
         if (visible) {
-            console.log("相机参数设置窗口已打开")
+            Logger.info("相机参数设置窗口已打开")
             raise()
             requestActivate()
 
@@ -1157,7 +1158,7 @@ GlassPopupWindow {
             internal.clearSupportedParameters()
             internal.syncParametersFromCamera()
         } else {
-            console.log("相机参数设置窗口已关闭")
+            Logger.info("相机参数设置窗口已关闭")
         }
     }
 

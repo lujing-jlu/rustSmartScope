@@ -59,15 +59,26 @@ Rectangle {
         }
     }
 
+    // 可选自定义尺寸（>0 时优先于预设）
+    property int customButtonWidth: 0
+    property int customButtonHeight: 0
+    property int customIconSize: 0
+    readonly property int effectiveButtonWidth: customButtonWidth > 0 ? customButtonWidth : styleConfig.buttonWidth
+    readonly property int effectiveButtonHeight: customButtonHeight > 0 ? customButtonHeight : styleConfig.buttonHeight
+    readonly property int effectiveIconSize: customIconSize > 0 ? customIconSize : styleConfig.iconSize
+
     // 信号
     signal clicked()
+    signal pressed()
+    signal released()
 
-    // 私有属性
+    // 私有/公开交互属性
     property bool hovered: false
+    property bool pressed: false
 
     // 应用样式配置
-    width: styleConfig.buttonWidth
-    height: styleConfig.buttonHeight
+    width: effectiveButtonWidth
+    height: effectiveButtonHeight
     color: backgroundColor
     radius: styleConfig.borderRadius
     border.width: styleConfig.borderWidth
@@ -79,8 +90,21 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         onClicked: universalButton.clicked()
-        onPressed: universalButton.scale = 0.92
-        onReleased: universalButton.scale = 1.0
+        onPressed: {
+            universalButton.scale = 0.92
+            universalButton.pressed = true
+            universalButton.pressed()
+        }
+        onReleased: {
+            universalButton.scale = 1.0
+            universalButton.pressed = false
+            universalButton.released()
+        }
+        onCanceled: {
+            universalButton.scale = 1.0
+            universalButton.pressed = false
+            universalButton.released()
+        }
         onEntered: universalButton.hovered = true
         onExited: universalButton.hovered = false
     }
@@ -108,24 +132,24 @@ Rectangle {
     // 图标内容
     Item {
         anchors.centerIn: parent
-        width: styleConfig.iconSize + 14  // 图标容器稍大一些
-        height: styleConfig.iconSize + 14
+        width: effectiveIconSize + 14  // 图标容器稍大一些
+        height: effectiveIconSize + 14
 
         // 图标
         Image {
             id: icon
             source: iconSource
             anchors.centerIn: parent
-            width: styleConfig.iconSize
-            height: styleConfig.iconSize
+            width: effectiveIconSize
+            height: effectiveIconSize
             fillMode: Image.PreserveAspectFit
             visible: false
         }
 
         ColorOverlay {
             anchors.centerIn: parent
-            width: styleConfig.iconSize
-            height: styleConfig.iconSize
+            width: effectiveIconSize
+            height: effectiveIconSize
             source: icon
             color: iconColor
             Behavior on color { ColorAnimation { duration: 300 } }
@@ -133,8 +157,8 @@ Rectangle {
 
         DropShadow {
             anchors.centerIn: parent
-            width: styleConfig.iconSize
-            height: styleConfig.iconSize
+            width: effectiveIconSize
+            height: effectiveIconSize
             horizontalOffset: 0
             verticalOffset: 2
             radius: 8

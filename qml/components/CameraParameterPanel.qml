@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import RustSmartScope.Logger 1.0
 
 // 相机参数调节面板组件
 Rectangle {

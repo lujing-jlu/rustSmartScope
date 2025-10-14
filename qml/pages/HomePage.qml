@@ -111,6 +111,17 @@ Rectangle {
                     const newScale = Math.max(1.0, videoDisplay.scale * 0.9)
                     videoDisplay.scale = newScale
                 }
+                // 长按持续缩小
+                Timer {
+                    id: zoomOutRepeat
+                    interval: 80
+                    repeat: true
+                    running: zoomOutButton.pressed
+                    onTriggered: {
+                        const ns = Math.max(1.0, videoDisplay.scale * 0.96)
+                        videoDisplay.scale = ns
+                    }
+                }
             }
 
             // 中：重置
@@ -133,6 +144,17 @@ Rectangle {
                 onClicked: {
                     const newScale = Math.min(3.0, videoDisplay.scale * 1.1)
                     videoDisplay.scale = newScale
+                }
+                // 长按持续放大
+                Timer {
+                    id: zoomInRepeat
+                    interval: 80
+                    repeat: true
+                    running: zoomInButton.pressed
+                    onTriggered: {
+                        const ns = Math.min(3.0, videoDisplay.scale * 1.04)
+                        videoDisplay.scale = ns
+                    }
                 }
             }
         }

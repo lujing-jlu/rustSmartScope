@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "../components"
+import RustSmartScope.Logger 1.0
 
 Rectangle {
     id: settingsPage
@@ -109,11 +110,11 @@ Rectangle {
                             cameraMode: CameraManager.cameraMode
 
                             onApplySettings: {
-                                console.log("应用相机参数设置")
+                                Logger.info("应用相机参数设置")
                             }
 
                             onResetToDefaults: {
-                                console.log("重置相机参数到默认值")
+                                Logger.info("重置相机参数到默认值")
                                 // 调用FFI重置
                                 if (cameraMode === 1) {
                                     CameraParameterManager.resetSingleCameraParameters()
@@ -168,6 +169,6 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        console.log("SettingsPage initialized")
+        Logger.info("SettingsPage initialized")
     }
 }
