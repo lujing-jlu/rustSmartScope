@@ -29,6 +29,14 @@ Rectangle {
         }
     }
 
+    // 连接AI检测结果，用于绘制覆盖层
+    Connections {
+        target: AiDetectionManager
+        function onDetectionsUpdated(detections) {
+            videoDisplay.setDetections(detections)
+        }
+    }
+
     function updateVideoSource() {
         if (!CameraManager) return
 

@@ -65,6 +65,37 @@ const char *smartscope_get_error_string(int error_code);
  */
 void smartscope_free_string(char *s);
 
+// =========================
+// AI Inference (RKNN YOLOv8)
+// =========================
+
+typedef struct {
+    int32_t left;
+    int32_t top;
+    int32_t right;
+    int32_t bottom;
+    float confidence;
+    int32_t class_id;
+} smartscope_CDetection;
+
+/** 初始化AI推理服务（在程序启动时调用） */
+int smartscope_ai_init(const char* model_path, int num_workers);
+
+/** 关闭AI推理服务（程序退出时调用） */
+void smartscope_ai_shutdown(void);
+
+/** 启用/禁用AI检测 */
+void smartscope_ai_set_enabled(bool enabled);
+
+/** 查询AI检测是否启用 */
+bool smartscope_ai_is_enabled(void);
+
+/** 提交RGB888图像给推理服务（非阻塞） */
+int smartscope_ai_submit_rgb888(int width, int height, const uint8_t* data, size_t len);
+
+/** 尝试获取最新推理结果；返回检测数量（>=0），错误返回-1 */
+int smartscope_ai_try_get_latest_result(smartscope_CDetection* results_out, int max_results);
+
 #ifdef __cplusplus
 }
 #endif

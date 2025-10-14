@@ -16,6 +16,8 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 libc.workspace = true
 lazy_static = { workspace = true }
+image = { workspace = true }
+rknn-inference = { path = "../rknn-inference" }
 
 [build-dependencies]
 cbindgen.workspace = true

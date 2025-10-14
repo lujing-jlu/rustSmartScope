@@ -42,6 +42,29 @@ void QmlVideoItem::paint(QPainter *painter)
     // 绘制QPixmap
     painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
     painter->drawPixmap(destRect, m_currentFrame, m_currentFrame.rect());
+
+    // 绘制AI检测框
+    if (!m_detections.isEmpty()) {
+        // 根据缩放比例变换检测框坐标
+        const qreal scaleX = destRect.width() / m_currentFrame.width();
+        const qreal scaleY = destRect.height() / m_currentFrame.height();
+
+        QPen pen(QColor(14, 165, 233), 2);
+        painter->setPen(pen);
+        for (const QVariant& v : m_detections) {
+            const QVariantMap m = v.toMap();
+            int left = m.value("left").toInt();
+            int top = m.value("top").toInt();
+            int right = m.value("right").toInt();
+            int bottom = m.value("bottom").toInt();
+
+            QRectF r(destRect.left() + left * scaleX,
+                     destRect.top() + top * scaleY,
+                     (right - left) * scaleX,
+                     (bottom - top) * scaleY);
+            painter->drawRect(r);
+        }
+    }
 }
 
 void QmlVideoItem::updateFrame(const QPixmap& pixmap)
@@ -76,5 +99,15 @@ void QmlVideoItem::clear()
         }
     }
 
+    update();
+}
+
+void QmlVideoItem::setDetections(const QVariantList& dets)
+{
+    {
+        QMutexLocker locker(&m_mutex);
+        m_detections = dets;
+    }
+    emit detectionsChanged();
     update();
 }

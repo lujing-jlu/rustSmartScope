@@ -58,10 +58,21 @@ include_directories(
 set(RUST_TARGET_DIR "${CMAKE_SOURCE_DIR}/target/release")
 set(RUST_SMARTSCOPE_LIB "${RUST_TARGET_DIR}/libsmartscope.a")
 
+# RKNN runtime library directory (from rknn-inference crate)
+set(RKNN_LIB_DIR "${CMAKE_SOURCE_DIR}/crates/rknn-inference/lib")
+
 # 检查Rust库是否存在
 if(NOT EXISTS ${RUST_SMARTSCOPE_LIB})
     message(WARNING "Rust library not found at ${RUST_SMARTSCOPE_LIB}")
     message(WARNING "Please run: cargo build --release -p smartscope-c-ffi")
+endif()
+
+# Ensure linker can find rknnrt and rga
+if(EXISTS "${RKNN_LIB_DIR}")
+    link_directories(${RKNN_LIB_DIR})
+    message(STATUS "RKNN lib dir: ${RKNN_LIB_DIR}")
+else()
+    message(WARNING "RKNN lib dir not found: ${RKNN_LIB_DIR}")
 endif()
 
 # 添加源文件
@@ -73,6 +84,7 @@ set(SOURCES
     src/video_widget.cpp
     src/qml_video_item.cpp
     src/video_transform_manager.cpp
+    src/ai_detection_manager.cpp
 )
 
 # QML资源文件（如果存在）
@@ -105,11 +117,13 @@ target_link_libraries(rustsmartscope
     -lpthread
     -lturbojpeg
     -lrga
+    -lrknnrt
 )
 
 # 输出构建信息
 message(STATUS "Rust library: ${RUST_SMARTSCOPE_LIB}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Linking with RKNN libs from: ${RKNN_LIB_DIR}")
 
 # 安装规则
 install(TARGETS rustsmartscope

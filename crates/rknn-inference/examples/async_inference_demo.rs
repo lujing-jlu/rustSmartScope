@@ -116,8 +116,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let timeout = Duration::from_secs(30); // 30秒超时
 
     while start_time.elapsed() < timeout && completed_tasks.len() < submitted_tasks.len() {
-        // 尝试获取单个结果
-        if let Some((task_id, results)) = service.try_get_result() {
+        // 尝试获取最新结果
+        if let Some((task_id, results)) = service.try_get_latest_result() {
             match results {
                 Ok(detections) => {
                     total_detections += detections.len();
@@ -147,30 +147,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             completed_tasks.push(task_id);
         }
 
-        // 批量获取剩余结果（提高效率）
-        let batch_results = service.get_all_results();
-        if !batch_results.is_empty() {
-            println!("📦 批量获取 {} 个结果...", batch_results.len());
-            for (task_id, results) in batch_results {
-                match results {
-                    Ok(detections) => {
-                        total_detections += detections.len();
-                        if detections.len() > 0 {
-                            println!("  ✓ 任务 {} - {} 个对象", task_id, detections.len());
-                        } else {
-                            println!("  ✓ 任务 {} - 未检测到对象", task_id);
-                        }
-                    }
-                    Err(e) => {
-                        println!("  ✗ 任务 {} - 失败: {:?}", task_id, e);
-                    }
-                }
-                completed_tasks.push(task_id);
-            }
-        }
-
         // 暂无结果时短暂等待
-        if service.is_output_queue_empty() {
+        if !service.has_latest_result() {
             thread::sleep(Duration::from_millis(10));
         }
     }
@@ -189,7 +167,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✓ 总任务数: {}", stats.total_tasks);
     println!("✓ 已完成任务数: {}", stats.completed_tasks);
     println!("✓ 输入队列长度: {}", stats.input_queue_size);
-    println!("✓ 输出队列长度: {}", stats.output_queue_size);
+    println!("✓ 输出队列长度: 0 (已移除，使用最新结果缓存)");
     println!("✓ 活跃工作线程数: {}", stats.active_workers);
 
     // 计算平均性能
@@ -203,8 +181,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🔄 === 实时处理演示 ===");
     println!("模拟实时视频流处理（边提交边获取）");
 
-    // 清空队列开始新的演示
-    service.clear_all_queues();
+    // 清空缓存开始新的演示
+    service.clear_all();
     let real_time_start = Instant::now();
     let mut real_time_submitted = 0;
     let mut real_time_completed = 0;
@@ -225,7 +203,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         thread::sleep(Duration::from_millis(100));
 
         // 尝试获取已完成的结果
-        while let Some((task_id, results)) = service.try_get_result() {
+        while let Some((task_id, results)) = service.try_get_latest_result() {
             real_time_completed += 1;
             match results {
                 Ok(detections) => {
@@ -244,7 +222,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 获取剩余的结果
     while real_time_completed < real_time_submitted {
-        if let Some((task_id, results)) = service.try_get_result() {
+        if let Some((task_id, results)) = service.try_get_latest_result() {
             real_time_completed += 1;
             match results {
                 Ok(detections) => {
@@ -265,10 +243,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("\n🎉 === 演示完成 ===");
     println!("✨ 异步推理服务特点:");
-    println!("  🚀 输入和输出都是队列，不会阻塞");
+    println!("  🚀 输入队列，输出使用最新结果缓存，不会阻塞");
     println!("  🛡️ 队列长度限制为6，防止内存积压");
-    println!("  🔄 可以持续输入，按需获取输出");
-    println!("  📦 支持批量获取结果，提高效率");
+    println!("  🔄 可以持续输入，实时获取最新输出");
+    println!("  ⚡ 最新结果缓存机制，2秒超时自动清空");
     println!("  🔙 保持向后兼容，支持同步接口");
     println!("  ⚡ 高性能并行处理，充分利用RK3588 NPU");
     println!();

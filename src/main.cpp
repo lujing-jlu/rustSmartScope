@@ -17,6 +17,7 @@ extern "C" {
 #include "qml_video_item.h"
 #include "video_transform_manager.h"
 #include <QQmlEngine>
+#include "ai_detection_manager.h"
 
 int main(int argc, char *argv[])
 {
@@ -61,6 +62,10 @@ int main(int argc, char *argv[])
     // 创建视频变换管理器
     VideoTransformManager *videoTransformManager = new VideoTransformManager(&app);
 
+    // 创建AI检测管理器并初始化
+    AiDetectionManager *aiDetectionManager = new AiDetectionManager(&app);
+    aiDetectionManager->initialize("models/yolov8m.rknn", 6);
+
     // 创建QML引擎
     QQmlApplicationEngine engine;
 
@@ -70,6 +75,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("CameraManager", cameraManager);
     engine.rootContext()->setContextProperty("CameraParameterManager", cameraParameterManager);
     engine.rootContext()->setContextProperty("VideoTransformManager", videoTransformManager);
+    engine.rootContext()->setContextProperty("AiDetectionManager", aiDetectionManager);
 
     // 加载QML文件
     const QUrl qmlUrl(QStringLiteral("qrc:/main.qml"));
@@ -87,6 +93,12 @@ int main(int argc, char *argv[])
         LOG_ERROR("Main", "No QML root objects found");
         return -1;
     }
+
+    // 连接相机输出到AI检测（显示用的pixmap即用于推理）
+    QObject::connect(cameraManager, &CameraManager::leftPixmapUpdated,
+                     aiDetectionManager, &AiDetectionManager::onLeftPixmap);
+    QObject::connect(cameraManager, &CameraManager::singlePixmapUpdated,
+                     aiDetectionManager, &AiDetectionManager::onSinglePixmap);
 
     // 运行应用程序
     int exitCode = app.exec();

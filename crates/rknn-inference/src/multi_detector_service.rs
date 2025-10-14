@@ -84,7 +84,18 @@ struct AsyncInferenceTask {
 struct AsyncInferenceResult {
     task_id: usize,
     result: std::result::Result<Vec<DetectionResult>, Box<dyn std::error::Error + Send + Sync>>,
+    timestamp: Instant,  // 添加时间戳
 }
+
+/// 最新结果缓存
+struct LatestResultCache {
+    result: Option<std::result::Result<Vec<DetectionResult>, crate::RknnError>>,
+    task_id: usize,
+    timestamp: Instant,
+}
+
+unsafe impl Send for LatestResultCache {}
+unsafe impl Sync for LatestResultCache {}
 
 /// 图片预处理工具
 pub struct ImagePreprocessor {
@@ -187,12 +198,13 @@ impl Default for ImagePreprocessor {
 
 /// 异步多Detector推理服务
 ///
-/// 提供异步输入和输出的推理服务，输入和输出都是队列，避免阻塞
+/// 提供异步输入推理服务，使用最新结果缓存机制
 /// 每个工作线程使用独立的detector实例，队列长度限制为6
+/// 支持最新结果缓存，2秒超时清空，无需输出队列
 pub struct MultiDetectorInferenceService {
     workers: Vec<thread::JoinHandle<()>>,
     input_queue: Arc<Mutex<std::collections::VecDeque<AsyncInferenceTask>>>,
-    output_queue: Arc<Mutex<std::collections::VecDeque<AsyncInferenceResult>>>,
+    latest_result: Arc<Mutex<LatestResultCache>>,  // 最新结果缓存
     shutdown: Arc<std::sync::atomic::AtomicBool>,
     preprocessor: ImagePreprocessor,
     next_task_id: Arc<Mutex<usize>>,
@@ -243,7 +255,11 @@ impl MultiDetectorInferenceService {
     /// ```
     pub fn new_with_queue_size<P: AsRef<std::path::Path>>(model_path: P, num_workers: usize, queue_size: usize) -> Result<Self, crate::RknnError> {
         let input_queue = Arc::new(Mutex::new(std::collections::VecDeque::<AsyncInferenceTask>::new()));
-        let output_queue = Arc::new(Mutex::new(std::collections::VecDeque::<AsyncInferenceResult>::new()));
+        let latest_result = Arc::new(Mutex::new(LatestResultCache {
+            result: None,
+            task_id: 0,
+            timestamp: Instant::now(),
+        }));
         let shutdown = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let next_task_id = Arc::new(Mutex::new(0));
 
@@ -252,7 +268,7 @@ impl MultiDetectorInferenceService {
         // 创建工作线程，每个线程有自己的detector
         for i in 0..num_workers {
             let input_queue_clone = input_queue.clone();
-            let output_queue_clone = output_queue.clone();
+            let latest_result_clone = latest_result.clone();
             let shutdown_clone = shutdown.clone();
             let model_path_owned = model_path.as_ref().to_path_buf().to_string_lossy().to_string();
 
@@ -284,22 +300,15 @@ impl MultiDetectorInferenceService {
                         let result = detector.detect(&task.preprocessed_image);
                         let inference_time = inference_start.elapsed();
 
-                        // 将结果放入输出队列
-                        let inference_result = AsyncInferenceResult {
-                            task_id: task.task_id,
-                            result: match result {
-                                Ok(detections) => Ok(detections),
-                                Err(e) => Err(Box::new(e) as Box<dyn std::error::Error + Send + Sync>),
-                            },
-                        };
-
+                        // 更新最新结果缓存
                         {
-                            let mut output_queue = output_queue_clone.lock().unwrap();
-                            // 限制输出队列大小，防止内存积压
-                            if output_queue.len() >= queue_size {
-                                output_queue.pop_front(); // 丢弃最旧的结果
-                            }
-                            output_queue.push_back(inference_result);
+                            let mut latest = latest_result_clone.lock().unwrap();
+                            latest.result = Some(match result {
+                                Ok(detections) => Ok(detections),
+                                Err(e) => Err(crate::RknnError::InferenceFailed(-1)),
+                            });
+                            latest.task_id = task.task_id;
+                            latest.timestamp = Instant::now();
                         }
 
                     } else {
@@ -315,7 +324,7 @@ impl MultiDetectorInferenceService {
         Ok(Self {
             workers,
             input_queue,
-            output_queue,
+            latest_result,
             shutdown,
             preprocessor: ImagePreprocessor::new(),
             next_task_id,
@@ -326,7 +335,7 @@ impl MultiDetectorInferenceService {
     /// 异步提交推理任务
     ///
     /// 将预处理的ImageBuffer提交到输入队列，立即返回任务ID
-    /// 如果输入队列已满，会丢弃最旧的任务
+    /// 如果输入队列已满，会阻塞直到有空位
     ///
     /// # 参数
     ///
@@ -359,9 +368,12 @@ impl MultiDetectorInferenceService {
 
         {
             let mut queue = self.input_queue.lock().unwrap();
-            // 限制输入队列大小，防止内存积压
-            if queue.len() >= self.max_queue_size {
-                queue.pop_front(); // 丢弃最旧的任务
+            // 如果队列满了，等待空位而不是丢弃任务
+            while queue.len() >= self.max_queue_size {
+                // 释放锁，让其他线程有机会处理队列
+                drop(queue);
+                thread::sleep(Duration::from_millis(1));
+                queue = self.input_queue.lock().unwrap();
             }
             queue.push_back(task);
         }
@@ -369,10 +381,11 @@ impl MultiDetectorInferenceService {
         Ok(task_id)
     }
 
-    /// 异步获取推理结果
+    /// 获取最新推理结果（主要推荐使用）
     ///
-    /// 从输出队列获取推理结果，如果队列为空则返回None
-    /// 这个方法不会阻塞，调用后立即返回
+    /// 直接获取最新的推理结果缓存，不阻塞
+    /// 如果结果超过2秒未更新，会自动清空返回None
+    /// 如果队列为空也返回None
     ///
     /// # 返回
     ///
@@ -381,62 +394,57 @@ impl MultiDetectorInferenceService {
     /// # 示例
     ///
     /// ```rust
-    /// let result = service.try_get_result();
+    /// let result = service.try_get_latest_result();
     /// if let Some((task_id, detections)) = result {
     ///     println!("任务 {} 检测到 {} 个对象", task_id, detections.len());
     /// } else {
-    ///     println!("暂无结果");
+    ///     println!("暂无结果或结果已过期");
     /// }
     /// ```
-    pub fn try_get_result(&self) -> Option<(usize, Result<Vec<DetectionResult>, crate::RknnError>)> {
-        let mut queue = self.output_queue.lock().unwrap();
-        if let Some(async_result) = queue.pop_front() {
-            let task_id = async_result.task_id;
-            let result = match async_result.result {
-                Ok(detections) => Ok(detections),
-                Err(_) => Err(crate::RknnError::InferenceFailed(-1)),
-            };
-            Some((task_id, result))
+    pub fn try_get_latest_result(&self) -> Option<(usize, Result<Vec<DetectionResult>, crate::RknnError>)> {
+        let mut latest = self.latest_result.lock().unwrap();
+
+        // 检查结果是否超过2秒
+        if latest.timestamp.elapsed() > Duration::from_secs(2) {
+            latest.result = None;
+            return None;
+        }
+
+        // 检查是否有结果
+        if let Some(ref result) = latest.result {
+            Some((latest.task_id, result.clone()))
         } else {
             None
         }
     }
 
-    /// 获取多个推理结果（直到队列为空）
-    ///
-    /// 一次性获取输出队列中的所有结果，提高效率
+    /// 检查是否有最新结果
     ///
     /// # 返回
     ///
-    /// Vec<(任务ID, 检测结果列表)>
-    ///
-    /// # 示例
-    ///
-    /// ```rust
-    /// let results = service.get_all_results();
-    /// for (task_id, detections) in results {
-    ///     println!("任务 {} 检测到 {} 个对象", task_id, detections.len());
-    /// }
-    /// ```
-    pub fn get_all_results(&self) -> Vec<(usize, Result<Vec<DetectionResult>, crate::RknnError>)> {
-        let mut queue = self.output_queue.lock().unwrap();
-        let mut results = Vec::new();
+    /// bool - 如果有未过期的最新结果返回true
+    pub fn has_latest_result(&self) -> bool {
+        let latest = self.latest_result.lock().unwrap();
+        latest.result.is_some() && latest.timestamp.elapsed() <= Duration::from_secs(2)
+    }
 
-        while let Some(async_result) = queue.pop_front() {
-            let task_id = async_result.task_id;
-            let result = match async_result.result {
-                Ok(detections) => Ok(detections),
-                Err(_) => Err(crate::RknnError::InferenceFailed(-1)),
-            };
-            results.push((task_id, result));
+    /// 获取最新结果的年龄（毫秒）
+    ///
+    /// # 返回
+    ///
+    /// u64 - 结果的年龄（毫秒），如果没有结果返回u64::MAX
+    pub fn latest_result_age_ms(&self) -> u64 {
+        let latest = self.latest_result.lock().unwrap();
+        if latest.result.is_some() {
+            latest.timestamp.elapsed().as_millis() as u64
+        } else {
+            u64::MAX
         }
-
-        results
     }
 
     /// 推理预处理的ImageBuffer（同步兼容方法）
     ///
-    /// 为了向后兼容保留的同步方法，内部使用异步机制
+    /// 为了向后兼容保留的同步方法，内部使用最新结果缓存机制
     ///
     /// # 参数
     ///
@@ -458,12 +466,12 @@ impl MultiDetectorInferenceService {
         // 提交任务
         let task_id = self.submit_inference(image_buffer)?;
 
-        // 等待结果
+        // 等待最新结果
         let start_time = Instant::now();
         let timeout = Duration::from_secs(10);
 
         while start_time.elapsed() < timeout {
-            if let Some((id, result)) = self.try_get_result() {
+            if let Some((id, result)) = self.try_get_latest_result() {
                 if id == task_id {
                     return result;
                 }
@@ -477,14 +485,14 @@ impl MultiDetectorInferenceService {
     /// 获取服务统计信息
     pub fn get_stats(&self) -> ServiceStats {
         let input_queue_size = self.input_queue.lock().unwrap().len();
-        let output_queue_size = self.output_queue.lock().unwrap().len();
         let completed_tasks = self.next_task_id.lock().unwrap().clone();
+        let has_result = self.has_latest_result();
 
         ServiceStats {
             total_tasks: completed_tasks,
             completed_tasks,
             input_queue_size,
-            output_queue_size,
+            output_queue_size: 0,  // 输出队列已移除
             active_workers: self.workers.len(),
         }
     }
@@ -494,9 +502,9 @@ impl MultiDetectorInferenceService {
         self.input_queue.lock().unwrap().len()
     }
 
-    /// 获取输出队列长度
-    pub fn output_queue_len(&self) -> usize {
-        self.output_queue.lock().unwrap().len()
+    /// 检查是否有最新结果（2秒内）
+    pub fn has_result(&self) -> bool {
+        self.has_latest_result()
     }
 
     /// 检查输入队列是否已满
@@ -504,21 +512,20 @@ impl MultiDetectorInferenceService {
         self.input_queue.lock().unwrap().len() >= self.max_queue_size
     }
 
-    /// 检查输出队列是否为空
-    pub fn is_output_queue_empty(&self) -> bool {
-        self.output_queue.lock().unwrap().is_empty()
+    /// 清空最新结果缓存（用于重置或错误恢复）
+    pub fn clear_latest_result(&self) {
+        let mut latest = self.latest_result.lock().unwrap();
+        latest.result = None;
+        latest.timestamp = Instant::now();
     }
 
-    /// 清空所有队列（用于重置或错误恢复）
-    pub fn clear_all_queues(&self) {
+    /// 清空输入队列和最新结果（用于重置或错误恢复）
+    pub fn clear_all(&self) {
         {
             let mut input_queue = self.input_queue.lock().unwrap();
             input_queue.clear();
         }
-        {
-            let mut output_queue = self.output_queue.lock().unwrap();
-            output_queue.clear();
-        }
+        self.clear_latest_result();
     }
 
     /// 获取工作线程数

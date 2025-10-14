@@ -16,6 +16,7 @@ class QmlVideoItem : public QQuickPaintedItem
 {
     Q_OBJECT
     Q_PROPERTY(bool hasFrame READ hasFrame NOTIFY hasFrameChanged)
+    Q_PROPERTY(QVariantList detections READ detections WRITE setDetections NOTIFY detectionsChanged)
 
 public:
     explicit QmlVideoItem(QQuickItem *parent = nullptr);
@@ -24,6 +25,9 @@ public:
     void paint(QPainter *painter) override;
 
     bool hasFrame() const { return !m_currentFrame.isNull(); }
+
+    QVariantList detections() const { return m_detections; }
+    Q_INVOKABLE void setDetections(const QVariantList& dets);
 
 public slots:
     /**
@@ -39,10 +43,12 @@ public slots:
 
 signals:
     void hasFrameChanged();
+    void detectionsChanged();
 
 private:
     QPixmap m_currentFrame;
     QMutex m_mutex;
+    QVariantList m_detections;
 };
 
 #endif // QML_VIDEO_ITEM_H

@@ -131,7 +131,8 @@ run_app() {
 
     # 设置环境变量
     export QT_QPA_PLATFORM_PLUGIN_PATH="/opt/qt5.15.15/plugins"
-    export LD_LIBRARY_PATH="/opt/qt5.15.15/lib:$LD_LIBRARY_PATH"
+    # Add RKNN and RGA runtime libs bundled with the repo
+    export LD_LIBRARY_PATH="/opt/qt5.15.15/lib:$(pwd)/crates/rknn-inference/lib:$LD_LIBRARY_PATH"
 
     # 运行应用程序
     cd "$(dirname "$0")"

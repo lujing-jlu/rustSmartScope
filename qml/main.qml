@@ -386,6 +386,9 @@ ApplicationWindow {
                     onClicked: {
                         // 切换AI检测状态
                         aiDetectionButton.isActive = !aiDetectionButton.isActive
+                        if (typeof AiDetectionManager !== 'undefined' && AiDetectionManager) {
+                            AiDetectionManager.enabled = aiDetectionButton.isActive
+                        }
                     }
                 }
 
