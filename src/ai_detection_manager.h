@@ -41,11 +41,13 @@ private slots:
 
 private:
     void submitPixmap(const QPixmap& pixmap);
+    QString className(int classId) const;
+    bool loadLabels(const QString& path);
 
     bool m_enabled { false };
     QTimer m_pollTimer;
     QMutex m_submitMutex;
+    QVector<QString> m_labels;
 };
 
 #endif // AI_DETECTION_MANAGER_H
-

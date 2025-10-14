@@ -1,6 +1,9 @@
 #include "ai_detection_manager.h"
 #include <QImage>
 #include <QDebug>
+#include <QFile>
+#include <QVariantMap>
+#include <QVector>
 
 AiDetectionManager::AiDetectionManager(QObject* parent)
     : QObject(parent)
@@ -22,6 +25,8 @@ bool AiDetectionManager::initialize(const QString& modelPath, int numWorkers) {
         return false;
     }
     qInfo() << "AI service initialized at" << modelPath << "workers:" << numWorkers;
+    // 试图加载标签
+    loadLabels("models/coco_labels.txt");
     return true;
 }
 
@@ -90,8 +95,34 @@ void AiDetectionManager::pollResults() {
         m.insert("bottom", d.bottom);
         m.insert("confidence", d.confidence);
         m.insert("class_id", d.class_id);
+        m.insert("label", className(d.class_id));
         list.push_back(m);
     }
 
     emit detectionsUpdated(list);
+}
+
+QString AiDetectionManager::className(int classId) const {
+    if (classId >= 0 && classId < m_labels.size()) return m_labels[classId];
+    return QString("class_%1").arg(classId);
+}
+
+bool AiDetectionManager::loadLabels(const QString& path) {
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Failed to open labels file:" << path;
+        return false;
+    }
+    QVector<QString> labels;
+    while (!f.atEnd()) {
+        QByteArray line = f.readLine();
+        QString s = QString::fromUtf8(line).trimmed();
+        if (!s.isEmpty()) labels.push_back(s);
+    }
+    if (!labels.isEmpty()) {
+        m_labels = std::move(labels);
+        qInfo() << "Loaded" << m_labels.size() << "labels from" << path;
+        return true;
+    }
+    return false;
 }

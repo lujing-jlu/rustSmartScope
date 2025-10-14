@@ -43,26 +43,90 @@ void QmlVideoItem::paint(QPainter *painter)
     painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
     painter->drawPixmap(destRect, m_currentFrame, m_currentFrame.rect());
 
-    // 绘制AI检测框
+    // 绘制AI检测框（将模型输入坐标系映射回原始帧大小，再映射到显示矩形）
     if (!m_detections.isEmpty()) {
-        // 根据缩放比例变换检测框坐标
-        const qreal scaleX = destRect.width() / m_currentFrame.width();
-        const qreal scaleY = destRect.height() / m_currentFrame.height();
+        auto classColor = [](int cls)->QColor{
+            static const QColor colors[] = {
+                QColor(255,59,48), QColor(52,199,89), QColor(0,122,255), QColor(255,149,0),
+                QColor(175,82,222), QColor(90,200,250), QColor(255,204,0), QColor(255,45,85),
+                QColor(48,209,88), QColor(100,210,255)
+            }; return colors[cls % (int)(sizeof(colors)/sizeof(colors[0]))];
+        };
 
-        QPen pen(QColor(14, 165, 233), 2);
-        painter->setPen(pen);
+        const int ow = m_currentFrame.width();
+        const int oh = m_currentFrame.height();
+        const qreal modelW = qMax(1, m_modelInputSize);
+        const qreal modelH = modelW; // 目前假设正方形 640x640
+        const qreal scale = qMin(modelW / ow, modelH / oh);
+        const qreal newW = ow * scale;
+        const qreal newH = oh * scale;
+        const qreal xOff = (modelW - newW) / 2.0;
+        const qreal yOff = (modelH - newH) / 2.0;
+
+        // 显示缩放
+        const qreal dispScaleX = destRect.width() / ow;
+        const qreal dispScaleY = destRect.height() / oh;
+
+        painter->setRenderHint(QPainter::Antialiasing, true);
+
         for (const QVariant& v : m_detections) {
             const QVariantMap m = v.toMap();
-            int left = m.value("left").toInt();
-            int top = m.value("top").toInt();
-            int right = m.value("right").toInt();
-            int bottom = m.value("bottom").toInt();
+            const int cls = m.value("class_id").toInt();
+            const qreal conf = m.value("confidence").toReal();
+            const QString label = m.value("label").toString();
 
-            QRectF r(destRect.left() + left * scaleX,
-                     destRect.top() + top * scaleY,
-                     (right - left) * scaleX,
-                     (bottom - top) * scaleY);
-            painter->drawRect(r);
+            // 模型坐标
+            qreal ml = m.value("left").toReal();
+            qreal mt = m.value("top").toReal();
+            qreal mr = m.value("right").toReal();
+            qreal mb = m.value("bottom").toReal();
+
+            // 反映射到原始帧坐标
+            qreal xl = (ml - xOff) / scale; qreal yt = (mt - yOff) / scale;
+            qreal xr = (mr - xOff) / scale; qreal yb = (mb - yOff) / scale;
+
+            // 裁剪
+            xl = qBound(0.0, xl, (qreal)ow); xr = qBound(0.0, xr, (qreal)ow);
+            yt = qBound(0.0, yt, (qreal)oh); yb = qBound(0.0, yb, (qreal)oh);
+
+            // 转到显示坐标
+            QRectF r(destRect.left() + xl * dispScaleX,
+                     destRect.top() + yt * dispScaleY,
+                     (xr - xl) * dispScaleX,
+                     (yb - yt) * dispScaleY);
+
+            // 美化绘制：阴影 + 圆角框 + 半透明边
+            QColor base = classColor(cls);
+            QColor edge = base; edge.setAlpha(220);
+            QColor glow = base; glow.setAlpha(90);
+
+            QPen pen(edge, 3.0);
+            painter->setPen(pen);
+            painter->setBrush(Qt::NoBrush);
+            // 外层光晕
+            QPen glowPen(glow, 8.0);
+            painter->setPen(glowPen);
+            painter->drawRoundedRect(r, 6, 6);
+            // 主边框
+            painter->setPen(pen);
+            painter->drawRoundedRect(r, 6, 6);
+
+            // 标签绘制
+            QString text = label.isEmpty() ? QString("%1 %2%")
+                             .arg(cls).arg(qRound(conf * 100))
+                             : QString("%1 %2%")
+                             .arg(label).arg(qRound(conf * 100));
+            QFont f = painter->font(); f.setPixelSize(18); f.setBold(true); painter->setFont(f);
+            QFontMetrics fm(f);
+            int tw = fm.horizontalAdvance(text) + 12;
+            int th = fm.height() + 6;
+            QRectF tb(r.left(), qMax(destRect.top(), r.top() - th - 2), tw, th);
+            QColor bg(0,0,0,160);
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(bg);
+            painter->drawRoundedRect(tb, 4, 4);
+            painter->setPen(QPen(Qt::white));
+            painter->drawText(tb.adjusted(6, 2, -6, -2), Qt::AlignVCenter|Qt::AlignLeft, text);
         }
     }
 }
