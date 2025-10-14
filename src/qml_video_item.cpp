@@ -72,7 +72,6 @@ void QmlVideoItem::paint(QPainter *painter)
         for (const QVariant& v : m_detections) {
             const QVariantMap m = v.toMap();
             const int cls = m.value("class_id").toInt();
-            const qreal conf = m.value("confidence").toReal();
             const QString label = m.value("label").toString();
 
             // 模型坐标
@@ -111,16 +110,13 @@ void QmlVideoItem::paint(QPainter *painter)
             painter->setPen(pen);
             painter->drawRoundedRect(r, 6, 6);
 
-            // 标签绘制
-            QString text = label.isEmpty() ? QString("%1 %2%")
-                             .arg(cls).arg(qRound(conf * 100))
-                             : QString("%1 %2%")
-                             .arg(label).arg(qRound(conf * 100));
-            QFont f = painter->font(); f.setPixelSize(18); f.setBold(true); painter->setFont(f);
+            // 标签绘制（框内显示，字号放大两倍，不显示置信度）
+            QString text = label.isEmpty() ? QString("%1").arg(cls) : label;
+            QFont f = painter->font(); f.setPixelSize(36); f.setBold(true); painter->setFont(f);
             QFontMetrics fm(f);
             int tw = fm.horizontalAdvance(text) + 12;
             int th = fm.height() + 6;
-            QRectF tb(r.left(), qMax(destRect.top(), r.top() - th - 2), tw, th);
+            QRectF tb(r.left() + 2, r.top() + 2, tw, th);
             QColor bg(0,0,0,160);
             painter->setPen(Qt::NoPen);
             painter->setBrush(bg);
