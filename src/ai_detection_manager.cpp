@@ -5,6 +5,11 @@
 #include <QVariantMap>
 #include <QVector>
 
+// Query current invert state from Rust core
+extern "C" {
+    bool smartscope_video_get_invert();
+}
+
 AiDetectionManager::AiDetectionManager(QObject* parent)
     : QObject(parent)
 {
@@ -64,6 +69,12 @@ void AiDetectionManager::submitPixmap(const QPixmap& pixmap) {
     QMutexLocker locker(&m_submitMutex);
     QImage img = pixmap.toImage().convertToFormat(QImage::Format_RGB888);
 
+    // Ensure AI sees pre-invert content: if display has invert ON, invert again to revert
+    if (smartscope_video_get_invert()) {
+        // In-place invert to restore pre-invert pixel values
+        img.invertPixels();
+    }
+
     const int width = img.width();
     const int height = img.height();
     const uchar* data = img.constBits();
@@ -82,7 +93,11 @@ void AiDetectionManager::pollResults() {
 
     smartscope_CDetection dets[128];
     int n = smartscope_ai_try_get_latest_result(dets, 128);
-    if (n <= 0) return;
+    if (n <= 0) {
+        // 明确地推送空结果以清除上一次的绘制
+        emit detectionsUpdated(QVariantList{});
+        return;
+    }
 
     QVariantList list;
     list.reserve(n);
