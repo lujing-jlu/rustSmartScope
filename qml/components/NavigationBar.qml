@@ -51,7 +51,7 @@ Rectangle {
             iconOnly: true
             isSquareButton: true
             onClicked: {
-                console.log("Home clicked")
+                Logger.info("Home clicked")
                 setActiveTab("home")
                 navigationBar.homeClicked()
             }
@@ -65,7 +65,7 @@ Rectangle {
             isActive: activeTab === "preview"
             activeColor: "#38BDF8"
             onClicked: {
-                console.log("Media Library clicked")
+                Logger.info("Media Library clicked")
                 setActiveTab("preview")
                 navigationBar.previewClicked()
             }
@@ -78,7 +78,7 @@ Rectangle {
             iconSource: "qrc:/icons/report.svg"
             isActive: activeTab === "report"
             onClicked: {
-                console.log("Report clicked")
+                Logger.info("Report clicked")
                 setActiveTab("report")
                 navigationBar.reportClicked()
             }
@@ -91,7 +91,7 @@ Rectangle {
             iconSource: "qrc:/icons/setting.svg"
             isActive: activeTab === "settings"
             onClicked: {
-                console.log("Settings clicked")
+                Logger.info("Settings clicked")
                 setActiveTab("settings")
                 navigationBar.settingsClicked()
             }
@@ -104,7 +104,7 @@ Rectangle {
             iconSource: "qrc:/icons/3D.svg"
             isActive: activeTab === "measurement"
             onClicked: {
-                console.log("3D测量窗口打开")
+                Logger.info("3D测量窗口打开")
                 navigationBar.measurementClicked()
             }
         }
@@ -118,7 +118,7 @@ Rectangle {
             iconOnly: true
             isSquareButton: true
             onClicked: {
-                console.log("Exit clicked")
+                Logger.info("Exit clicked")
                 navigationBar.exitClicked()
             }
         }

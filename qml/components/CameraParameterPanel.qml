@@ -53,9 +53,9 @@ Rectangle {
                 // 单相机模式
                 var success = CameraParameterManager.setSingleCameraParameter(propertyEnum, value)
                 if (success) {
-                    console.log("设置单相机参数成功:", propertyName, "=", value)
+                    Logger.info("设置单相机参数成功:", propertyName, "=", value)
                 } else {
-                    console.error("设置单相机参数失败:", propertyName, "=", value)
+                    Logger.error("设置单相机参数失败:", propertyName, "=", value)
                 }
             } else if (root.cameraMode === 2) {
                 // 双相机模式 - 同时设置左右相机
@@ -63,9 +63,9 @@ Rectangle {
                 var rightSuccess = CameraParameterManager.setRightCameraParameter(propertyEnum, value)
 
                 if (leftSuccess && rightSuccess) {
-                    console.log("设置左右相机参数成功:", propertyName, "=", value)
+                    Logger.info("设置左右相机参数成功:", propertyName, "=", value)
                 } else {
-                    console.error("设置相机参数失败:", propertyName, "左:", leftSuccess, "右:", rightSuccess)
+                    Logger.error("设置相机参数失败:", propertyName, "左:", leftSuccess, "右:", rightSuccess)
                 }
             }
         }

@@ -1,5 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.15
+import "../components"
 import RustSmartScope.Logger 1.0
 import RustSmartScope.Video 1.0
 
@@ -19,6 +21,16 @@ Rectangle {
     VideoDisplay {
         id: videoDisplay
         anchors.fill: parent
+        transformOrigin: Item.Center
+    }
+
+    // 捏合缩放（双指触控）；桌面可配合左侧+/-按钮
+    PinchArea {
+        anchors.fill: videoDisplay
+        pinch.target: videoDisplay
+        pinch.minimumScale: 1.0
+        pinch.maximumScale: 3.0
+        enabled: true
     }
 
     // 左上角画中画缩略图（原图）
@@ -46,6 +58,83 @@ Rectangle {
             id: pipDisplay
             anchors.fill: parent
             anchors.margins: 4
+        }
+    }
+
+    // 左侧缩放工具栏（自下而上显示）
+    Item {
+        id: leftToolBar
+        property int sideMargin: 16
+        property int topGap: 100       // 近似状态栏高度
+        property int bottomGap: 120    // 近似导航栏高度
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.leftMargin: sideMargin
+        anchors.topMargin: topGap
+        anchors.bottomMargin: bottomGap
+        width: 100
+        z: 200
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 12
+
+            // 填充占位，将按钮推到底部
+            Item { Layout.fillHeight: true }
+
+            // 缩放百分比显示
+            Rectangle {
+                Layout.alignment: Qt.AlignHCenter
+                width: 86
+                height: 32
+                radius: 8
+                color: Qt.rgba(0,0,0,0.5)
+                border.width: 1
+                border.color: Qt.rgba(1,1,1,0.25)
+                Text {
+                    anchors.centerIn: parent
+                    color: "#FFFFFF"
+                    font.pixelSize: 16
+                    font.weight: Font.DemiBold
+                    text: Math.round(videoDisplay.scale * 100) + "%"
+                }
+            }
+
+            // 上：缩小
+            UniversalButton {
+                id: zoomOutButton
+                text: ""
+                iconSource: "qrc:/icons/zoom_out.svg"
+                buttonStyle: "toolbar"
+                onClicked: {
+                    const newScale = Math.max(1.0, videoDisplay.scale * 0.9)
+                    videoDisplay.scale = newScale
+                }
+            }
+
+            // 中：重置
+            UniversalButton {
+                id: zoomResetButton
+                text: ""
+                iconSource: "qrc:/icons/zoom_reset.svg"
+                buttonStyle: "toolbar"
+                onClicked: {
+                    videoDisplay.scale = 1.0
+                }
+            }
+
+            // 下：放大
+            UniversalButton {
+                id: zoomInButton
+                text: ""
+                iconSource: "qrc:/icons/zoom_in.svg"
+                buttonStyle: "toolbar"
+                onClicked: {
+                    const newScale = Math.min(3.0, videoDisplay.scale * 1.1)
+                    videoDisplay.scale = newScale
+                }
+            }
         }
     }
 
