@@ -6,14 +6,17 @@ edition = "2021"
 [dependencies]
 libc = "0.2"
 thiserror = "1.0"
+image = "0.25"
 
 [build-dependencies]
 cc = "1.0"
 
 [dev-dependencies]
-image = "0.25"
 imageproc = "0.25"
 ab_glyph = "0.2"
+
+[features]
+default = []
 
 [lib]
 name = "rknn_inference"
@@ -22,3 +25,7 @@ path = "src/lib.rs"
 [[example]]
 name = "yolov8_detect"
 path = "examples/yolov8_detect.rs"
+
+[[example]]
+name = "simple_usage"
+path = "examples/simple_usage.rs"

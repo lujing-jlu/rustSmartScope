@@ -24,7 +24,9 @@ fn main() {
         .include(include_path.join("utils"))
         .include(include_path.join("rga"))
         .flag("-std=c++11")
-        .flag("-w"); // Suppress warnings from C++ code
+        .flag("-w") // Suppress warnings from C++ code
+        .define("NDEBUG", "1") // 禁用调试输出
+        .define("DISABLE_PRINTF", "1"); // 自定义宏禁用printf
 
     // Add library paths for linking
     build.flag(&format!("-L{}", lib_path.display()));

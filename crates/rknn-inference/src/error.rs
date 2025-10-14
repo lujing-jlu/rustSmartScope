@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum RknnError {
     #[error("Invalid path")]
     InvalidPath,
@@ -16,6 +16,9 @@ pub enum RknnError {
 
     #[error("Invalid image format")]
     InvalidImageFormat,
+
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
 
     #[error("C string conversion error: {0}")]
     CStringError(#[from] std::ffi::NulError),

@@ -1,9 +1,73 @@
+//! RKNN推理库
+//!
+//! 提供YOLOv8模型的RKNN推理功能，支持Rockchip NPU硬件加速。
+//!
+//! # 特性
+//!
+//! - 高性能RKNN NPU推理（实测可达37+ FPS）
+//! - 内存安全的Rust接口
+//! - 完整的预处理和后处理支持
+//! - 多线程推理服务支持
+//! - 零拷贝内存管理
+//!
+//! # 快速开始
+//!
+//! ## 单线程推理
+//!
+//! ```rust
+//! use rknn_inference::{Yolov8Detector, ImageBuffer};
+//!
+//! // 创建检测器
+//! let mut detector = Yolov8Detector::new("model.rknn")?;
+//!
+//! // 加载图片并预处理
+//! let img = image::open("test.jpg")?.to_rgb8();
+//! let image_buffer = preprocess_image(&img);
+//!
+//! // 推理
+//! let results = detector.detect(&image_buffer)?;
+//!
+//! println!("检测到 {} 个对象", results.len());
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
+//!
+//! ## 高性能多线程推理（推荐）
+//!
+//! ```rust
+//! use rknn_inference::MultiDetectorInferenceService;
+//!
+//! // 创建6个detector的高性能推理服务
+//! let service = MultiDetectorInferenceService::new("model.rknn", 6)?;
+//!
+//! // 加载图片
+//! let img = image::open("test.jpg")?.to_rgb8();
+//!
+//! // 推理（自动预处理）
+//! let results = service.inference(&img)?;
+//!
+//! println!("检测到 {} 个对象", results.len());
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
+//!
+//! # 性能建议
+//!
+//! - 使用`MultiDetectorInferenceService`获得最佳性能（推荐6个工作线程）
+//! - 对于实时应用，推荐使用6个工作线程以获得最佳并发效率
+//! - 预处理在主线程进行，避免RGA多线程冲突
+
 pub mod ffi;
 mod error;
 mod types;
+pub mod service;
+pub mod simple_service;
+pub mod multi_detector_service;
 
 pub use error::{RknnError, Result};
 pub use types::*;
+pub use service::{InferenceService, ServiceStats};
+pub use simple_service::{SimpleInferenceService};
+pub use multi_detector_service::{MultiDetectorInferenceService, ImagePreprocessor};
+pub use multi_detector_service::ServiceStats as MultiDetectorServiceStats;
 
 use std::ffi::CString;
 use std::path::Path;
