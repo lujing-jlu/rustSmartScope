@@ -69,12 +69,12 @@ Rectangle {
 
     // 信号
     signal clicked()
-    signal pressed()
-    signal released()
+    signal pressStarted()
+    signal pressEnded()
 
     // 私有/公开交互属性
     property bool hovered: false
-    property bool pressed: false
+    property bool isPressed: false
 
     // 应用样式配置
     width: effectiveButtonWidth
@@ -92,18 +92,18 @@ Rectangle {
         onClicked: universalButton.clicked()
         onPressed: {
             universalButton.scale = 0.92
-            universalButton.pressed = true
-            universalButton.pressed()
+            universalButton.isPressed = true
+            universalButton.pressStarted()
         }
         onReleased: {
             universalButton.scale = 1.0
-            universalButton.pressed = false
-            universalButton.released()
+            universalButton.isPressed = false
+            universalButton.pressEnded()
         }
         onCanceled: {
             universalButton.scale = 1.0
-            universalButton.pressed = false
-            universalButton.released()
+            universalButton.isPressed = false
+            universalButton.pressEnded()
         }
         onEntered: universalButton.hovered = true
         onExited: universalButton.hovered = false

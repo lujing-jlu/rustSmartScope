@@ -83,23 +83,7 @@ Rectangle {
             // 填充占位，将按钮推到底部
             Item { Layout.fillHeight: true }
 
-            // 缩放百分比显示
-            Rectangle {
-                Layout.alignment: Qt.AlignHCenter
-                width: 86
-                height: 32
-                radius: 8
-                color: Qt.rgba(0,0,0,0.5)
-                border.width: 1
-                border.color: Qt.rgba(1,1,1,0.25)
-                Text {
-                    anchors.centerIn: parent
-                    color: "#FFFFFF"
-                    font.pixelSize: 16
-                    font.weight: Font.DemiBold
-                    text: Math.round(videoDisplay.scale * 100) + "%"
-                }
-            }
+            // 缩放百分比显示已移除
 
             // 上：缩小
             UniversalButton {
@@ -116,7 +100,7 @@ Rectangle {
                     id: zoomOutRepeat
                     interval: 80
                     repeat: true
-                    running: zoomOutButton.pressed
+                    running: zoomOutButton.isPressed
                     onTriggered: {
                         const ns = Math.max(1.0, videoDisplay.scale * 0.96)
                         videoDisplay.scale = ns
@@ -150,7 +134,7 @@ Rectangle {
                     id: zoomInRepeat
                     interval: 80
                     repeat: true
-                    running: zoomInButton.pressed
+                    running: zoomInButton.isPressed
                     onTriggered: {
                         const ns = Math.min(3.0, videoDisplay.scale * 1.04)
                         videoDisplay.scale = ns
