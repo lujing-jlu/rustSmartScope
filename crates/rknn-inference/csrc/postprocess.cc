@@ -92,9 +92,30 @@ static int readLines(const char *fileName, char *lines[], int max_line)
 
 static int loadLabelName(const char *locationFilename, char *label[])
 {
-    printf("load lable %s\n", locationFilename);
-    readLines(locationFilename, label, OBJ_CLASS_NUM);
-    return 0;
+    // 尝试多个可能的路径
+    const char* possible_paths[] = {
+        "models/coco_labels.txt",
+        "../models/coco_labels.txt",
+        "../../models/coco_labels.txt",
+        "../../../models/coco_labels.txt",
+        "crates/rknn-inference/models/coco_labels.txt"
+    };
+
+    for (int i = 0; i < 5; i++) {
+        FILE* file = fopen(possible_paths[i], "r");
+        if (file != NULL) {
+            fclose(file);
+            printf("load label %s\n", possible_paths[i]);
+            readLines(possible_paths[i], label, OBJ_CLASS_NUM);
+            return 0;
+        }
+    }
+
+    printf("Failed to find coco_labels.txt in any of the following paths:\n");
+    for (int i = 0; i < 5; i++) {
+        printf("  - %s\n", possible_paths[i]);
+    }
+    return -1;
 }
 
 static float CalculateOverlap(float xmin0, float ymin0, float xmax0, float ymax0, float xmin1, float ymin1, float xmax1,

@@ -31,18 +31,46 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
-//! ## 高性能多线程推理（推荐）
+//! ## 高性能异步推理（推荐）
+//!
+//! ```rust
+//! use rknn_inference::{MultiDetectorInferenceService, ImagePreprocessor};
+//!
+//! // 创建6个detector的异步推理服务，队列长度限制为6
+//! let service = MultiDetectorInferenceService::new("model.rknn", 6)?;
+//! let preprocessor = ImagePreprocessor::new();
+//!
+//! // 异步提交多个推理任务
+//! let mut task_ids = Vec::new();
+//! for _ in 0..5 {
+//!     let img = image::open("test.jpg")?.to_rgb8();
+//!     let image_buffer = preprocessor.preprocess(&img);
+//!     let task_id = service.submit_inference(&image_buffer)?;
+//!     task_ids.push(task_id);
+//! }
+//!
+//! // 异步获取结果
+//! while let Some((task_id, results)) = service.try_get_result() {
+//!     match results {
+//!         Ok(detections) => println!("任务 {} 检测到 {} 个对象", task_id, detections.len()),
+//!         Err(e) => println!("任务 {} 推理失败: {:?}", task_id, e),
+//!     }
+//! }
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
+//!
+//! ## 同步推理（向后兼容）
 //!
 //! ```rust
 //! use rknn_inference::MultiDetectorInferenceService;
 //!
-//! // 创建6个detector的高性能推理服务
+//! // 创建6个detector的推理服务
 //! let service = MultiDetectorInferenceService::new("model.rknn", 6)?;
 //!
 //! // 加载图片
 //! let img = image::open("test.jpg")?.to_rgb8();
 //!
-//! // 推理（自动预处理）
+//! // 同步推理（内部使用异步机制）
 //! let results = service.inference(&img)?;
 //!
 //! println!("检测到 {} 个对象", results.len());
@@ -51,9 +79,12 @@
 //!
 //! # 性能建议
 //!
+//! - 使用异步推理接口获得最佳性能（输入和输出都是队列，不会阻塞）
 //! - 使用`MultiDetectorInferenceService`获得最佳性能（推荐6个工作线程）
+//! - 队列长度限制为6，防止内存积压，适合实时应用
 //! - 对于实时应用，推荐使用6个工作线程以获得最佳并发效率
 //! - 预处理在主线程进行，避免RGA多线程冲突
+//! - 可以持续输入图像，按需获取检测结果，最大化NPU利用率
 
 pub mod ffi;
 mod error;
@@ -64,10 +95,10 @@ pub mod multi_detector_service;
 
 pub use error::{RknnError, Result};
 pub use types::*;
-pub use service::{InferenceService, ServiceStats};
+pub use service::{InferenceService};
 pub use simple_service::{SimpleInferenceService};
 pub use multi_detector_service::{MultiDetectorInferenceService, ImagePreprocessor};
-pub use multi_detector_service::ServiceStats as MultiDetectorServiceStats;
+pub use multi_detector_service::ServiceStats;
 
 use std::ffi::CString;
 use std::path::Path;
