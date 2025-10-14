@@ -44,6 +44,7 @@ extern "C" {
     int smartscope_get_camera_status(CCameraStatus* status_out);
     uint32_t smartscope_get_camera_mode();
     bool smartscope_is_camera_running();
+
 }
 
 class CameraManager : public QObject
@@ -90,6 +91,7 @@ signals:
     void leftPixmapUpdated(const QPixmap& pixmap);
     void rightPixmapUpdated(const QPixmap& pixmap);
     void singlePixmapUpdated(const QPixmap& pixmap);
+    // Thumbnail signal removed; front-end reuses display frame
 
 private slots:
     void updateFrames();

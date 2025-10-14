@@ -269,7 +269,7 @@ ApplicationWindow {
                     buttonStyle: "toolbar"
                     iconSource: "qrc:/icons/config.svg"
                     onClicked: {
-                        console.log("3D calibration clicked")
+                        Logger.info("3D calibration clicked")
                     }
                 }
 
@@ -280,7 +280,7 @@ ApplicationWindow {
                     buttonStyle: "toolbar"
                     iconSource: "qrc:/icons/view.svg"
                     onClicked: {
-                        console.log("Point cloud generation clicked")
+                        Logger.info("Point cloud generation clicked")
                     }
                 }
 
@@ -291,7 +291,7 @@ ApplicationWindow {
                     buttonStyle: "toolbar"
                     iconSource: "qrc:/icons/measurement/depth.svg"
                     onClicked: {
-                        console.log("Depth measurement clicked")
+                        Logger.info("Depth measurement clicked")
                         depthMeasureButton.isActive = !depthMeasureButton.isActive
                     }
                 }
@@ -303,7 +303,7 @@ ApplicationWindow {
                     buttonStyle: "toolbar"
                     iconSource: "qrc:/icons/measurement/length.svg"
                     onClicked: {
-                        console.log("Length measurement clicked")
+                        Logger.info("Length measurement clicked")
                         lengthMeasureButton.isActive = !lengthMeasureButton.isActive
                     }
                 }
@@ -315,7 +315,7 @@ ApplicationWindow {
                     buttonStyle: "toolbar"
                     iconSource: "qrc:/icons/measurement/area.svg"
                     onClicked: {
-                        console.log("Area measurement clicked")
+                        Logger.info("Area measurement clicked")
                         areaMeasureButton.isActive = !areaMeasureButton.isActive
                     }
                 }
@@ -327,7 +327,7 @@ ApplicationWindow {
                     buttonStyle: "toolbar"
                     iconSource: "qrc:/icons/save.svg"
                     onClicked: {
-                        console.log("Export measurement data clicked")
+                        Logger.info("Export measurement data clicked")
                     }
                 }
 
@@ -484,6 +484,6 @@ ApplicationWindow {
 
     // 窗口关闭时的清理
     onClosing: {
-        console.log("3D测量窗口关闭")
+        Logger.info("3D测量窗口关闭")
     }
 }

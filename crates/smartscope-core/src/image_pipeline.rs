@@ -5,7 +5,7 @@
 //! 2. 畸变校正 (camera-correction + opencv) - 最优先
 //! 3. RGA 变换 (旋转、翻转、反色)
 
-use crate::error::{SmartScopeError, Result};
+use crate::error::{Result, SmartScopeError};
 use crate::video_transform::VideoTransformProcessor;
 use camera_correction::{CameraParameters, DistortionCorrector, StereoRectifier};
 use opencv::{core::Mat, prelude::*};
@@ -41,42 +41,60 @@ impl ImagePipeline {
         video_transform: Arc<RwLock<VideoTransformProcessor>>,
     ) -> Result<Self> {
         // 创建 MJPEG 解码器
-        let decompressor = Decompressor::new()
-            .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to create MJPEG decompressor: {}", e)))?;
+        let decompressor = Decompressor::new().map_err(|e| {
+            SmartScopeError::VideoProcessingError(format!(
+                "Failed to create MJPEG decompressor: {}",
+                e
+            ))
+        })?;
 
         // 加载相机参数和创建畸变校正器、立体校正器
-        let (distortion_corrector_left, distortion_corrector_right, stereo_rectifier) = if let Some(params_dir) = camera_params_dir {
-            match CameraParameters::from_directory(params_dir) {
-                Ok(params) => {
-                    let stereo = params.get_stereo_parameters()
-                        .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to get stereo parameters: {}", e)))?;
+        let (distortion_corrector_left, distortion_corrector_right, stereo_rectifier) =
+            if let Some(params_dir) = camera_params_dir {
+                match CameraParameters::from_directory(params_dir) {
+                    Ok(params) => {
+                        let stereo = params.get_stereo_parameters().map_err(|e| {
+                            SmartScopeError::VideoProcessingError(format!(
+                                "Failed to get stereo parameters: {}",
+                                e
+                            ))
+                        })?;
 
-                    // 调整相机内参以适配旋转90度的图像（标定时相机是旋转的）
-                    // 对于逆时针旋转90度：(x, y) -> (y, height - x)
-                    // 内参调整：cx' = cy, cy' = width - cx (width和height是旋转前的)
-                    let left_intrinsics_rotated = Self::rotate_intrinsics_90_ccw(&stereo.left_intrinsics);
-                    let right_intrinsics_rotated = Self::rotate_intrinsics_90_ccw(&stereo.right_intrinsics);
+                        // 调整相机内参以适配旋转90度的图像（标定时相机是旋转的）
+                        // 对于逆时针旋转90度：(x, y) -> (y, height - x)
+                        // 内参调整：cx' = cy, cy' = width - cx (width和height是旋转前的)
+                        let left_intrinsics_rotated =
+                            Self::rotate_intrinsics_90_ccw(&stereo.left_intrinsics);
+                        let right_intrinsics_rotated =
+                            Self::rotate_intrinsics_90_ccw(&stereo.right_intrinsics);
 
-                    // 创建左右相机的畸变校正器（使用调整后的内参）
-                    let left_corrector = DistortionCorrector::new(left_intrinsics_rotated);
-                    let right_corrector = DistortionCorrector::new(right_intrinsics_rotated);
+                        // 创建左右相机的畸变校正器（使用调整后的内参）
+                        let left_corrector = DistortionCorrector::new(left_intrinsics_rotated);
+                        let right_corrector = DistortionCorrector::new(right_intrinsics_rotated);
 
-                    // 创建立体校正器
-                    let rectifier = StereoRectifier::from_parameters(&params)
-                        .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to create stereo rectifier: {}", e)))?;
+                        // 创建立体校正器
+                        let rectifier = StereoRectifier::from_parameters(&params).map_err(|e| {
+                            SmartScopeError::VideoProcessingError(format!(
+                                "Failed to create stereo rectifier: {}",
+                                e
+                            ))
+                        })?;
 
-                    info!("Distortion correctors with rotated intrinsics and stereo rectifier initialized");
-                    (Some(left_corrector), Some(right_corrector), Some(rectifier))
+                        info!("Distortion correctors with rotated intrinsics and stereo rectifier initialized");
+                        (Some(left_corrector), Some(right_corrector), Some(rectifier))
+                    }
+                    Err(e) => {
+                        warn!(
+                            "Failed to load camera parameters, correction disabled: {}",
+                            e
+                        );
+                        (None, None, None)
+                    }
                 }
-                Err(e) => {
-                    warn!("Failed to load camera parameters, correction disabled: {}", e);
-                    (None, None, None)
-                }
-            }
-        } else {
-            info!("No camera parameters directory provided, correction disabled");
-            (None, None, None)
-        };
+            } else {
+                info!("No camera parameters directory provided, correction disabled");
+                (None, None, None)
+            };
 
         Ok(Self {
             decompressor,
@@ -92,7 +110,10 @@ impl ImagePipeline {
     /// 启用/禁用畸变校正
     pub fn set_distortion_correction_enabled(&mut self, enabled: bool) {
         self.distortion_correction_enabled = enabled;
-        debug!("Distortion correction: {}", if enabled { "enabled" } else { "disabled" });
+        debug!(
+            "Distortion correction: {}",
+            if enabled { "enabled" } else { "disabled" }
+        );
     }
 
     /// 检查畸变校正是否可用
@@ -105,7 +126,9 @@ impl ImagePipeline {
     /// 标定时相机顺时针旋转90度拍摄，所以需要将内参调整为逆时针90度
     /// 旋转变换：(x, y) -> (y, height - x)
     /// 内参调整：fx' = fy, fy' = fx, cx' = cy, cy' = height - cx
-    fn rotate_intrinsics_90_ccw(intrinsics: &camera_correction::parameters::CameraIntrinsics) -> camera_correction::parameters::CameraIntrinsics {
+    fn rotate_intrinsics_90_ccw(
+        intrinsics: &camera_correction::parameters::CameraIntrinsics,
+    ) -> camera_correction::parameters::CameraIntrinsics {
         use camera_correction::parameters::{CameraIntrinsics, CameraMatrix};
 
         let matrix = &intrinsics.matrix;
@@ -114,9 +137,9 @@ impl ImagePipeline {
         // 由于我们在initialize_maps时会使用实际的旋转后尺寸，
         // 这里只需要交换 fx/fy 和 cx/cy
         let rotated_matrix = CameraMatrix {
-            fx: matrix.fy,  // 交换焦距
+            fx: matrix.fy, // 交换焦距
             fy: matrix.fx,
-            cx: matrix.cy,  // 交换主点
+            cx: matrix.cy, // 交换主点
             cy: matrix.cx,
         };
 
@@ -164,9 +187,9 @@ impl ImagePipeline {
     /// 解码 MJPEG 到 RGB
     fn decode_mjpeg(&mut self, mjpeg_data: &[u8]) -> Result<(Vec<u8>, u32, u32)> {
         // 读取图像头信息
-        let header = self.decompressor
-            .read_header(mjpeg_data)
-            .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to read MJPEG header: {}", e)))?;
+        let header = self.decompressor.read_header(mjpeg_data).map_err(|e| {
+            SmartScopeError::VideoProcessingError(format!("Failed to read MJPEG header: {}", e))
+        })?;
 
         let width = header.width as u32;
         let height = header.height as u32;
@@ -179,14 +202,16 @@ impl ImagePipeline {
         let output_image = Image {
             pixels: &mut rgb_buffer[..],
             width: width as usize,
-            pitch: (width * 3) as usize,  // RGB: 3 bytes per pixel
+            pitch: (width * 3) as usize, // RGB: 3 bytes per pixel
             height: height as usize,
             format: PixelFormat::RGB,
         };
 
         self.decompressor
             .decompress(mjpeg_data, output_image)
-            .map_err(|e| SmartScopeError::VideoProcessingError(format!("MJPEG decode failed: {}", e)))?;
+            .map_err(|e| {
+                SmartScopeError::VideoProcessingError(format!("MJPEG decode failed: {}", e))
+            })?;
 
         Ok((rgb_buffer, width, height))
     }
@@ -216,14 +241,27 @@ impl ImagePipeline {
             // 初始化校正映射表（如果还未初始化）
             // 使用原始图像尺寸（已经是旋转后的方向）
             if !corrector.are_maps_initialized() {
-                corrector.initialize_maps(width, height)
-                    .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to initialize distortion maps: {}", e)))?;
-                info!("Initialized distortion correction maps for {}x{}", width, height);
+                corrector.initialize_maps(width, height).map_err(|e| {
+                    SmartScopeError::VideoProcessingError(format!(
+                        "Failed to initialize distortion maps: {}",
+                        e
+                    ))
+                })?;
+                info!(
+                    "Initialized distortion correction maps for {}x{}",
+                    width, height
+                );
             }
 
             // 使用优化的RGB直接校正方法
-            let corrected_data = corrector.correct_distortion_rgb(rgb_data, width, height)
-                .map_err(|e| SmartScopeError::VideoProcessingError(format!("Distortion correction failed: {}", e)))?;
+            let corrected_data = corrector
+                .correct_distortion_rgb(rgb_data, width, height)
+                .map_err(|e| {
+                    SmartScopeError::VideoProcessingError(format!(
+                        "Distortion correction failed: {}",
+                        e
+                    ))
+                })?;
 
             Ok(corrected_data)
         } else {
@@ -235,7 +273,7 @@ impl ImagePipeline {
     /// 应用视频变换（旋转、翻转、反色）- 优化版本
     fn apply_video_transforms(
         &self,
-        rgb_data: Vec<u8>,  // 接收所有权，避免不必要的复制
+        rgb_data: Vec<u8>, // 接收所有权，避免不必要的复制
         width: u32,
         height: u32,
     ) -> Result<Vec<u8>> {
@@ -283,7 +321,8 @@ impl ImagePipeline {
     #[allow(dead_code)]
     fn return_buffer_to_pool(&self, mut buffer: Vec<u8>) {
         let mut pool = self.buffer_pool.lock().unwrap();
-        if pool.len() < 5 { // 最多保留5个缓冲区
+        if pool.len() < 5 {
+            // 最多保留5个缓冲区
             buffer.clear();
             pool.push(buffer);
         }
@@ -361,13 +400,24 @@ impl ImagePipeline {
                 CV_8UC3,
                 rgb_data.as_ptr() as *mut std::ffi::c_void,
                 Mat_AUTO_STEP,
-            ).map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to create Mat from RGB data: {}", e)))?
+            )
+            .map_err(|e| {
+                SmartScopeError::VideoProcessingError(format!(
+                    "Failed to create Mat from RGB data: {}",
+                    e
+                ))
+            })?
         };
 
         // RGB → BGR 颜色转换（使用 OpenCV 优化的函数）
         let mut bgr_mat = Mat::default();
         opencv::imgproc::cvt_color(&rgb_mat, &mut bgr_mat, opencv::imgproc::COLOR_RGB2BGR, 0)
-            .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to convert RGB to BGR: {}", e)))?;
+            .map_err(|e| {
+                SmartScopeError::VideoProcessingError(format!(
+                    "Failed to convert RGB to BGR: {}",
+                    e
+                ))
+            })?;
 
         Ok(bgr_mat)
     }
@@ -380,8 +430,14 @@ impl ImagePipeline {
 
         // BGR → RGB 颜色转换（使用 OpenCV 优化的函数）
         let mut rgb_mat = Mat::default();
-        opencv::imgproc::cvt_color(mat, &mut rgb_mat, opencv::imgproc::COLOR_BGR2RGB, 0)
-            .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to convert BGR to RGB: {}", e)))?;
+        opencv::imgproc::cvt_color(mat, &mut rgb_mat, opencv::imgproc::COLOR_BGR2RGB, 0).map_err(
+            |e| {
+                SmartScopeError::VideoProcessingError(format!(
+                    "Failed to convert BGR to RGB: {}",
+                    e
+                ))
+            },
+        )?;
 
         // 检查是否连续存储
         if rgb_mat.is_continuous() {
@@ -390,7 +446,12 @@ impl ImagePipeline {
             let mut rgb_data = vec![0u8; data_size];
 
             unsafe {
-                let src_ptr = rgb_mat.ptr(0).map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to get Mat data pointer: {}", e)))?;
+                let src_ptr = rgb_mat.ptr(0).map_err(|e| {
+                    SmartScopeError::VideoProcessingError(format!(
+                        "Failed to get Mat data pointer: {}",
+                        e
+                    ))
+                })?;
                 std::ptr::copy_nonoverlapping(src_ptr, rgb_data.as_mut_ptr(), data_size);
             }
 
@@ -400,15 +461,15 @@ impl ImagePipeline {
             let mut rgb_data = Vec::with_capacity((width * height * 3) as usize);
 
             for row in 0..height {
-                let row_data = rgb_mat.at_row::<u8>(row)
-                    .map_err(|e| SmartScopeError::VideoProcessingError(format!("Failed to get row data: {}", e)))?;
+                let row_data = rgb_mat.at_row::<u8>(row).map_err(|e| {
+                    SmartScopeError::VideoProcessingError(format!("Failed to get row data: {}", e))
+                })?;
                 rgb_data.extend_from_slice(row_data);
             }
 
             Ok(rgb_data)
         }
     }
-
 }
 
 #[cfg(test)]

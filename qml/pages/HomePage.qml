@@ -21,6 +21,34 @@ Rectangle {
         anchors.fill: parent
     }
 
+    // 左上角画中画缩略图（原图）
+    Rectangle {
+        id: pipContainer
+        // 放大到1.2倍，根据旋转与当前帧宽高比自适应
+        // 规则：未旋转时以宽为基准计算高；旋转90/270度时以高为基准计算宽，避免高度过大
+        property real pipBase: Math.min(parent.width * (0.22 * 1.2), 340 * 1.2)
+        property bool rotated90: (VideoTransformManager && (VideoTransformManager.rotationDegrees % 180 !== 0))
+        property real fw: pipDisplay.frameWidth  > 0 ? pipDisplay.frameWidth  : 16
+        property real fh: pipDisplay.frameHeight > 0 ? pipDisplay.frameHeight : 9
+        width: rotated90 ? (pipBase * (fw / fh)) : pipBase
+        height: rotated90 ? pipBase : (pipBase * (fh / fw))
+        radius: 10
+        color: Qt.rgba(0,0,0,0.35)
+        border.width: 3
+        border.color: "#FFFFFF"
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.leftMargin: 16
+        anchors.topMargin: 120   // 往下移动，避开状态栏（可按需调整）
+        z: 30
+
+        VideoDisplay {
+            id: pipDisplay
+            anchors.fill: parent
+            anchors.margins: 4
+        }
+    }
+
     // 监听相机模式变化，切换显示的信号源
     Connections {
         target: CameraManager
@@ -54,12 +82,15 @@ Rectangle {
         if (mode === stereoCamera) {
             // 双目模式：显示左相机
             CameraManager.leftPixmapUpdated.connect(videoDisplay.updateFrame)
+            CameraManager.leftPixmapUpdated.connect(pipDisplay.updateFrame)
         } else if (mode === singleCamera) {
             // 单目模式：显示单相机
             CameraManager.singlePixmapUpdated.connect(videoDisplay.updateFrame)
+            CameraManager.singlePixmapUpdated.connect(pipDisplay.updateFrame)
         } else {
             // 无相机模式：清空显示
             videoDisplay.clear()
+            pipDisplay.clear()
         }
     }
 
@@ -76,6 +107,15 @@ Rectangle {
         } else {
             Logger.error("CameraManager not available!")
         }
+
+        // 默认连接一次（防止初始无触发）
+        if (CameraManager) {
+            if (CameraManager.cameraMode === stereoCamera) {
+                CameraManager.leftPixmapUpdated.connect(pipDisplay.updateFrame)
+            } else if (CameraManager.cameraMode === singleCamera) {
+                CameraManager.singlePixmapUpdated.connect(pipDisplay.updateFrame)
+            }
+        }
     }
 
     Component.onDestruction: {
@@ -84,9 +124,9 @@ Rectangle {
             try {
                 CameraManager.leftPixmapUpdated.disconnect(videoDisplay.updateFrame)
             } catch(e) {}
-            try {
-                CameraManager.singlePixmapUpdated.disconnect(videoDisplay.updateFrame)
-            } catch(e) {}
+            try { CameraManager.singlePixmapUpdated.disconnect(videoDisplay.updateFrame) } catch(e) {}
+            try { CameraManager.leftPixmapUpdated.disconnect(pipDisplay.updateFrame) } catch(e) {}
+            try { CameraManager.singlePixmapUpdated.disconnect(pipDisplay.updateFrame) } catch(e) {}
         }
     }
 }

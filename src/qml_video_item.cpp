@@ -137,12 +137,15 @@ void QmlVideoItem::updateFrame(const QPixmap& pixmap)
         QMutexLocker locker(&m_mutex);
         bool hadFrame = !m_currentFrame.isNull();
         m_currentFrame = pixmap;
+        m_frameWidth = m_currentFrame.width();
+        m_frameHeight = m_currentFrame.height();
 
         if (!hadFrame) {
             emit hasFrameChanged();
         }
     }
 
+    emit frameSizeChanged();
     // 触发重绘
     update();
 }
@@ -153,12 +156,15 @@ void QmlVideoItem::clear()
         QMutexLocker locker(&m_mutex);
         bool hadFrame = !m_currentFrame.isNull();
         m_currentFrame = QPixmap();
+        m_frameWidth = 0;
+        m_frameHeight = 0;
 
         if (hadFrame) {
             emit hasFrameChanged();
         }
     }
 
+    emit frameSizeChanged();
     update();
 }
 

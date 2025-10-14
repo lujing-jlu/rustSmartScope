@@ -90,7 +90,7 @@ impl UnifiedLogger {
     pub fn initialize(&self) -> crate::Result<()> {
         LOGGER_INIT.call_once(|| {
             if let Err(e) = self.setup_logging() {
-                eprintln!("Failed to initialize logger: {}", e);
+                std::println!("Failed to initialize logger: {}", e);
             }
         });
         Ok(())
@@ -227,7 +227,7 @@ pub fn log_from_cpp(level: LogLevel, module: &str, message: &str) {
         logger.log(level, module, message);
     } else {
         // 如果日志系统未初始化，直接输出到stderr
-        eprintln!(
+        std::eprintln!(
             "[{}][{}] {}",
             match level {
                 LogLevel::Trace => "TRACE",

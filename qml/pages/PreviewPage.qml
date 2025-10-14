@@ -20,6 +20,6 @@ Rectangle {
 
 
     Component.onCompleted: {
-        console.log("PreviewPage initialized")
+        Logger.info("PreviewPage initialized")
     }
 }

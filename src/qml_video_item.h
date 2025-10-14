@@ -18,6 +18,8 @@ class QmlVideoItem : public QQuickPaintedItem
     Q_PROPERTY(bool hasFrame READ hasFrame NOTIFY hasFrameChanged)
     Q_PROPERTY(QVariantList detections READ detections WRITE setDetections NOTIFY detectionsChanged)
     Q_PROPERTY(int modelInputSize READ modelInputSize WRITE setModelInputSize NOTIFY modelInputSizeChanged)
+    Q_PROPERTY(int frameWidth READ frameWidth NOTIFY frameSizeChanged)
+    Q_PROPERTY(int frameHeight READ frameHeight NOTIFY frameSizeChanged)
 
 public:
     explicit QmlVideoItem(QQuickItem *parent = nullptr);
@@ -32,6 +34,9 @@ public:
 
     int modelInputSize() const { return m_modelInputSize; }
     void setModelInputSize(int v) { if (m_modelInputSize != v) { m_modelInputSize = v; emit modelInputSizeChanged(); update(); } }
+
+    int frameWidth() const { return m_frameWidth; }
+    int frameHeight() const { return m_frameHeight; }
 
 public slots:
     /**
@@ -49,12 +54,15 @@ signals:
     void hasFrameChanged();
     void detectionsChanged();
     void modelInputSizeChanged();
+    void frameSizeChanged();
 
 private:
     QPixmap m_currentFrame;
     QMutex m_mutex;
     QVariantList m_detections;
     int m_modelInputSize {640};
+    int m_frameWidth {0};
+    int m_frameHeight {0};
 };
 
 #endif // QML_VIDEO_ITEM_H

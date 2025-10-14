@@ -1,6 +1,6 @@
 #include "ai_detection_manager.h"
+#include "logger.h"
 #include <QImage>
-#include <QDebug>
 #include <QFile>
 #include <QVariantMap>
 #include <QVector>
@@ -26,10 +26,10 @@ bool AiDetectionManager::initialize(const QString& modelPath, int numWorkers) {
     QByteArray pathBytes = modelPath.toUtf8();
     int rc = smartscope_ai_init(pathBytes.constData(), numWorkers);
     if (rc != SMARTSCOPE_ERROR_SUCCESS) {
-        qWarning() << "AI service init failed:" << smartscope_get_error_string(rc);
+        LOG_ERROR("AiDetectionManager", "AI service init failed: ", smartscope_get_error_string(rc));
         return false;
     }
-    qInfo() << "AI service initialized at" << modelPath << "workers:" << numWorkers;
+    LOG_INFO("AiDetectionManager", "AI service initialized at ", modelPath.toStdString(), " workers:", numWorkers);
     // 试图加载标签
     loadLabels("models/coco_labels.txt");
     return true;
@@ -125,7 +125,7 @@ QString AiDetectionManager::className(int classId) const {
 bool AiDetectionManager::loadLabels(const QString& path) {
     QFile f(path);
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "Failed to open labels file:" << path;
+        LOG_WARN("AiDetectionManager", "Failed to open labels file: ", path.toStdString());
         return false;
     }
     QVector<QString> labels;
@@ -136,7 +136,7 @@ bool AiDetectionManager::loadLabels(const QString& path) {
     }
     if (!labels.isEmpty()) {
         m_labels = std::move(labels);
-        qInfo() << "Loaded" << m_labels.size() << "labels from" << path;
+        LOG_INFO("AiDetectionManager", "Loaded ", m_labels.size(), " labels from ", path.toStdString());
         return true;
     }
     return false;

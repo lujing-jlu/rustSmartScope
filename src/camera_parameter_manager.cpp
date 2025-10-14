@@ -1,10 +1,10 @@
 #include "camera_parameter_manager.h"
-#include <QDebug>
+#include "logger.h"
 
 CameraParameterManager::CameraParameterManager(QObject *parent)
     : QObject(parent)
 {
-    qDebug() << "CameraParameterManager initialized";
+    LOG_DEBUG("CameraParameterManager", "CameraParameterManager initialized");
 }
 
 CameraParameterManager::~CameraParameterManager()
@@ -22,11 +22,11 @@ bool CameraParameterManager::setLeftCameraParameter(int propertyId, int value)
     int result = smartscope_set_left_camera_parameter(property, value);
 
     if (result == 0) {
-        qDebug() << "Set left camera parameter" << propertyId << "=" << value;
+        LOG_DEBUG("CameraParameterManager", "Set left camera parameter ", propertyId, "=", value);
         emit parameterChanged();
         return true;
     } else {
-        qDebug() << "Failed to set left camera parameter" << propertyId << ", error code:" << result;
+        LOG_ERROR("CameraParameterManager", "Failed to set left camera parameter ", propertyId, ", error code:", result);
         return false;
     }
 }
@@ -37,11 +37,11 @@ bool CameraParameterManager::setRightCameraParameter(int propertyId, int value)
     int result = smartscope_set_right_camera_parameter(property, value);
 
     if (result == 0) {
-        qDebug() << "Set right camera parameter" << propertyId << "=" << value;
+        LOG_DEBUG("CameraParameterManager", "Set right camera parameter ", propertyId, "=", value);
         emit parameterChanged();
         return true;
     } else {
-        qDebug() << "Failed to set right camera parameter" << propertyId << ", error code:" << result;
+        LOG_ERROR("CameraParameterManager", "Failed to set right camera parameter ", propertyId, ", error code:", result);
         return false;
     }
 }
@@ -52,11 +52,11 @@ bool CameraParameterManager::setSingleCameraParameter(int propertyId, int value)
     int result = smartscope_set_single_camera_parameter(property, value);
 
     if (result == 0) {
-        qDebug() << "Set single camera parameter" << propertyId << "=" << value;
+        LOG_DEBUG("CameraParameterManager", "Set single camera parameter ", propertyId, "=", value);
         emit parameterChanged();
         return true;
     } else {
-        qDebug() << "Failed to set single camera parameter" << propertyId << ", error code:" << result;
+        LOG_ERROR("CameraParameterManager", "Failed to set single camera parameter ", propertyId, ", error code:", result);
         return false;
     }
 }
@@ -79,7 +79,7 @@ int CameraParameterManager::getSingleCameraParameter(int propertyId)
 {
     CCameraProperty property = toCCameraProperty(propertyId);
     int32_t value = smartscope_get_single_camera_parameter(property);
-    qDebug() << "getSingleCameraParameter: propertyId=" << propertyId << " value=" << value;
+    LOG_DEBUG("CameraParameterManager", "getSingleCameraParameter: propertyId=", propertyId, " value=", value);
     return value;
 }
 
@@ -98,7 +98,7 @@ QVariantMap CameraParameterManager::getLeftCameraParameterRange(int propertyId)
         result["current"] = range.current;
         return result;
     } else {
-        qDebug() << "Failed to get left camera parameter range for" << propertyId;
+        LOG_WARN("CameraParameterManager", "Failed to get left camera parameter range for", propertyId);
         // 返回空map或默认值
         result["min"] = 0;
         result["max"] = 0;
@@ -124,7 +124,7 @@ QVariantMap CameraParameterManager::getRightCameraParameterRange(int propertyId)
         result["current"] = range.current;
         return result;
     } else {
-        qDebug() << "Failed to get right camera parameter range for" << propertyId;
+        LOG_WARN("CameraParameterManager", "Failed to get right camera parameter range for", propertyId);
         result["min"] = 0;
         result["max"] = 0;
         result["step"] = 1;
@@ -149,7 +149,7 @@ QVariantMap CameraParameterManager::getSingleCameraParameterRange(int propertyId
         result["current"] = range.current;
         return result;
     } else {
-        qDebug() << "Failed to get single camera parameter range for" << propertyId;
+        LOG_WARN("CameraParameterManager", "Failed to get single camera parameter range for", propertyId);
         result["min"] = 0;
         result["max"] = 0;
         result["step"] = 1;
@@ -164,11 +164,11 @@ bool CameraParameterManager::resetLeftCameraParameters()
     int result = smartscope_reset_left_camera_parameters();
 
     if (result == 0) {
-        qDebug() << "Reset left camera parameters to defaults";
+        LOG_INFO("CameraParameterManager", "Reset left camera parameters to defaults");
         emit parameterChanged();
         return true;
     } else {
-        qDebug() << "Failed to reset left camera parameters, error code:" << result;
+        LOG_ERROR("CameraParameterManager", "Failed to reset left camera parameters, error code:", result);
         return false;
     }
 }
@@ -178,11 +178,11 @@ bool CameraParameterManager::resetRightCameraParameters()
     int result = smartscope_reset_right_camera_parameters();
 
     if (result == 0) {
-        qDebug() << "Reset right camera parameters to defaults";
+        LOG_INFO("CameraParameterManager", "Reset right camera parameters to defaults");
         emit parameterChanged();
         return true;
     } else {
-        qDebug() << "Failed to reset right camera parameters, error code:" << result;
+        LOG_ERROR("CameraParameterManager", "Failed to reset right camera parameters, error code:", result);
         return false;
     }
 }
@@ -192,11 +192,11 @@ bool CameraParameterManager::resetSingleCameraParameters()
     int result = smartscope_reset_single_camera_parameters();
 
     if (result == 0) {
-        qDebug() << "Reset single camera parameters to defaults";
+        LOG_INFO("CameraParameterManager", "Reset single camera parameters to defaults");
         emit parameterChanged();
         return true;
     } else {
-        qDebug() << "Failed to reset single camera parameters, error code:" << result;
+        LOG_ERROR("CameraParameterManager", "Failed to reset single camera parameters, error code:", result);
         return false;
     }
 }

@@ -1,6 +1,6 @@
 use crate::bindings::*;
-use crate::error::{RgaError, RgaResult};
 use crate::buffer::{RgaBuffer, RgaRect};
+use crate::error::{RgaError, RgaResult};
 
 #[derive(Debug)]
 pub struct RgaContext {
@@ -9,11 +9,9 @@ pub struct RgaContext {
 
 impl RgaContext {
     pub fn new() -> RgaResult<Self> {
-        // 检查RGA API版本 - 暂时跳过，因为函数可能不存在
-        println!("RGA上下文创建成功");
         Ok(RgaContext {})
     }
-    
+
     /// 执行简单的RGA操作
     pub fn process_simple(
         &self,
@@ -39,7 +37,7 @@ impl RgaContext {
             Ok(())
         }
     }
-    
+
     /// 查询RGA信息
     pub fn query_info(&self, name: i32) -> RgaResult<String> {
         unsafe {
@@ -47,13 +45,13 @@ impl RgaContext {
             if info.is_null() {
                 return Err(RgaError::Unknown("Failed to query RGA info".to_string()));
             }
-            
+
             let c_str = std::ffi::CStr::from_ptr(info);
             let info_str = c_str.to_string_lossy().into_owned();
             Ok(info_str)
         }
     }
-    
+
     /// 检查RGA操作参数
     pub fn check_operation(
         &self,
@@ -70,7 +68,7 @@ impl RgaContext {
                 src_rect.to_im_rect(),
                 dst_rect.to_im_rect(),
                 std::mem::zeroed(), // pat_rect
-                0, // mode_usage
+                0,                  // mode_usage
             );
             if ret != 0 {
                 return Err(RgaError::RgaError(ret));
@@ -78,37 +76,38 @@ impl RgaContext {
             Ok(())
         }
     }
-    
+
     /// 获取RGA版本信息
     pub fn get_version(&self) -> RgaResult<String> {
-        Ok(format!("{}.{}.{}.{}", 
+        Ok(format!(
+            "{}.{}.{}.{}",
             RGA_API_MAJOR_VERSION,
             RGA_API_MINOR_VERSION,
             RGA_API_REVISION_VERSION,
             RGA_API_BUILD_VERSION
         ))
     }
-    
+
     /// 获取RGA供应商信息
     pub fn get_vendor(&self) -> RgaResult<String> {
         Ok("Rockchip".to_string())
     }
-    
+
     /// 获取支持的最大输入分辨率
     pub fn get_max_input(&self) -> RgaResult<String> {
         Ok("8192x8192".to_string())
     }
-    
+
     /// 获取支持的最大输出分辨率
     pub fn get_max_output(&self) -> RgaResult<String> {
         Ok("8192x8192".to_string())
     }
-    
+
     /// 获取支持的输入格式
     pub fn get_input_formats(&self) -> RgaResult<String> {
         Ok("RGBA_8888, RGBA_5551, RGBA_4444, etc.".to_string())
     }
-    
+
     /// 获取支持的输出格式
     pub fn get_output_formats(&self) -> RgaResult<String> {
         Ok("RGBA_8888, RGBA_5551, RGBA_4444, etc.".to_string())
@@ -120,4 +119,3 @@ impl Default for RgaContext {
         Self::new().unwrap_or_else(|_| RgaContext {})
     }
 }
-

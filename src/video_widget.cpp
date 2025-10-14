@@ -1,5 +1,5 @@
 #include "video_widget.h"
-#include <QDebug>
+#include "logger.h"
 
 VideoWidget::VideoWidget(QWidget *parent)
     : QWidget(parent)
@@ -20,12 +20,12 @@ VideoWidget::VideoWidget(QWidget *parent)
     // 设置最小尺寸
     setMinimumSize(320, 240);
 
-    qDebug() << "VideoWidget created";
+    LOG_DEBUG("VideoWidget", "VideoWidget created");
 }
 
 VideoWidget::~VideoWidget()
 {
-    qDebug() << "VideoWidget destroyed";
+    LOG_DEBUG("VideoWidget", "VideoWidget destroyed");
 }
 
 void VideoWidget::setFrame(const QPixmap& pixmap)

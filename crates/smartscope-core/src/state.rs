@@ -2,14 +2,14 @@
 //!
 //! 支持配置热重载、状态同步等功能
 
-use crate::config::{SmartScopeConfig, PartialConfig};
 use crate::camera::CameraManager;
-use crate::video_transform::VideoTransformProcessor;
+use crate::config::{PartialConfig, SmartScopeConfig};
 use crate::image_pipeline::ImagePipeline;
-use std::sync::{Arc, RwLock, Mutex};
+use crate::video_transform::VideoTransformProcessor;
+use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::Path;
-use notify::{Watcher, RecommendedWatcher, RecursiveMode, Event};
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex, RwLock};
 
 /// SmartScope应用状态
 pub struct AppState {
@@ -30,9 +30,9 @@ impl Clone for AppState {
         Self {
             config: Arc::clone(&self.config),
             initialized: self.initialized,
-            config_watcher: None,  // Watcher不能clone，需要重新创建
+            config_watcher: None, // Watcher不能clone，需要重新创建
             config_path: self.config_path.clone(),
-            camera_manager: None,  // CameraManager不能clone，需要重新创建
+            camera_manager: None, // CameraManager不能clone，需要重新创建
             video_transform: Arc::clone(&self.video_transform),
             distortion_correction_enabled: Arc::clone(&self.distortion_correction_enabled),
             image_pipeline: self.image_pipeline.as_ref().map(Arc::clone),
@@ -67,14 +67,24 @@ impl AppState {
         let video_transform = Arc::clone(&self.video_transform);
         let camera_params_dir = Some("camera_parameters");
 
-        match ImagePipeline::new(camera_params_dir, video_transform) {
+        // 尝试带相机参数的完整管道；失败则退化为无参数的解码/变换管道（确保缩略图与基础功能可用）
+        match ImagePipeline::new(camera_params_dir, Arc::clone(&video_transform)) {
             Ok(pipeline) => {
                 self.image_pipeline = Some(Arc::new(Mutex::new(pipeline)));
                 tracing::info!("图像处理管道初始化成功");
             }
             Err(e) => {
-                tracing::warn!("图像处理管道初始化失败: {}, 将使用降级模式", e);
-                self.image_pipeline = None;
+                tracing::warn!("图像处理管道初始化失败: {}，尝试无参数降级模式", e);
+                match ImagePipeline::new(None, video_transform) {
+                    Ok(pipeline) => {
+                        self.image_pipeline = Some(Arc::new(Mutex::new(pipeline)));
+                        tracing::warn!("使用无相机参数的降级图像管道（禁用畸变校正）");
+                    }
+                    Err(e2) => {
+                        tracing::error!("降级图像管道初始化仍失败: {}，图像管道不可用", e2);
+                        self.image_pipeline = None;
+                    }
+                }
             }
         }
 
@@ -104,23 +114,34 @@ impl AppState {
     }
 
     /// 启用配置文件热重载
-    pub fn enable_config_hot_reload<P: AsRef<Path>>(&mut self, config_path: P) -> crate::Result<()> {
+    pub fn enable_config_hot_reload<P: AsRef<Path>>(
+        &mut self,
+        config_path: P,
+    ) -> crate::Result<()> {
         let path = config_path.as_ref().to_string_lossy().to_string();
         self.config_path = Some(path.clone());
 
         let (tx, rx) = mpsc::channel();
-        let mut watcher = notify::recommended_watcher(tx)
-            .map_err(|e| crate::error::SmartScopeError::Unknown(format!("创建文件监控失败: {}", e)))?;
+        let mut watcher = notify::recommended_watcher(tx).map_err(|e| {
+            crate::error::SmartScopeError::Unknown(format!("创建文件监控失败: {}", e))
+        })?;
 
-        watcher.watch(config_path.as_ref(), RecursiveMode::NonRecursive)
-            .map_err(|e| crate::error::SmartScopeError::Unknown(format!("监控配置文件失败: {}", e)))?;
+        watcher
+            .watch(config_path.as_ref(), RecursiveMode::NonRecursive)
+            .map_err(|e| {
+                crate::error::SmartScopeError::Unknown(format!("监控配置文件失败: {}", e))
+            })?;
 
         // 在后台处理文件变化事件
         let config_arc = Arc::clone(&self.config);
-        let path_clone = path.clone();  // 为线程创建另一个副本
+        let path_clone = path.clone(); // 为线程创建另一个副本
         std::thread::spawn(move || {
             while let Ok(event) = rx.recv() {
-                if let Ok(Event { kind: notify::EventKind::Modify(_), .. }) = event {
+                if let Ok(Event {
+                    kind: notify::EventKind::Modify(_),
+                    ..
+                }) = event
+                {
                     tracing::info!("检测到配置文件变化，重新加载配置");
 
                     match SmartScopeConfig::load_from_file(&path_clone) {
@@ -300,14 +321,16 @@ impl AppState {
 
     /// 获取当前相机模式
     pub fn get_camera_mode(&self) -> crate::camera::CameraMode {
-        self.camera_manager.as_ref()
+        self.camera_manager
+            .as_ref()
             .map(|cm| cm.get_camera_mode())
             .unwrap_or(crate::camera::CameraMode::NoCamera)
     }
 
     /// 检查相机是否运行中
     pub fn is_camera_running(&self) -> bool {
-        self.camera_manager.as_ref()
+        self.camera_manager
+            .as_ref()
             .map(|cm| cm.is_running())
             .unwrap_or(false)
     }
@@ -427,83 +450,131 @@ impl AppState {
     // ============================================================================
 
     /// 设置左相机参数
-    pub fn set_left_camera_parameter(&mut self, property: &crate::camera::CameraProperty, value: i32) -> crate::Result<()> {
+    pub fn set_left_camera_parameter(
+        &mut self,
+        property: &crate::camera::CameraProperty,
+        value: i32,
+    ) -> crate::Result<()> {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.set_left_camera_parameter(property, value)
         } else {
-            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+            Err(crate::error::SmartScopeError::Unknown(
+                "相机管理器未初始化".to_string(),
+            ))
         }
     }
 
     /// 设置右相机参数
-    pub fn set_right_camera_parameter(&mut self, property: &crate::camera::CameraProperty, value: i32) -> crate::Result<()> {
+    pub fn set_right_camera_parameter(
+        &mut self,
+        property: &crate::camera::CameraProperty,
+        value: i32,
+    ) -> crate::Result<()> {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.set_right_camera_parameter(property, value)
         } else {
-            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+            Err(crate::error::SmartScopeError::Unknown(
+                "相机管理器未初始化".to_string(),
+            ))
         }
     }
 
     /// 设置单相机参数
-    pub fn set_single_camera_parameter(&mut self, property: &crate::camera::CameraProperty, value: i32) -> crate::Result<()> {
+    pub fn set_single_camera_parameter(
+        &mut self,
+        property: &crate::camera::CameraProperty,
+        value: i32,
+    ) -> crate::Result<()> {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.set_single_camera_parameter(property, value)
         } else {
-            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+            Err(crate::error::SmartScopeError::Unknown(
+                "相机管理器未初始化".to_string(),
+            ))
         }
     }
 
     /// 获取左相机参数
-    pub fn get_left_camera_parameter(&mut self, property: &crate::camera::CameraProperty) -> crate::Result<i32> {
+    pub fn get_left_camera_parameter(
+        &mut self,
+        property: &crate::camera::CameraProperty,
+    ) -> crate::Result<i32> {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.get_left_camera_parameter(property)
         } else {
-            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+            Err(crate::error::SmartScopeError::Unknown(
+                "相机管理器未初始化".to_string(),
+            ))
         }
     }
 
     /// 获取右相机参数
-    pub fn get_right_camera_parameter(&mut self, property: &crate::camera::CameraProperty) -> crate::Result<i32> {
+    pub fn get_right_camera_parameter(
+        &mut self,
+        property: &crate::camera::CameraProperty,
+    ) -> crate::Result<i32> {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.get_right_camera_parameter(property)
         } else {
-            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+            Err(crate::error::SmartScopeError::Unknown(
+                "相机管理器未初始化".to_string(),
+            ))
         }
     }
 
     /// 获取单相机参数
-    pub fn get_single_camera_parameter(&mut self, property: &crate::camera::CameraProperty) -> crate::Result<i32> {
+    pub fn get_single_camera_parameter(
+        &mut self,
+        property: &crate::camera::CameraProperty,
+    ) -> crate::Result<i32> {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.get_single_camera_parameter(property)
         } else {
-            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+            Err(crate::error::SmartScopeError::Unknown(
+                "相机管理器未初始化".to_string(),
+            ))
         }
     }
 
     /// 获取左相机参数范围
-    pub fn get_left_camera_parameter_range(&mut self, property: &crate::camera::CameraProperty) -> crate::Result<crate::camera::ParameterRange> {
+    pub fn get_left_camera_parameter_range(
+        &mut self,
+        property: &crate::camera::CameraProperty,
+    ) -> crate::Result<crate::camera::ParameterRange> {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.get_left_camera_parameter_range(property)
         } else {
-            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+            Err(crate::error::SmartScopeError::Unknown(
+                "相机管理器未初始化".to_string(),
+            ))
         }
     }
 
     /// 获取右相机参数范围
-    pub fn get_right_camera_parameter_range(&mut self, property: &crate::camera::CameraProperty) -> crate::Result<crate::camera::ParameterRange> {
+    pub fn get_right_camera_parameter_range(
+        &mut self,
+        property: &crate::camera::CameraProperty,
+    ) -> crate::Result<crate::camera::ParameterRange> {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.get_right_camera_parameter_range(property)
         } else {
-            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+            Err(crate::error::SmartScopeError::Unknown(
+                "相机管理器未初始化".to_string(),
+            ))
         }
     }
 
     /// 获取单相机参数范围
-    pub fn get_single_camera_parameter_range(&mut self, property: &crate::camera::CameraProperty) -> crate::Result<crate::camera::ParameterRange> {
+    pub fn get_single_camera_parameter_range(
+        &mut self,
+        property: &crate::camera::CameraProperty,
+    ) -> crate::Result<crate::camera::ParameterRange> {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.get_single_camera_parameter_range(property)
         } else {
-            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+            Err(crate::error::SmartScopeError::Unknown(
+                "相机管理器未初始化".to_string(),
+            ))
         }
     }
 
@@ -512,7 +583,9 @@ impl AppState {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.reset_left_camera_parameters()
         } else {
-            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+            Err(crate::error::SmartScopeError::Unknown(
+                "相机管理器未初始化".to_string(),
+            ))
         }
     }
 
@@ -521,7 +594,9 @@ impl AppState {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.reset_right_camera_parameters()
         } else {
-            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+            Err(crate::error::SmartScopeError::Unknown(
+                "相机管理器未初始化".to_string(),
+            ))
         }
     }
 
@@ -530,7 +605,9 @@ impl AppState {
         if let Some(ref mut camera_manager) = self.camera_manager {
             camera_manager.reset_single_camera_parameters()
         } else {
-            Err(crate::error::SmartScopeError::Unknown("相机管理器未初始化".to_string()))
+            Err(crate::error::SmartScopeError::Unknown(
+                "相机管理器未初始化".to_string(),
+            ))
         }
     }
 }

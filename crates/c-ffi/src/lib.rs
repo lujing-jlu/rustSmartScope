@@ -8,8 +8,8 @@ use std::sync::{Mutex, Once};
 
 use smartscope_core::config::SmartScopeConfig;
 use smartscope_core::{
-    init_global_logger, log_from_cpp, AppState, CameraMode, LogLevel, LogRotation,
-    LoggerConfig, SmartScopeError,
+    init_global_logger, log_from_cpp, AppState, CameraMode, LogLevel, LogRotation, LoggerConfig,
+    SmartScopeError,
 };
 
 #[macro_use]
@@ -42,9 +42,9 @@ impl From<SmartScopeError> for ErrorCode {
 // ============================
 // AI 推理服务（RKNN）全局状态
 // ============================
+use rknn_inference::{ImageBuffer, ImageFormat, ImagePreprocessor, MultiDetectorInferenceService};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex as StdMutex;
-use rknn_inference::{MultiDetectorInferenceService, ImagePreprocessor, ImageBuffer, ImageFormat};
 
 lazy_static! {
     static ref AI_SERVICE: StdMutex<Option<MultiDetectorInferenceService>> = StdMutex::new(None);
@@ -78,7 +78,7 @@ pub extern "C" fn smartscope_init() -> c_int {
         };
 
         if let Err(e) = init_global_logger(log_config) {
-            eprintln!("Failed to initialize logger: {}", e);
+            std::println!("Failed to initialize logger: {}", e);
         }
 
         unsafe {
@@ -88,7 +88,7 @@ pub extern "C" fn smartscope_init() -> c_int {
                     APP_STATE = Some(state);
                 }
                 Err(e) => {
-                    eprintln!("Failed to initialize: {}", e);
+                    std::println!("Failed to initialize: {}", e);
                 }
             }
         }
@@ -572,14 +572,23 @@ pub extern "C" fn smartscope_ai_init(model_path: *const c_char, num_workers: i32
         return ErrorCode::Error as c_int;
     }
 
-    let path_str = unsafe { match CStr::from_ptr(model_path).to_str() { Ok(s) => s, Err(_) => return ErrorCode::Error as c_int } };
+    let path_str = unsafe {
+        match CStr::from_ptr(model_path).to_str() {
+            Ok(s) => s,
+            Err(_) => return ErrorCode::Error as c_int,
+        }
+    };
 
     let mut guard = AI_SERVICE.lock().unwrap();
     match MultiDetectorInferenceService::new(path_str, num_workers as usize) {
         Ok(service) => {
             *guard = Some(service);
             AI_ENABLED.store(false, Ordering::Relaxed);
-            tracing::info!("AI inference service initialized: {} workers, model: {}", num_workers, path_str);
+            tracing::info!(
+                "AI inference service initialized: {} workers, model: {}",
+                num_workers,
+                path_str
+            );
             ErrorCode::Success as c_int
         }
         Err(e) => {
@@ -613,7 +622,12 @@ pub extern "C" fn smartscope_ai_is_enabled() -> bool {
 /// 提交一帧RGB888图像到AI推理服务（非阻塞）
 /// data指向RGB888数据（width*height*3字节）
 #[no_mangle]
-pub extern "C" fn smartscope_ai_submit_rgb888(width: i32, height: i32, data: *const u8, len: usize) -> c_int {
+pub extern "C" fn smartscope_ai_submit_rgb888(
+    width: i32,
+    height: i32,
+    data: *const u8,
+    len: usize,
+) -> c_int {
     if !AI_ENABLED.load(Ordering::Relaxed) {
         return ErrorCode::Success as c_int; // 检测未启用时忽略
     }
@@ -623,15 +637,21 @@ pub extern "C" fn smartscope_ai_submit_rgb888(width: i32, height: i32, data: *co
     }
 
     let guard = AI_SERVICE.lock().unwrap();
-    let service = match guard.as_ref() { Some(s) => s, None => return ErrorCode::Error as c_int };
-
-    let data_slice = unsafe { std::slice::from_raw_parts(data, len.min((width as usize)*(height as usize)*3)) };
-
-    // 使用预处理器进行letterbox+缩放
-    let rgb_image = match image::RgbImage::from_raw(width as u32, height as u32, data_slice.to_vec()) {
-        Some(img) => img,
+    let service = match guard.as_ref() {
+        Some(s) => s,
         None => return ErrorCode::Error as c_int,
     };
+
+    let data_slice = unsafe {
+        std::slice::from_raw_parts(data, len.min((width as usize) * (height as usize) * 3))
+    };
+
+    // 使用预处理器进行letterbox+缩放
+    let rgb_image =
+        match image::RgbImage::from_raw(width as u32, height as u32, data_slice.to_vec()) {
+            Some(img) => img,
+            None => return ErrorCode::Error as c_int,
+        };
 
     let preprocessor = rknn_inference::ImagePreprocessor::new();
     let image_buffer = preprocessor.preprocess(&rgb_image);
@@ -652,7 +672,10 @@ pub extern "C" fn smartscope_ai_submit_rgb888(width: i32, height: i32, data: *co
 /// - max_results: 数组最大容量
 /// 返回：检测数量（>=0），无结果或过期返回0，错误返回-1
 #[no_mangle]
-pub extern "C" fn smartscope_ai_try_get_latest_result(results_out: *mut CDetection, max_results: i32) -> c_int {
+pub extern "C" fn smartscope_ai_try_get_latest_result(
+    results_out: *mut CDetection,
+    max_results: i32,
+) -> c_int {
     if results_out.is_null() || max_results <= 0 {
         return -1;
     }
@@ -662,7 +685,10 @@ pub extern "C" fn smartscope_ai_try_get_latest_result(results_out: *mut CDetecti
     }
 
     let guard = AI_SERVICE.lock().unwrap();
-    let service = match guard.as_ref() { Some(s) => s, None => return -1 };
+    let service = match guard.as_ref() {
+        Some(s) => s,
+        None => return -1,
+    };
 
     if let Some((_task_id, result)) = service.try_get_latest_result() {
         match result {
@@ -980,7 +1006,7 @@ pub enum CCameraProperty {
     Contrast = 1,
     Saturation = 2,
     Gain = 3,
-    ExposureTime = 4,     // 修改：Exposure -> ExposureTime
+    ExposureTime = 4, // 修改：Exposure -> ExposureTime
     WhiteBalance = 5,
     Gamma = 6,
     BacklightCompensation = 7,
@@ -995,7 +1021,7 @@ impl From<CCameraProperty> for CameraProperty {
             CCameraProperty::Contrast => CameraProperty::Contrast,
             CCameraProperty::Saturation => CameraProperty::Saturation,
             CCameraProperty::Gain => CameraProperty::Gain,
-            CCameraProperty::ExposureTime => CameraProperty::Exposure,  // 修改：映射到内部Exposure
+            CCameraProperty::ExposureTime => CameraProperty::Exposure, // 修改：映射到内部Exposure
             CCameraProperty::WhiteBalance => CameraProperty::WhiteBalance,
             CCameraProperty::Gamma => CameraProperty::Gamma,
             CCameraProperty::BacklightCompensation => CameraProperty::BacklightCompensation,
@@ -1017,7 +1043,10 @@ pub struct CCameraParameterRange {
 
 /// 设置左相机参数
 #[no_mangle]
-pub extern "C" fn smartscope_set_left_camera_parameter(property: CCameraProperty, value: i32) -> c_int {
+pub extern "C" fn smartscope_set_left_camera_parameter(
+    property: CCameraProperty,
+    value: i32,
+) -> c_int {
     let app_state = match get_app_state() {
         Ok(state) => state,
         Err(_) => return ErrorCode::Error as c_int,
@@ -1038,7 +1067,10 @@ pub extern "C" fn smartscope_set_left_camera_parameter(property: CCameraProperty
 
 /// 设置右相机参数
 #[no_mangle]
-pub extern "C" fn smartscope_set_right_camera_parameter(property: CCameraProperty, value: i32) -> c_int {
+pub extern "C" fn smartscope_set_right_camera_parameter(
+    property: CCameraProperty,
+    value: i32,
+) -> c_int {
     let app_state = match get_app_state() {
         Ok(state) => state,
         Err(_) => return ErrorCode::Error as c_int,
@@ -1059,7 +1091,10 @@ pub extern "C" fn smartscope_set_right_camera_parameter(property: CCameraPropert
 
 /// 设置单相机参数
 #[no_mangle]
-pub extern "C" fn smartscope_set_single_camera_parameter(property: CCameraProperty, value: i32) -> c_int {
+pub extern "C" fn smartscope_set_single_camera_parameter(
+    property: CCameraProperty,
+    value: i32,
+) -> c_int {
     let app_state = match get_app_state() {
         Ok(state) => state,
         Err(_) => return ErrorCode::Error as c_int,

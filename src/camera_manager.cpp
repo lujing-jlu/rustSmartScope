@@ -1,5 +1,5 @@
 #include "camera_manager.h"
-#include <QDebug>
+#include "logger.h"
 #include <QBuffer>
 #include <QImageReader>
 #include <QMutexLocker>
@@ -25,7 +25,7 @@ CameraManager::CameraManager(QObject *parent)
     m_updateTimer->setInterval(33);
     connect(m_updateTimer, &QTimer::timeout, this, &CameraManager::updateFrames);
 
-    qDebug() << "CameraManager initialized";
+    LOG_INFO("CameraManager", "CameraManager initialized");
 }
 
 CameraManager::~CameraManager()
@@ -35,24 +35,24 @@ CameraManager::~CameraManager()
 
 bool CameraManager::startCamera()
 {
-    qDebug() << "Starting camera system...";
+    LOG_INFO("CameraManager", "Starting camera system...");
 
     int result = smartscope_start_camera();
     if (result == 0) { // Success
         m_cameraRunning = true;
         m_updateTimer->start();
         emit cameraRunningChanged();
-        qDebug() << "Camera system started successfully";
+        LOG_INFO("CameraManager", "Camera system started successfully");
         return true;
     } else {
-        qDebug() << "Failed to start camera system, error code:" << result;
+        LOG_ERROR("CameraManager", "Failed to start camera system, error code: ", result);
         return false;
     }
 }
 
 bool CameraManager::stopCamera()
 {
-    qDebug() << "Stopping camera system...";
+    LOG_INFO("CameraManager", "Stopping camera system...");
 
     m_updateTimer->stop();
 
@@ -76,10 +76,10 @@ bool CameraManager::stopCamera()
         emit rightFrameChanged();
         emit singleFrameChanged();
 
-        qDebug() << "Camera system stopped successfully";
+        LOG_INFO("CameraManager", "Camera system stopped successfully");
         return true;
     } else {
-        qDebug() << "Failed to stop camera system, error code:" << result;
+        LOG_ERROR("CameraManager", "Failed to stop camera system, error code: ", result);
         return false;
     }
 }
@@ -170,6 +170,7 @@ void CameraManager::updateFrames()
 
                 // 发送QPixmap信号给原生Widget（不需要锁，信号是异步的）
                 emit leftPixmapUpdated(newLeftPixmap);
+
             }
         }
 
@@ -198,6 +199,8 @@ void CameraManager::updateFrames()
 
                 // 发送QPixmap信号给原生Widget
                 emit singlePixmapUpdated(newSinglePixmap);
+
+                // PiP 缩略图改为前端直接缩放显示帧
             }
         }
 
@@ -234,7 +237,7 @@ QImage CameraManager::processFrame(const CCameraFrame& frame)
         QImage image = reader.read();
 
         if (image.isNull()) {
-            qDebug() << "Failed to decode MJPEG frame:" << reader.errorString();
+            LOG_WARN("CameraManager", "Failed to decode MJPEG frame: ", reader.errorString().toStdString());
             return QImage();
         }
 
@@ -274,7 +277,7 @@ void CameraManager::updateStatus()
             emit rightConnectedChanged();
         }
         if (wasMode != m_cameraMode) {
-            qDebug() << "Camera mode changed:" << wasMode << "->" << m_cameraMode;
+            LOG_INFO("CameraManager", "Camera mode changed: ", wasMode, "->", m_cameraMode);
             emit cameraModeChanged();
         }
     }
