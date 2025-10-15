@@ -14,15 +14,15 @@ Rectangle {
     // 主布局
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 40
-        spacing: 30
+        anchors.margins: 56
+        spacing: 40
 
         // 页面标题
         Text {
             text: "⚙️ 系统设置"
-            font.pixelSize: 48
+            font.pixelSize: 64
             font.bold: true
-            color: "#F59E0B"  // 橙色
+            color: "#FFFFFF"
             Layout.alignment: Qt.AlignHCenter
         }
 
@@ -54,9 +54,9 @@ Rectangle {
 
                     label: Text {
                         text: "🔧 系统设置"
-                        font.pixelSize: 32
+                        font.pixelSize: 36
                         font.bold: true
-                        color: "#8B5CF6"
+                        color: "#FFFFFF"
                         padding: 10
                     }
 
@@ -66,8 +66,8 @@ Rectangle {
 
                         Text {
                             text: "其他系统设置（待实现）"
-                            font.pixelSize: 20
-                            color: "#9CA3AF"
+                            font.pixelSize: 24
+                            color: "#FFFFFF"
                         }
                     }
                 }
@@ -76,7 +76,7 @@ Rectangle {
                 GroupBox {
                     Layout.fillWidth: true
                     // 固定较为稳妥的高度，避免implicitHeight为0导致不可见
-                    Layout.preferredHeight: 420
+                    Layout.preferredHeight: 500
 
                     background: Rectangle {
                         color: Qt.rgba(20/255, 20/255, 20/255, 0.78)
@@ -87,9 +87,9 @@ Rectangle {
 
                     label: Text {
                         text: "💽 外置存储 (U盘 / SD卡)"
-                        font.pixelSize: 32
+                        font.pixelSize: 40
                         font.bold: true
-                        color: "#10B981"
+                        color: "#FFFFFF"
                         padding: 10
                     }
 
@@ -102,13 +102,15 @@ Rectangle {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 16
-                            Text { text: "保存位置："; color: "white"; font.pixelSize: 20 }
+                            Text { text: "保存位置："; color: "#FFFFFF"; font.pixelSize: 28 }
                             ButtonGroup { id: storageLocGroup }
                             RadioButton {
                                 id: internalRadio
                                 text: "机内存储"
                                 checked: true
                                 ButtonGroup.group: storageLocGroup
+                                font.pixelSize: 24
+                                contentItem: Text { text: parent.text; font: parent.font; color: "#FFFFFF"; verticalAlignment: Text.AlignVCenter }
                                 onToggled: if (checked && StorageManager) StorageManager.setStorageLocation(0)
                             }
                             RadioButton {
@@ -116,6 +118,8 @@ Rectangle {
                                 text: "外置硬盘"
                                 checked: false
                                 ButtonGroup.group: storageLocGroup
+                                font.pixelSize: 24
+                                contentItem: Text { text: parent.text; font: parent.font; color: "#FFFFFF"; verticalAlignment: Text.AlignVCenter }
                                 onToggled: if (checked && StorageManager) StorageManager.setStorageLocation(1)
                             }
                         }
@@ -125,14 +129,17 @@ Rectangle {
                             visible: externalRadio.checked
                             Layout.fillWidth: true
                             spacing: 12
-                            Text { text: "选择设备："; color: "white"; font.pixelSize: 20 }
+                            Text { text: "选择设备："; color: "#FFFFFF"; font.pixelSize: 28 }
                             ComboBox {
                                 id: deviceCombo
                                 Layout.fillWidth: true
                                 model: storageListModel
                                 textRole: "_display"
+                                font.pixelSize: 22
+                                implicitHeight: 56
                                 delegate: ItemDelegate {
                                     text: (model.label && model.label.length>0) ? (model.label + " (" + model.device + ")") : model.device
+                                    font.pixelSize: 22
                                 }
                                 onActivated: {
                                     var item = storageListModel.get(currentIndex)
@@ -144,6 +151,9 @@ Rectangle {
                             UniversalButton {
                                 text: "刷新设备"
                                 buttonStyle: "action"
+                                customButtonWidth: 180
+                                customButtonHeight: 56
+                                customIconSize: 28
                                 onClicked: refreshStorageBtn.clicked()
                             }
                         }
@@ -157,6 +167,9 @@ Rectangle {
                                 text: "刷新"
                                 iconSource: "qrc:/icons/view.svg"
                                 buttonStyle: "action"
+                                customButtonWidth: 160
+                                customButtonHeight: 56
+                                customIconSize: 32
                                 onClicked: {
                                     try {
                                         var json = StorageManager ? StorageManager.refreshExternalStoragesJson() : "[]"
@@ -178,19 +191,19 @@ Rectangle {
                                 }
                             }
 
-                            Text { text: "点击刷新以检测当前已挂载的外置存储"; font.pixelSize: 20; color: "#9CA3AF" }
+                            Text { text: "点击刷新以检测当前已挂载的外置存储"; font.pixelSize: 26; color: "#FFFFFF" }
                         }
 
                         ListModel { id: storageListModel }
 
                         ListView {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: Math.min(280, contentHeight > 0 ? contentHeight : 280)
+                            Layout.preferredHeight: Math.min(360, contentHeight > 0 ? contentHeight : 360)
                             clip: true
                             model: storageListModel
                             delegate: Rectangle {
                                 width: ListView.view.width
-                                height: 48
+                                height: 72
                                 color: index % 2 === 0 ? "#111318" : "#0E1015"
                                 RowLayout {
                                     anchors.fill: parent
@@ -198,15 +211,15 @@ Rectangle {
                                     spacing: 12
                                     // 组合显示字段，便于 ComboBox 使用 textRole
                                     property string _display: (label && label.length>0) ? (label + " (" + device + ")") : device
-                                    Text { text: parent._display; color: "white"; font.pixelSize: 20; Layout.preferredWidth: 320; elide: Text.ElideRight }
-                                    Text { text: mountPoint; color: "#A7F3D0"; font.pixelSize: 18; Layout.fillWidth: true; elide: Text.ElideRight }
-                                    Text { text: fsType; color: "#34D399"; font.pixelSize: 18 }
+                                    Text { text: parent._display; color: "#FFFFFF"; font.pixelSize: 24; Layout.preferredWidth: 400; elide: Text.ElideRight }
+                                    Text { text: mountPoint; color: "#FFFFFF"; font.pixelSize: 22; Layout.fillWidth: true; elide: Text.ElideRight }
+                                    Text { text: fsType; color: "#FFFFFF"; font.pixelSize: 22 }
                                 }
                             }
                             visible: storageListModel.count > 0
                         }
 
-                        Text { visible: storageListModel.count === 0; text: "暂无外置存储"; color: "#9CA3AF"; font.pixelSize: 20 }
+                        Text { visible: storageListModel.count === 0; text: "暂无外置存储"; color: "#FFFFFF"; font.pixelSize: 26 }
                     }
                 }
 
