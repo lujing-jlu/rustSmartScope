@@ -3,7 +3,6 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
 import QtGraphicalEffects 1.15
-import QtGraphicalEffects 1.15
 import "../components"
 import RustSmartScope.Logger 1.0
 
@@ -13,6 +12,25 @@ Rectangle {
 
     signal backRequested()
     signal navigateRequested(string pageType)
+
+    // 与主窗口一致的缩放参数（独立计算）
+    property int targetWidth: 1920
+    property int targetHeight: 1200
+    property real devicePixelRatio: Screen.devicePixelRatio || 1.0
+    property real screenWidth: Screen.width || targetWidth
+    property real screenHeight: Screen.height || targetHeight
+    property real widthRatio: screenWidth / targetWidth
+    property real heightRatio: screenHeight / targetHeight
+    property real screenRatio: Math.min(widthRatio, heightRatio)
+    property real hiDPIAdjustment: devicePixelRatio >= 2.0 ? 0.75 : 1.0
+    property real sizeAdjustment: screenRatio * hiDPIAdjustment
+
+    // 页面尺寸（与主窗口风格接近）
+    property int pageMargins: Math.max(12, Math.min(width, height) * 0.015 * sizeAdjustment * 1.5)
+    property int pageSpacing: Math.max(10, Math.min(width, height) * 0.0052 * sizeAdjustment * 2)
+    property int pageCorner: Math.max(12, Math.min(width, height) * 0.006 * sizeAdjustment * 2)
+    property int settingButtonHeight: Math.max(80, Math.min(width, height) * 0.05 * sizeAdjustment)
+    property int actionButtonHeight: Math.max(64, Math.min(width, height) * 0.045 * sizeAdjustment)
 
     // Settings页专用文字层级（集中管理）
     QtObject {
@@ -30,8 +48,8 @@ Rectangle {
     // 主布局
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 56
-        spacing: 40
+        anchors.margins: pageMargins
+        spacing: pageSpacing * 2
 
         // 页面标题（使用SVG而非emoji）
         Row {
@@ -76,7 +94,7 @@ Rectangle {
                         color: Qt.rgba(20/255, 20/255, 20/255, 0.78)
                         border.color: "#8B5CF6"
                         border.width: 2
-                        radius: 10
+                        radius: pageCorner
                     }
 
                     ColumnLayout {
@@ -115,7 +133,7 @@ Rectangle {
                         color: Qt.rgba(20/255, 20/255, 20/255, 0.78)
                         border.color: "#10B981"
                         border.width: 2
-                        radius: 10
+                        radius: pageCorner
                     }
 
                     ColumnLayout {
@@ -148,18 +166,19 @@ Rectangle {
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                spacing: 16
+                                spacing: pageSpacing
 
                                 // 机内存储按钮
                                 UniversalButton {
                                     id: btnInternal
                                     text: "机内存储"
+                                    iconSource: "qrc:/icons/save.svg"
                                     buttonStyle: "navigation"
+                                    contentLayout: "horizontal"
                                     isActive: externalStorageContent.currentDevice === ""
-                                    customButtonWidth: 240
-                                    customButtonHeight: 80
-                                    customIconSize: 0
-                                    customTextSize: st.buttonSize
+                                    customButtonWidth: Math.round(settingButtonHeight * 2.2)
+                                    customButtonHeight: settingButtonHeight
+                                    customTextSize: Math.round(settingButtonHeight * 0.32)
                                     onClicked: {
                                         externalStorageContent.currentDevice = ""
                                         if (StorageManager) StorageManager.setStorageLocation(0)
@@ -173,12 +192,13 @@ Rectangle {
                                         // 展示 label(设备) 或设备
                                         property string devicePath: model.device
                                         text: model._display
+                                        iconSource: "qrc:/icons/save.svg"
                                         buttonStyle: "navigation"
+                                        contentLayout: "horizontal"
                                         isActive: externalStorageContent.currentDevice === devicePath
-                                        customButtonWidth: 300
-                                        customButtonHeight: 80
-                                        customIconSize: 0
-                                        customTextSize: st.buttonSize
+                                        customButtonWidth: Math.round(settingButtonHeight * 2.6)
+                                        customButtonHeight: settingButtonHeight
+                                        customTextSize: Math.round(settingButtonHeight * 0.32)
                                         onClicked: {
                                             externalStorageContent.currentDevice = devicePath
                                             if (StorageManager) {
@@ -194,14 +214,16 @@ Rectangle {
                         // 刷新设备按钮
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 12
+                            spacing: pageSpacing
                             UniversalButton {
                                 text: "刷新设备"
                                 buttonStyle: "action"
-                                customButtonWidth: 220
-                                customButtonHeight: 72
+                                iconSource: "qrc:/icons/restore.svg"
+                                contentLayout: "horizontal"
+                                customButtonWidth: Math.round(actionButtonHeight * 2.2)
+                                customButtonHeight: actionButtonHeight
                                 customIconSize: 32
-                                customTextSize: st.buttonSize
+                                customTextSize: Math.round(actionButtonHeight * 0.32)
                                 onClicked: refreshStorageBtn.clicked()
                             }
                         }
@@ -217,7 +239,7 @@ Rectangle {
                                     var prev = externalStorageContent.currentDevice
                                     storageListModel.clear()
                                     for (var i = 0; i < arr.length; i++) {
-                                        var disp = (arr[i].label && arr[i].label.length>0) ? (arr[i].label + " (" + arr[i].device + ")") : arr[i].device
+                                        var disp = (arr[i].label && arr[i].label.length>0) ? arr[i].label : arr[i].device
                                         storageListModel.append({
                                             device: arr[i].device,
                                             label: arr[i].label || "",
@@ -263,20 +285,14 @@ Rectangle {
                 var cfg = null
                 if (cfgJson && cfgJson.length>0) {
                     cfg = JSON.parse(cfgJson)
-                    var isExt = (cfg.location === 'external')
-                    btnInternal.isActive = !isExt
-                    btnExternal.isActive = isExt
-                    externalStorageContent.externalSectionVisible = isExt
-                } else {
-                    btnInternal.isActive = true
-                    btnExternal.isActive = false
-                    externalStorageContent.externalSectionVisible = false
                 }
+
+                // 刷新外置设备列表
                 var json = StorageManager.refreshExternalStoragesJson()
                 var arr = JSON.parse(json)
                 storageListModel.clear()
                 for (var i = 0; i < arr.length; i++) {
-                    var disp = (arr[i].label && arr[i].label.length>0) ? (arr[i].label + " (" + arr[i].device + ")") : arr[i].device
+                    var disp = (arr[i].label && arr[i].label.length>0) ? arr[i].label : arr[i].device
                     storageListModel.append({
                         device: arr[i].device,
                         label: arr[i].label || "",
@@ -285,15 +301,12 @@ Rectangle {
                         _display: disp
                     })
                 }
-                // 根据配置选择外置设备
-                if (cfg && cfg.external_device && storageListModel.count>0) {
-                    for (var j=0;j<storageListModel.count;j++) {
-                        var it = storageListModel.get(j)
-                        if (it.device === cfg.external_device) {
-                            deviceCombo.currentIndex = j
-                            break
-                        }
-                    }
+
+                // 根据配置设置当前选择
+                if (cfg && cfg.location === 'external' && cfg.external_device) {
+                    externalStorageContent.currentDevice = cfg.external_device
+                } else {
+                    externalStorageContent.currentDevice = ""
                 }
             }
         } catch(e) {

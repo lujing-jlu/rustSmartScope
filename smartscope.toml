@@ -7,7 +7,6 @@ fps = 30
 name_keywords = [
     "cameral",
     "left",
-    "video3",
 ]
 parameters_path = "camera_parameters/camera0_intrinsics.dat"
 rot_trans_path = "camera_parameters/camera0_rot_trans.dat"
@@ -16,7 +15,6 @@ rot_trans_path = "camera_parameters/camera0_rot_trans.dat"
 name_keywords = [
     "camerar",
     "right",
-    "video1",
 ]
 parameters_path = "camera_parameters/camera1_intrinsics.dat"
 rot_trans_path = "camera_parameters/camera1_rot_trans.dat"
