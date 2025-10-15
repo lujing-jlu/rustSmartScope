@@ -77,7 +77,7 @@ ApplicationWindow {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 96
+        height: 144  // 放大50%
         z: 95
 
         Rectangle {
@@ -92,10 +92,10 @@ ApplicationWindow {
                 spacing: margins
 
                 Rectangle {
-                    Layout.preferredWidth: 160
+                    Layout.preferredWidth: 240  // 放大50%
                     Layout.fillHeight: true
                     color: Qt.rgba(0.7, 0.2, 0.2, 0.8)
-                    radius: 12
+                    radius: 18  // 放大50%
                     border.width: 1
                     border.color: Qt.rgba(1,1,1,0.1)
 
@@ -106,9 +106,9 @@ ApplicationWindow {
 
                     Row {
                         anchors.centerIn: parent
-                        spacing: 8
-                        Image { source: "qrc:/icons/close.svg"; width: 28; height: 28; fillMode: Image.PreserveAspectFit }
-                        Text { text: "关闭"; color: "#FFFFFF"; font.pixelSize: 22; font.weight: Font.Medium }
+                        spacing: 12  // 放大50%
+                        Image { source: "qrc:/icons/close.svg"; width: 42; height: 42; fillMode: Image.PreserveAspectFit }
+                        Text { text: "关闭"; color: "#FFFFFF"; font.pixelSize: 33; font.weight: Font.Medium }
                     }
                 }
 
