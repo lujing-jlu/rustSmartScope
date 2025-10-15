@@ -317,9 +317,10 @@ ApplicationWindow {
             }
         }
 
-        // 右侧工具栏
+        // 右侧工具栏（主页专用）
         Item {
             id: toolBarContainer
+            visible: currentPage === "home"
             anchors.right: parent.right
             anchors.top: statusBar.bottom
             anchors.bottom: navigationContainer.top
@@ -433,7 +434,9 @@ ApplicationWindow {
                     navigateTo("report")
                 }
                 onSettingsClicked: {
-                    navigateTo("settings")
+                    settingsWindow.show()
+                    settingsWindow.raise()
+                    settingsWindow.requestActivate()
                 }
                 onMeasurementClicked: {
                     if (measurement3DWindow.visibility === Window.Hidden || measurement3DWindow.visibility === Window.Minimized) {
@@ -645,6 +648,20 @@ ApplicationWindow {
     // 3D测量窗口实例
     Measurement3DWindow {
         id: measurement3DWindow
+    }
+
+    // 系统设置窗口实例（独立窗口，复用主窗口状态栏样式）
+    SettingsWindow {
+        id: settingsWindow
+        // 同步主窗口状态栏信息与字体参数
+        currentTime: mainWindow.currentTime
+        currentDate: mainWindow.currentDate
+        batteryLevel: mainWindow.batteryLevel
+        isCharging: mainWindow.isCharging
+        fontSize: mainWindow.fontSize
+        mixedFontMedium: mixedFontMedium
+        statusBarHeight: mainWindow.statusBarHeight
+        margins: margins
     }
 
     // 视频操作窗口实例

@@ -2,6 +2,7 @@
     <qresource prefix="/">
         <!-- 主QML文件 -->
         <file>main.qml</file>
+        <file>SettingsWindow.qml</file>
 
         <!-- 组件 -->
         <file>components/StatusIndicator.qml</file>
