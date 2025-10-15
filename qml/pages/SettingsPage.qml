@@ -122,8 +122,8 @@ Rectangle {
                         id: externalStorageContent
                         width: parent.width
                         spacing: 16
-                        // 外置设备区可见性（由互斥按钮控制/初始化同步配置）
-                        property bool externalSectionVisible: false
+                        // 当前选择的设备（空字符串表示机内存储）
+                        property string currentDevice: ""
 
                         // 子标题与设置项在同一布局
                         Row {
@@ -136,82 +136,75 @@ Rectangle {
                                 Image { id: storageIcon; anchors.fill: parent; source: "qrc:/icons/save.svg"; fillMode: Image.PreserveAspectFit; visible: false }
                                 ColorOverlay { anchors.fill: storageIcon; source: storageIcon; color: "#FFFFFF" }
                             }
-                            Text { text: "外置存储 (U盘 / SD卡)"; font.pixelSize: st.sectionSize; font.bold: true; color: "#FFFFFF" }
+                            Text { text: "数据存储位置"; font.pixelSize: st.sectionSize; font.bold: true; color: "#FFFFFF" }
                         }
 
-                        // 保存位置选择（互斥按钮）
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 20
-
-                            // 左侧标签（加大一倍）
-                            Text { text: "保存位置："; color: "#FFFFFF"; font.pixelSize: st.labelSize }
-
-                            // 机内存储按钮
-                            UniversalButton {
-                                id: btnInternal
-                                text: "机内存储"
-                                buttonStyle: "navigation"
-                                isActive: true
-                                customButtonWidth: 240
-                                customButtonHeight: 80
-                                customIconSize: 0
-                                customTextSize: st.buttonSize
-                                onClicked: {
-                                    if (!isActive) {
-                                        isActive = true
-                                        btnExternal.isActive = false
-                                    }
-                                    externalStorageContent.externalSectionVisible = false
-                                    if (StorageManager) StorageManager.setStorageLocation(0)
-                                }
-                            }
-
-                            // 外置硬盘按钮
-                            UniversalButton {
-                                id: btnExternal
-                                text: "外置硬盘"
-                                buttonStyle: "navigation"
-                                isActive: false
-                                customButtonWidth: 240
-                                customButtonHeight: 80
-                                customIconSize: 0
-                                customTextSize: st.buttonSize
-                                onClicked: {
-                                    if (!isActive) {
-                                        isActive = true
-                                        btnInternal.isActive = false
-                                    }
-                                    externalStorageContent.externalSectionVisible = true
-                                    if (StorageManager) StorageManager.setStorageLocation(1)
-                                }
-                            }
-                        }
-
-                        // 外置设备选择（仅在外置模式下）
-                        RowLayout {
-                            visible: externalStorageContent.externalSectionVisible
+                        // 保存位置选择（互斥按钮：机内 + 动态外置设备）
+                        ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 12
-                            Text { text: "选择设备："; color: "#FFFFFF"; font.pixelSize: st.labelSize }
-                            ComboBox {
-                                id: deviceCombo
+
+                            Text { text: "保存位置："; color: "#FFFFFF"; font.pixelSize: st.labelSize }
+
+                            RowLayout {
                                 Layout.fillWidth: true
-                                model: storageListModel
-                                textRole: "_display"
-                                font.pixelSize: st.controlSize + 16
-                                implicitHeight: 72
-                                delegate: ItemDelegate {
-                                    text: (model.label && model.label.length>0) ? (model.label + " (" + model.device + ")") : model.device
-                                    font.pixelSize: st.controlSize + 16
+                                spacing: 16
+
+                                // 机内存储按钮
+                                UniversalButton {
+                                    id: btnInternal
+                                    text: "机内存储"
+                                    buttonStyle: "navigation"
+                                    isActive: externalStorageContent.currentDevice === ""
+                                    customButtonWidth: 240
+                                    customButtonHeight: 80
+                                    customIconSize: 0
+                                    customTextSize: st.buttonSize
+                                    customBorderWidth: 2
+                                    customActiveBorderColor: "#0EA5E9"
+                                    customBorderColor: Qt.rgba(1,1,1,0.18)
+                                    customActiveBackground: Qt.rgba(14/255,165/255,233/255,0.16)
+                                    customInactiveBackground: Qt.rgba(18/255,18/255,24/255,0.8)
+                                    onClicked: {
+                                        externalStorageContent.currentDevice = ""
+                                        if (StorageManager) StorageManager.setStorageLocation(0)
+                                    }
                                 }
-                                onActivated: {
-                                    var item = storageListModel.get(currentIndex)
-                                    if (item && StorageManager) {
-                                        StorageManager.setStorageExternalDevice(item.device)
+
+                                // 动态外置设备按钮（仅显示设备名称：优先label，否则device）
+                                Repeater {
+                                    model: storageListModel
+                                    delegate: UniversalButton {
+                                        // 展示 label(设备) 或设备
+                                        property string devicePath: model.device
+                                        text: (model.label && model.label.length>0) ? model.label : model.device
+                                        buttonStyle: "navigation"
+                                        isActive: externalStorageContent.currentDevice === devicePath
+                                        customButtonWidth: 300
+                                        customButtonHeight: 80
+                                        customIconSize: 0
+                                        customTextSize: st.buttonSize
+                                        customBorderWidth: 2
+                                        customActiveBorderColor: "#0EA5E9"
+                                        customBorderColor: Qt.rgba(1,1,1,0.18)
+                                        customActiveBackground: Qt.rgba(14/255,165/255,233/255,0.16)
+                                        customInactiveBackground: Qt.rgba(18/255,18/255,24/255,0.8)
+                                        onClicked: {
+                                            externalStorageContent.currentDevice = devicePath
+                                            if (StorageManager) {
+                                                StorageManager.setStorageLocation(1)
+                                                StorageManager.setStorageExternalDevice(devicePath)
+                                            }
+                                        }
                                     }
                                 }
                             }
+                        }
+
+                        // 刷新设备按钮
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 12
                             UniversalButton {
                                 text: "刷新设备"
                                 buttonStyle: "action"
@@ -223,69 +216,41 @@ Rectangle {
                             }
                         }
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 12
-
-                            UniversalButton {
-                                id: refreshStorageBtn
-                                text: "刷新"
-                                iconSource: "qrc:/icons/view.svg"
-                                buttonStyle: "action"
-                                customButtonWidth: 220
-                                customButtonHeight: 72
-                                customIconSize: 36
-                                customTextSize: st.buttonSize
-                                onClicked: {
-                                    try {
-                                        var json = StorageManager ? StorageManager.refreshExternalStoragesJson() : "[]"
-                                        var arr = JSON.parse(json)
-                                        storageListModel.clear()
-                                        for (var i = 0; i < arr.length; i++) {
-                                            var disp = (arr[i].label && arr[i].label.length>0) ? (arr[i].label + " (" + arr[i].device + ")") : arr[i].device
-                                            storageListModel.append({
-                                                device: arr[i].device,
-                                                label: arr[i].label || "",
-                                                mountPoint: arr[i].mount_point,
-                                                fsType: arr[i].fs_type,
-                                                _display: disp
-                                            })
-                                        }
-                                    } catch(e) {
-                                        Logger.error("解析外置存储JSON失败: " + e)
+                        // 隐含刷新动作（供“刷新设备”触发）
+                        UniversalButton {
+                            id: refreshStorageBtn
+                            visible: false
+                            onClicked: {
+                                try {
+                                    var json = StorageManager ? StorageManager.refreshExternalStoragesJson() : "[]"
+                                    var arr = JSON.parse(json)
+                                    var prev = externalStorageContent.currentDevice
+                                    storageListModel.clear()
+                                    for (var i = 0; i < arr.length; i++) {
+                                        var disp = (arr[i].label && arr[i].label.length>0) ? (arr[i].label + " (" + arr[i].device + ")") : arr[i].device
+                                        storageListModel.append({
+                                            device: arr[i].device,
+                                            label: arr[i].label || "",
+                                            mountPoint: arr[i].mount_point,
+                                            fsType: arr[i].fs_type,
+                                            _display: disp
+                                        })
                                     }
+                                    // 保持当前选择（若不在列表则回退到机内存储）
+                                    var found = false
+                                    for (var j=0;j<storageListModel.count;j++) {
+                                        if (storageListModel.get(j).device === prev) { found = true; break }
+                                    }
+                                    if (!found) externalStorageContent.currentDevice = ""
+                                } catch(e) {
+                                    Logger.error("解析外置存储JSON失败: " + e)
                                 }
                             }
-
-                            Text { text: "点击刷新以检测当前已挂载的外置存储"; font.pixelSize: st.hintSize; color: "#FFFFFF" }
                         }
 
                         ListModel { id: storageListModel }
 
-                        ListView {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: Math.min(420, contentHeight > 0 ? contentHeight : 420)
-                            clip: true
-                            model: storageListModel
-                            delegate: Rectangle {
-                                width: ListView.view.width
-                                height: 88
-                                color: index % 2 === 0 ? "#111318" : "#0E1015"
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 8
-                                    spacing: 16
-                                    // 组合显示字段，便于 ComboBox 使用 textRole
-                                    property string _display: (label && label.length>0) ? (label + " (" + device + ")") : device
-                                    Text { text: parent._display; color: "#FFFFFF"; font.pixelSize: st.listPrimary; Layout.preferredWidth: 460; elide: Text.ElideRight }
-                                    Text { text: mountPoint; color: "#FFFFFF"; font.pixelSize: st.listSecondary; Layout.fillWidth: true; elide: Text.ElideRight }
-                                    Text { text: fsType; color: "#FFFFFF"; font.pixelSize: st.listSecondary }
-                                }
-                            }
-                            visible: storageListModel.count > 0
-                        }
-
-                        Text { visible: storageListModel.count === 0; text: "暂无外置存储"; color: "#FFFFFF"; font.pixelSize: st.hintSize }
+                        // 移除列表展示
                     }
                 }
 
