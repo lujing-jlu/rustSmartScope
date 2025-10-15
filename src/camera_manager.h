@@ -78,6 +78,9 @@ public:
     QPixmap getRightPixmap() const;
     QPixmap getSinglePixmap() const;
 
+    // 保存截图会话（两张原图 + 一张处理后图）到指定目录
+    Q_INVOKABLE bool saveScreenshotSession(const QString& sessionDir);
+
 signals:
     void leftFrameChanged();
     void rightFrameChanged();
@@ -98,6 +101,7 @@ private slots:
 
 private:
     QImage processFrame(const CCameraFrame& frame);
+    QImage decodeRawFrame(const CCameraFrame& frame);
     QImage applyVideoTransforms(const QImage& image);
     void updateStatus();
 

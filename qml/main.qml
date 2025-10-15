@@ -360,6 +360,21 @@ ApplicationWindow {
                     text: "双目截图"
                     iconSource: "qrc:/icons/camera.svg"
                     buttonStyle: "toolbar"
+                    onClicked: {
+                        if (!StorageManager || !CameraManager) return
+                        var modeStr = (CameraManager.cameraMode === 2) ? "双目" : "单目"
+                        var sessionDir = StorageManager.resolveScreenshotSessionPath(modeStr)
+                        if (sessionDir && sessionDir.length > 0) {
+                            var ok = CameraManager.saveScreenshotSession(sessionDir)
+                            if (ok) {
+                                Logger.info("截图已保存: " + sessionDir)
+                            } else {
+                                Logger.error("保存截图失败")
+                            }
+                        } else {
+                            Logger.error("无法解析截图目录")
+                        }
+                    }
                 }
 
                 // 屏幕截图按钮
@@ -368,6 +383,21 @@ ApplicationWindow {
                     text: "屏幕截图"
                     iconSource: "qrc:/icons/screenshot.svg"
                     buttonStyle: "toolbar"
+                    onClicked: {
+                        if (!StorageManager || !CameraManager) return
+                        var modeStr = (CameraManager.cameraMode === 2) ? "双目" : "单目"
+                        var sessionDir = StorageManager.resolveScreenshotSessionPath(modeStr)
+                        if (sessionDir && sessionDir.length > 0) {
+                            var ok = CameraManager.saveScreenshotSession(sessionDir)
+                            if (ok) {
+                                Logger.info("截图已保存: " + sessionDir)
+                            } else {
+                                Logger.error("保存截图失败")
+                            }
+                        } else {
+                            Logger.error("无法解析截图目录")
+                        }
+                    }
                 }
 
                 // LED控制按钮

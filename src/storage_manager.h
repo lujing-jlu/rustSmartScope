@@ -20,6 +20,10 @@ public:
     Q_INVOKABLE bool setStorageInternalBasePath(const QString& path);
     Q_INVOKABLE bool setStorageExternalRelativePath(const QString& path);
 
+    // 解析当前存储配置并创建本次截图会话目录
+    // 返回目录: <base>/Screenshots/YYYY-MM-DD/YYYY-MM-DD_HH-mm-ss_<displayMode>
+    Q_INVOKABLE QString resolveScreenshotSessionPath(const QString& displayMode);
+
 signals:
     void storageListChanged(const QString& json);
     void storageConfigChanged(const QString& json);

@@ -140,6 +140,72 @@ QPixmap CameraManager::getSinglePixmap() const
     return m_singlePixmap;
 }
 
+QImage CameraManager::decodeRawFrame(const CCameraFrame& frame)
+{
+    if (frame.data == nullptr || frame.data_len == 0) {
+        return QImage();
+    }
+    if (frame.format == 0) {
+        // 已是RGB888，按原样拷贝（可能已包含上游处理）
+        QImage image(frame.data, frame.width, frame.height, frame.width * 3, QImage::Format_RGB888);
+        return image.copy();
+    } else {
+        // MJPEG 解码为RGB，不做额外变换
+        QByteArray imageData(reinterpret_cast<const char*>(frame.data), static_cast<int>(frame.data_len));
+        QBuffer buffer(&imageData);
+        buffer.open(QIODevice::ReadOnly);
+        QImageReader reader(&buffer, "JPEG");
+        QImage image = reader.read();
+        if (image.isNull()) {
+            return QImage();
+        }
+        if (image.format() != QImage::Format_RGB888) {
+            image = image.convertToFormat(QImage::Format_RGB888);
+        }
+        return image;
+    }
+}
+
+bool CameraManager::saveScreenshotSession(const QString& sessionDir)
+{
+    if (sessionDir.isEmpty()) return false;
+
+    auto saveImage = [](const QImage& img, const QString& path) -> bool {
+        if (img.isNull()) return false;
+        return img.save(path, "JPG", 95);
+    };
+
+    bool ok = true;
+    uint32_t mode = smartscope_get_camera_mode();
+
+    if (mode == StereoCamera) {
+        CCameraFrame lf{}; CCameraFrame rf{};
+        if (smartscope_get_left_frame(&lf) == 0) {
+            QImage leftRaw = decodeRawFrame(lf);
+            ok = saveImage(leftRaw, sessionDir + "/left_original.jpg") && ok;
+            // 处理后图基于左图
+            QImage leftProcessed = processFrame(lf);
+            ok = saveImage(leftProcessed, sessionDir + "/processed.jpg") && ok;
+        }
+        if (smartscope_get_right_frame(&rf) == 0) {
+            QImage rightRaw = decodeRawFrame(rf);
+            ok = saveImage(rightRaw, sessionDir + "/right_original.jpg") && ok;
+        }
+    } else if (mode == SingleCamera) {
+        CCameraFrame sf{};
+        if (smartscope_get_single_frame(&sf) == 0) {
+            QImage raw = decodeRawFrame(sf);
+            ok = saveImage(raw, sessionDir + "/single_original.jpg") && ok;
+            QImage processed = processFrame(sf);
+            ok = saveImage(processed, sessionDir + "/processed.jpg") && ok;
+        }
+    } else {
+        ok = false;
+    }
+
+    return ok;
+}
+
 void CameraManager::updateFrames()
 {
     // 处理相机帧数据

@@ -62,3 +62,67 @@ bool StorageManager::setStorageExternalRelativePath(const QString& path) {
     int rc = smartscope_storage_set_external_relative_path(b.constData());
     return rc == 0;
 }
+
+#include <QDateTime>
+#include <QDir>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+
+static QString joinPath(const QString& a, const QString& b) {
+    if (a.isEmpty()) return b;
+    if (b.isEmpty()) return a;
+    if (a.endsWith('/')) return a + b;
+    return a + "/" + b;
+}
+
+QString StorageManager::resolveScreenshotSessionPath(const QString& displayMode) {
+    // 读取存储配置
+    QString cfgJson = getStorageConfigJson();
+    if (cfgJson.isEmpty()) return QString();
+    QJsonDocument doc = QJsonDocument::fromJson(cfgJson.toUtf8());
+    if (!doc.isObject()) return QString();
+    QJsonObject cfg = doc.object();
+    QJsonObject storage = cfg.value("storage").toObject();
+    QString location = storage.value("location").toString();
+
+    QString basePath;
+    if (location == "external") {
+        // 找到当前外置设备的挂载点
+        QString dev = storage.value("external_device").toString();
+        QString rel = storage.value("external_relative_path").toString();
+        QString listJson = refreshExternalStoragesJson();
+        QJsonDocument ldoc = QJsonDocument::fromJson(listJson.toUtf8());
+        if (ldoc.isArray()) {
+            for (const auto& v : ldoc.array()) {
+                QJsonObject o = v.toObject();
+                if (o.value("device").toString() == dev) {
+                    QString mp = o.value("mount_point").toString();
+                    basePath = joinPath(mp, rel);
+                    break;
+                }
+            }
+        }
+        if (basePath.isEmpty()) {
+            // 外置找不到则回退到机内
+            basePath = storage.value("internal_base_path").toString();
+        }
+    } else {
+        basePath = storage.value("internal_base_path").toString();
+    }
+
+    if (basePath.isEmpty()) return QString();
+
+    // 构建会话目录
+    const QString dateStr = QDate::currentDate().toString("yyyy-MM-dd");
+    const QString timeStr = QTime::currentTime().toString("HH-mm-ss");
+    const QString sessionName = QString("%1_%2_%3").arg(dateStr, timeStr, displayMode);
+
+    QString screenshotsDir = joinPath(basePath, "Screenshots");
+    QString dateDir = joinPath(screenshotsDir, dateStr);
+    QString sessionDir = joinPath(dateDir, sessionName);
+
+    QDir dir;
+    dir.mkpath(sessionDir);
+    return sessionDir;
+}
