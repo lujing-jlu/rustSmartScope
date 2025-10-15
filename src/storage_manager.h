@@ -11,6 +11,13 @@ public:
 
     // 返回JSON数组字符串；调用方无需释放
     Q_INVOKABLE QString refreshExternalStoragesJson();
+
+    // 获取/设置存储配置
+    Q_INVOKABLE QString getStorageConfigJson();
+    Q_INVOKABLE bool setStorageLocation(int location); // 0 internal, 1 external
+    Q_INVOKABLE bool setStorageExternalDevice(const QString& devicePath);
+    Q_INVOKABLE bool setStorageInternalBasePath(const QString& path);
+    Q_INVOKABLE bool setStorageExternalRelativePath(const QString& path);
 };
 
 #endif // STORAGE_MANAGER_H

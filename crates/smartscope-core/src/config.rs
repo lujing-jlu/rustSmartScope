@@ -11,12 +11,50 @@ use std::path::Path;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SmartScopeConfig {
     pub camera: CameraConfig,
+    #[serde(default)]
+    pub storage: StorageConfig,
 }
 
 impl Default for SmartScopeConfig {
     fn default() -> Self {
         Self {
             camera: CameraConfig::default(),
+            storage: StorageConfig::default(),
+        }
+    }
+}
+
+/// 文件存储位置
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum StorageLocation {
+    #[serde(rename = "internal")] Internal,
+    #[serde(rename = "external")] External,
+}
+
+impl Default for StorageLocation {
+    fn default() -> Self { StorageLocation::Internal }
+}
+
+/// 存储配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StorageConfig {
+    /// 保存位置（机内/外置）
+    pub location: StorageLocation,
+    /// 选中的外置设备（设备路径，如 /dev/sda1）；仅当 location=External 时使用
+    pub external_device: Option<String>,
+    /// 机内存储的基准目录（绝对或相对路径）
+    pub internal_base_path: String,
+    /// 外置存储相对于选中设备根挂载点的相对目录
+    pub external_relative_path: String,
+}
+
+impl Default for StorageConfig {
+    fn default() -> Self {
+        Self {
+            location: StorageLocation::Internal,
+            external_device: None,
+            internal_base_path: "data".to_string(),
+            external_relative_path: "smartscope".to_string(),
         }
     }
 }
@@ -362,6 +400,9 @@ impl SmartScopeConfig {
         if let Some(camera) = partial.camera {
             self.camera = camera;
         }
+        if let Some(storage) = partial.storage {
+            self.storage = storage;
+        }
         self.validate()?;
         Ok(())
     }
@@ -371,6 +412,7 @@ impl SmartScopeConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PartialConfig {
     pub camera: Option<CameraConfig>,
+    pub storage: Option<StorageConfig>,
 }
 
 // 旧版AppConfig读取接口已不再需要

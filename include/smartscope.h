@@ -82,6 +82,26 @@ void smartscope_free_string(char *s);
 char* smartscope_list_external_storages_json(void);
 
 // =========================
+// Storage Config
+// =========================
+
+typedef enum {
+    STORAGE_LOCATION_INTERNAL = 0,
+    STORAGE_LOCATION_EXTERNAL = 1,
+} smartscope_CStorageLocation;
+
+/** 返回存储配置JSON（需 smartscope_free_string 释放） */
+char* smartscope_storage_get_config_json(void);
+/** 设置存储位置（0=internal,1=external） */
+int smartscope_storage_set_location(unsigned int location);
+/** 设置外置设备（设备路径，如 /dev/sda1） */
+int smartscope_storage_set_external_device(const char* device_path);
+/** 设置机内存储基准目录 */
+int smartscope_storage_set_internal_base_path(const char* path);
+/** 设置外置相对路径 */
+int smartscope_storage_set_external_relative_path(const char* path);
+
+// =========================
 // AI Inference (RKNN YOLOv8)
 // =========================
 

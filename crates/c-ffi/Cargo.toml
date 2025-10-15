@@ -19,6 +19,7 @@ lazy_static = { workspace = true }
 image = { workspace = true }
 rknn-inference = { path = "../rknn-inference" }
 storage-detector = { path = "../storage-detector" }
+serde_json.workspace = true
 
 [build-dependencies]
 cbindgen.workspace = true

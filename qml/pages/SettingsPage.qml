@@ -76,7 +76,7 @@ Rectangle {
                 GroupBox {
                     Layout.fillWidth: true
                     // 固定较为稳妥的高度，避免implicitHeight为0导致不可见
-                    Layout.preferredHeight: 360
+                    Layout.preferredHeight: 420
 
                     background: Rectangle {
                         color: Qt.rgba(20/255, 20/255, 20/255, 0.78)
@@ -98,6 +98,56 @@ Rectangle {
                         width: parent.width
                         spacing: 16
 
+                        // 保存位置选择
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 16
+                            Text { text: "保存位置："; color: "white"; font.pixelSize: 20 }
+                            ButtonGroup { id: storageLocGroup }
+                            RadioButton {
+                                id: internalRadio
+                                text: "机内存储"
+                                checked: true
+                                ButtonGroup.group: storageLocGroup
+                                onToggled: if (checked && StorageManager) StorageManager.setStorageLocation(0)
+                            }
+                            RadioButton {
+                                id: externalRadio
+                                text: "外置硬盘"
+                                checked: false
+                                ButtonGroup.group: storageLocGroup
+                                onToggled: if (checked && StorageManager) StorageManager.setStorageLocation(1)
+                            }
+                        }
+
+                        // 外置设备选择（仅在外置模式下）
+                        RowLayout {
+                            visible: externalRadio.checked
+                            Layout.fillWidth: true
+                            spacing: 12
+                            Text { text: "选择设备："; color: "white"; font.pixelSize: 20 }
+                            ComboBox {
+                                id: deviceCombo
+                                Layout.fillWidth: true
+                                model: storageListModel
+                                textRole: "_display"
+                                delegate: ItemDelegate {
+                                    text: (model.label && model.label.length>0) ? (model.label + " (" + model.device + ")") : model.device
+                                }
+                                onActivated: {
+                                    var item = storageListModel.get(currentIndex)
+                                    if (item && StorageManager) {
+                                        StorageManager.setStorageExternalDevice(item.device)
+                                    }
+                                }
+                            }
+                            UniversalButton {
+                                text: "刷新设备"
+                                buttonStyle: "action"
+                                onClicked: refreshStorageBtn.clicked()
+                            }
+                        }
+
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 12
@@ -113,11 +163,13 @@ Rectangle {
                                         var arr = JSON.parse(json)
                                         storageListModel.clear()
                                         for (var i = 0; i < arr.length; i++) {
+                                            var disp = (arr[i].label && arr[i].label.length>0) ? (arr[i].label + " (" + arr[i].device + ")") : arr[i].device
                                             storageListModel.append({
                                                 device: arr[i].device,
                                                 label: arr[i].label || "",
                                                 mountPoint: arr[i].mount_point,
-                                                fsType: arr[i].fs_type
+                                                fsType: arr[i].fs_type,
+                                                _display: disp
                                             })
                                         }
                                     } catch(e) {
@@ -144,7 +196,9 @@ Rectangle {
                                     anchors.fill: parent
                                     anchors.margins: 8
                                     spacing: 12
-                                    Text { text: label !== "" ? label : device; color: "white"; font.pixelSize: 20; Layout.preferredWidth: 280; elide: Text.ElideRight }
+                                    // 组合显示字段，便于 ComboBox 使用 textRole
+                                    property string _display: (label && label.length>0) ? (label + " (" + device + ")") : device
+                                    Text { text: parent._display; color: "white"; font.pixelSize: 20; Layout.preferredWidth: 320; elide: Text.ElideRight }
                                     Text { text: mountPoint; color: "#A7F3D0"; font.pixelSize: 18; Layout.fillWidth: true; elide: Text.ElideRight }
                                     Text { text: fsType; color: "#34D399"; font.pixelSize: 18 }
                                 }
@@ -170,16 +224,35 @@ Rectangle {
         // 自动刷新一次外置存储列表，避免空白
         try {
             if (typeof StorageManager !== 'undefined' && StorageManager) {
+                // 初始化存储配置选项
+                var cfgJson = StorageManager.getStorageConfigJson()
+                if (cfgJson && cfgJson.length>0) {
+                    var cfg = JSON.parse(cfgJson)
+                    internalRadio.checked = (cfg.location === 'internal')
+                    externalRadio.checked = (cfg.location === 'external')
+                }
                 var json = StorageManager.refreshExternalStoragesJson()
                 var arr = JSON.parse(json)
                 storageListModel.clear()
                 for (var i = 0; i < arr.length; i++) {
+                    var disp = (arr[i].label && arr[i].label.length>0) ? (arr[i].label + " (" + arr[i].device + ")") : arr[i].device
                     storageListModel.append({
                         device: arr[i].device,
                         label: arr[i].label || "",
                         mountPoint: arr[i].mount_point,
-                        fsType: arr[i].fs_type
+                        fsType: arr[i].fs_type,
+                        _display: disp
                     })
+                }
+                // 根据配置选择外置设备
+                if (cfg && cfg.external_device && storageListModel.count>0) {
+                    for (var j=0;j<storageListModel.count;j++) {
+                        var it = storageListModel.get(j)
+                        if (it.device === cfg.external_device) {
+                            deviceCombo.currentIndex = j
+                            break
+                        }
+                    }
                 }
             }
         } catch(e) {
