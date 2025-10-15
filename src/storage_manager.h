@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QTimer>
 
 class StorageManager : public QObject {
     Q_OBJECT
@@ -18,6 +19,15 @@ public:
     Q_INVOKABLE bool setStorageExternalDevice(const QString& devicePath);
     Q_INVOKABLE bool setStorageInternalBasePath(const QString& path);
     Q_INVOKABLE bool setStorageExternalRelativePath(const QString& path);
+
+signals:
+    void storageListChanged(const QString& json);
+    void storageConfigChanged(const QString& json);
+
+private:
+    QTimer m_pollTimer;
+    QString m_lastListJson;
+    QString m_lastConfigJson;
 };
 
 #endif // STORAGE_MANAGER_H

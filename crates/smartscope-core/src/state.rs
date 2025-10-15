@@ -10,6 +10,10 @@ use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::Path;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex, RwLock};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread::{self, JoinHandle};
+use std::time::Duration;
+use std::collections::HashSet;
 
 /// SmartScope应用状态
 pub struct AppState {
@@ -23,6 +27,10 @@ pub struct AppState {
     pub distortion_correction_enabled: Arc<RwLock<bool>>,
     /// 图像处理管道
     pub image_pipeline: Option<Arc<Mutex<ImagePipeline>>>,
+    /// 外置存储监控停止标志
+    pub storage_monitor_stop: Option<Arc<AtomicBool>>,
+    /// 外置存储监控线程句柄
+    pub storage_monitor_handle: Option<JoinHandle<()>>,
 }
 
 impl Clone for AppState {
@@ -36,6 +44,8 @@ impl Clone for AppState {
             video_transform: Arc::clone(&self.video_transform),
             distortion_correction_enabled: Arc::clone(&self.distortion_correction_enabled),
             image_pipeline: self.image_pipeline.as_ref().map(Arc::clone),
+            storage_monitor_stop: None,
+            storage_monitor_handle: None,
         }
     }
 }
@@ -51,6 +61,8 @@ impl AppState {
             video_transform: Arc::new(RwLock::new(VideoTransformProcessor::new())),
             distortion_correction_enabled: Arc::new(RwLock::new(false)),
             image_pipeline: None,
+            storage_monitor_stop: None,
+            storage_monitor_handle: None,
         }
     }
 
@@ -107,6 +119,14 @@ impl AppState {
         // 停止配置文件监控
         if let Some(watcher) = self.config_watcher.take() {
             drop(watcher);
+        }
+
+        // 停止外置存储监控线程
+        if let Some(stop) = self.storage_monitor_stop.take() {
+            stop.store(true, Ordering::Relaxed);
+        }
+        if let Some(handle) = self.storage_monitor_handle.take() {
+            let _ = handle.join();
         }
 
         self.initialized = false;
@@ -234,6 +254,64 @@ impl AppState {
 
     pub fn is_initialized(&self) -> bool {
         self.initialized
+    }
+
+    /// 启动外置存储设备监控（若未运行）
+    pub fn ensure_storage_monitor(&mut self) {
+        if self.storage_monitor_handle.is_some() { return; }
+        let config_path = match &self.config_path { Some(p) => p.clone(), None => return };
+        let stop = Arc::new(AtomicBool::new(false));
+        let stop_clone = Arc::clone(&stop);
+        let config_arc = Arc::clone(&self.config);
+        let handle = thread::spawn(move || {
+            let mut last_set: HashSet<String> = HashSet::new();
+            loop {
+                if stop_clone.load(Ordering::Relaxed) { break; }
+                // 获取当前外置存储列表
+                let current_list = storage_detector::list().unwrap_or_default();
+                let current_set: HashSet<String> = current_list.iter().map(|e| e.device.clone()).collect();
+
+                // 若设备集合发生变化，记录日志
+                if current_set != last_set {
+                    tracing::info!("外置存储设备变更: {} → {}", last_set.len(), current_set.len());
+                    last_set = current_set.clone();
+                }
+
+                // 检查当前配置是否需要回退
+                let mut need_save = false;
+                {
+                    if let Ok(mut cfg) = config_arc.write() {
+                        if let crate::config::StorageLocation::External = cfg.storage.location {
+                            let missing = match &cfg.storage.external_device {
+                                Some(dev) => !current_set.contains(dev),
+                                None => true,
+                            };
+                            if missing {
+                                tracing::warn!("选中的外置设备不可用，自动回退到机内存储");
+                                cfg.storage.location = crate::config::StorageLocation::Internal;
+                                need_save = true;
+                            }
+                        }
+                    }
+                }
+
+                if need_save {
+                    // 保存到配置文件（原子写入）
+                    if let Ok(cfg) = config_arc.read() {
+                        if let Err(e) = cfg.save_to_file(&config_path) {
+                            tracing::error!("保存回退配置失败: {}", e);
+                        } else {
+                            tracing::info!("已保存配置回退至机内存储");
+                        }
+                    }
+                }
+
+                thread::sleep(Duration::from_millis(1000));
+            }
+        });
+        self.storage_monitor_stop = Some(stop);
+        self.storage_monitor_handle = Some(handle);
+        tracing::info!("外置存储监控线程已启动");
     }
 
     /// 启动相机系统

@@ -6,6 +6,22 @@ extern "C" {
 
 StorageManager::StorageManager(QObject* parent)
     : QObject(parent) {
+    m_pollTimer.setInterval(1000);
+    connect(&m_pollTimer, &QTimer::timeout, this, [this]() {
+        // poll storage list
+        QString listJson = refreshExternalStoragesJson();
+        if (listJson != m_lastListJson) {
+            m_lastListJson = listJson;
+            emit storageListChanged(listJson);
+        }
+        // poll config json
+        QString cfgJson = getStorageConfigJson();
+        if (cfgJson != m_lastConfigJson) {
+            m_lastConfigJson = cfgJson;
+            emit storageConfigChanged(cfgJson);
+        }
+    });
+    m_pollTimer.start();
 }
 
 QString StorageManager::refreshExternalStoragesJson() {

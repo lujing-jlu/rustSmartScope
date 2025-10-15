@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
 import QtGraphicalEffects 1.15
+import QtQml 2.15
 import "../components"
 import RustSmartScope.Logger 1.0
 
@@ -199,10 +200,25 @@ Rectangle {
                                     delegate: Item {
                                         // 展示 label(设备) 或设备
                                         property string devicePath: model.device
-                                        width: Math.max(Math.round(settingButtonHeight * 2.6), textMeasure.paintedWidth + btnDev.customIconSize + 34)
+                                        // 增加按钮宽度计算，确保长文本有足够空间
+                                        // 计算公式：max(最小宽度, 文本宽度 + 图标宽度 + 内边距 + 缓冲)
+                                        // 增加更多缓冲空间以适应"FriendlyArm"等长设备名
+                                        width: Math.max(
+                                            Math.round(settingButtonHeight * 3.0),  // 增加最小宽度
+                                            textMeasure.paintedWidth + Math.round(settingButtonHeight * 0.6) + 34 + 40  // 增加缓冲到40
+                                        )
                                         height: settingButtonHeight
                                         // 文本测量
-                                        Text { id: textMeasure; text: model._display; visible: false; width: 0; height: 0; font.pixelSize: Math.round(settingButtonHeight * 0.48) }
+                                        Text {
+                                            id: textMeasure;
+                                            text: model._display;
+                                            visible: false;
+                                            width: 0;
+                                            height: 0;
+                                            font.pixelSize: Math.round(settingButtonHeight * 0.48)
+                                            font.family: "Inter"  // 使用与按钮相同的字体
+                                            wrapMode: Text.NoWrap
+                                        }
                                         UniversalButton {
                                             id: btnDev
                                             anchors.fill: parent
@@ -215,6 +231,13 @@ Rectangle {
                                             customButtonHeight: parent.height
                                             customIconSize: Math.round(settingButtonHeight * 0.6)
                                             customTextSize: Math.round(settingButtonHeight * 0.48)
+                                            Component.onCompleted: {
+                                                // 调试日志：显示按钮宽度和文本宽度
+                                                Logger.info("设备按钮调试 - 设备:", model._display,
+                                                           "文本宽度:", textMeasure.paintedWidth,
+                                                           "按钮宽度:", parent.width,
+                                                           "最小宽度:", Math.round(settingButtonHeight * 3.0))
+                                            }
                                             onClicked: {
                                                 externalStorageContent.currentDevice = devicePath
                                                 if (StorageManager) {
@@ -331,6 +354,48 @@ Rectangle {
             }
         } catch(e) {
             Logger.error("初始化外置存储列表失败: " + e)
+        }
+    }
+
+    // 后端实时同步：监听 StorageManager 的变更信号
+    Connections {
+        target: StorageManager
+        function onStorageListChanged(json) {
+            try {
+                var arr = JSON.parse(json)
+                var prev = externalStorageContent.currentDevice
+                storageListModel.clear()
+                for (var i = 0; i < arr.length; i++) {
+                    var disp = (arr[i].label && arr[i].label.length>0) ? arr[i].label : arr[i].device
+                    storageListModel.append({
+                        device: arr[i].device,
+                        label: arr[i].label || "",
+                        mountPoint: arr[i].mount_point,
+                        fsType: arr[i].fs_type,
+                        _display: disp
+                    })
+                }
+                var found = false
+                for (var j=0;j<storageListModel.count;j++) {
+                    if (storageListModel.get(j).device === prev) { found = true; break }
+                }
+                if (!found) externalStorageContent.currentDevice = ""
+            } catch(e) {
+                Logger.error("StorageListChanged 解析失败: " + e)
+            }
+        }
+        function onStorageConfigChanged(json) {
+            try {
+                if (!json || json.length === 0) return
+                var cfg = JSON.parse(json)
+                if (cfg.location === 'external' && cfg.external_device) {
+                    externalStorageContent.currentDevice = cfg.external_device
+                } else {
+                    externalStorageContent.currentDevice = ""
+                }
+            } catch(e) {
+                Logger.error("StorageConfigChanged 解析失败: " + e)
+            }
         }
     }
 }

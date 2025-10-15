@@ -46,6 +46,9 @@ pub extern "C" fn smartscope_load_config(config_path: *const c_char) -> c_int {
             *app_state.config.write().unwrap() = config;
             app_state.config_path = Some(path_str.to_string());
             tracing::info!("Configuration loaded from: {}", path_str);
+            // 启动外置存储监控
+            let s_ptr: *mut _ = app_state;
+            unsafe { (*s_ptr).ensure_storage_monitor(); }
             ErrorCode::Success as c_int
         }
         Err(e) => {
@@ -57,6 +60,9 @@ pub extern "C" fn smartscope_load_config(config_path: *const c_char) -> c_int {
             match default_cfg.save_to_file(path_str) {
                 Ok(_) => {
                     tracing::info!("默认配置已写入: {}", path_str);
+                    // 启动外置存储监控
+                    let s_ptr: *mut _ = app_state;
+                    unsafe { (*s_ptr).ensure_storage_monitor(); }
                     ErrorCode::Success as c_int
                 }
                 Err(e2) => {
