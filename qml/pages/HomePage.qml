@@ -44,7 +44,7 @@ Rectangle {
         property real fh: pipDisplay.frameHeight > 0 ? pipDisplay.frameHeight : 9
         width: rotated90 ? (pipBase * (fw / fh)) : pipBase
         height: rotated90 ? pipBase : (pipBase * (fh / fw))
-        radius: 10
+        radius: 0
         color: Qt.rgba(0,0,0,0.35)
         border.width: 3
         border.color: "#FFFFFF"

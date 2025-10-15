@@ -76,6 +76,10 @@ The project uses a three-layer architecture:
    - `c-ffi/` - C Foreign Function Interface layer for Qt integration
    - `usb-camera/` - Camera interface and video frame handling
    - `linux-video/` - Low-level Linux V4L2 video support
+   - `rknn-inference/` - AI inference engine for YOLOv8 object detection
+   - `rockchip-rga/` - Hardware-accelerated video processing
+   - `camera-correction/` - Lens distortion correction algorithms
+   - `stereo-rectifier/` - Stereo image rectification processing
    - Built as static library (`libsmartscope.a`)
 
 2. **C++ Bridge Layer (`src/`, `CMakeLists.txt`)**:
@@ -83,6 +87,9 @@ The project uses a three-layer architecture:
    - Integrates Rust static library via C FFI
    - Manages Qt/QML lifecycle
    - Includes `camera_manager.cpp/h` for camera integration
+   - `ai_detection_manager.cpp/h` for AI inference integration
+   - `video_transform_manager.cpp/h` for video processing controls
+   - `camera_parameter_manager.cpp/h` for camera parameter management
 
 3. **QML Frontend (`qml/`)**:
    - Declarative user interface
@@ -92,17 +99,32 @@ The project uses a three-layer architecture:
 ### Key Architectural Patterns
 - **C FFI Interface**: The `c-ffi` crate provides a safe C-compatible API that bridges Rust and C++
 - **State Management**: Centralized application state in `smartscope-core::AppState`
-- **Configuration System**: TOML-based configuration with runtime loading/saving
+- **Configuration System**: TOML-based configuration with runtime loading/saving and hot reload
 - **Error Handling**: Typed error system with C-compatible error codes
 - **Logging**: Unified logging system accessible from Rust, C++, and QML
+- **AI Integration**: RKNN inference engine for YOLOv8 object detection with multi-threading
+- **Hardware Acceleration**: RGA (Rockchip Graphics Acceleration) for video processing
+- **Camera Pipeline**: Real-time stereo camera processing with V4L2 integration
 
 ### Workspace Structure
 This is a Cargo workspace with multiple crates:
 - Main workspace defined in root `Cargo.toml`
 - Individual crates have their own `Cargo.toml` files
 - Shared dependencies defined at workspace level
-- Active crates: `smartscope-core`, `c-ffi`, `usb-camera`, `linux-video`
+- Active crates: `smartscope-core`, `c-ffi`, `usb-camera`, `linux-video`, `config-parser`, `rockchip-rga`, `stereo-calibration-reader`, `camera-correction`, `stereo-rectifier`, `rknn-inference`
 - Reference code in `reference_code/` (excluded from workspace)
+
+### Crate Overview
+- **smartscope-core**: Core state management, configuration, and error handling
+- **c-ffi**: C Foreign Function Interface layer for Qt integration
+- **usb-camera**: Camera interface and video frame handling
+- **linux-video**: Low-level Linux V4L2 video support
+- **config-parser**: TOML configuration file parsing and validation
+- **rockchip-rga**: Rockchip Graphics Acceleration hardware acceleration
+- **stereo-calibration-reader**: Stereo camera calibration data processing
+- **camera-correction**: Camera distortion correction algorithms
+- **stereo-rectifier**: Stereo image rectification processing
+- **rknn-inference**: RKNN AI inference engine for YOLOv8 object detection
 
 ## Development Workflow
 
@@ -113,6 +135,8 @@ This is a Cargo workspace with multiple crates:
 - G++ or compatible C++ compiler
 - Make
 - libturbojpeg (for JPEG encoding/decoding)
+- OpenCV (computer vision and image processing)
+- RKNN runtime (for AI inference acceleration on Rockchip devices)
 
 ### When Making Changes
 
@@ -141,8 +165,9 @@ This is a Cargo workspace with multiple crates:
 
 ### Configuration Management
 - Application configuration stored in TOML format
-- Default config: `config.toml`
+- Main config: `smartscope.toml` (includes camera settings, calibration paths, control parameters)
 - Runtime loading/saving via C FFI interface
+- Hot reload support for configuration changes
 - Configuration structure defined in `smartscope-core::config`
 
 ## Code Organization Patterns
@@ -153,6 +178,8 @@ This is a Cargo workspace with multiple crates:
 - Configuration uses `serde` for TOML serialization
 - C FFI functions use `#[no_mangle]` and `extern "C"`
 - Thread-safe state management with `RwLock`
+- AI inference uses async patterns with worker thread pools
+- Hardware integration uses safe wrappers around unsafe system calls
 
 ### C++ Integration Patterns
 - All Rust functionality accessed through C FFI
@@ -199,7 +226,8 @@ This is a Cargo workspace with multiple crates:
 ## Important Files and Locations
 
 ### Key Configuration Files
-- `config.toml` - Main application configuration
+- `smartscope.toml` - Main application configuration (camera settings, calibration paths, control parameters)
+- `config.toml` - Legacy application configuration
 - `simple_config.toml` - Minimal configuration for testing
 - `cbindgen.toml` - C header generation configuration
 
@@ -285,3 +313,36 @@ qml/pages/
 - Consistent spacing and typography
 - Hover and click animations for better UX
 - Enhanced button styling with unified component system
+
+## AI and Machine Learning Integration
+
+### RKNN Inference Engine
+- **YOLOv8 Object Detection**: Real-time object detection with configurable models
+- **Multi-threading**: Support for multiple worker threads (recommended: 6)
+- **Non-blocking API**: Async inference submission and result retrieval
+- **Hardware Acceleration**: Optimized for Rockchip NPU acceleration
+
+### AI Integration Points
+- **Camera Pipeline**: Automatic AI inference on camera frames
+- **C++ Integration**: `AiDetectionManager` bridges Rust AI engine with QML
+- **QML Display**: Real-time detection visualization with bounding boxes
+- **Configuration**: AI model path and worker count configurable
+
+### Usage Pattern
+1. Initialize AI service with `smartscope_ai_init("models/yolov8m.rknn", 6)`
+2. Enable/disable detection with `smartscope_ai_set_enabled(bool)`
+3. Submit RGB frames for inference with `smartscope_ai_submit_rgb888()`
+4. Retrieve results with `smartscope_ai_try_get_latest_result()`
+
+## Hardware Acceleration Features
+
+### RGA (Rockchip Graphics Acceleration)
+- **Video Processing**: Hardware-accelerated rotation, flip, and scaling
+- **Performance**: Optimized for Rockchip SoC video processing
+- **Integration**: Transparent fallback to CPU processing when RGA unavailable
+
+### Camera Hardware Support
+- **V4L2 Integration**: Direct camera hardware control
+- **Stereo Cameras**: Dual camera synchronization and capture
+- **Parameter Control**: Real-time camera parameter adjustment
+- **Distortion Correction**: Hardware-accelerated lens correction

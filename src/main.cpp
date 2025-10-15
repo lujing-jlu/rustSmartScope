@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 
     // 加载根目录配置（仅使用 smartscope.toml；若不存在将使用默认配置）
     // 配置文件相对于项目根目录（可执行文件在 build/bin/ 下）
-    const char* config_path = "../../smartscope.toml";
+    const char* config_path = "smartscope.toml";
     result = smartscope_load_config(config_path);
     if (result != SMARTSCOPE_ERROR_SUCCESS) {
         LOG_ERROR("Main", "Failed to load config: ", smartscope_get_error_string(result));
