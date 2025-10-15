@@ -116,7 +116,16 @@ This is a Cargo workspace with multiple crates:
 
 ### Crate Overview
 - **smartscope-core**: Core state management, configuration, and error handling
-- **c-ffi**: C Foreign Function Interface layer for Qt integration
+- **c-ffi**: Modular C Foreign Function Interface layer for Qt integration
+  - `types.rs` - C-compatible type definitions and error codes
+  - `state.rs` - Global application state management
+  - `init.rs` - System initialization and shutdown
+  - `config_api.rs` - Configuration loading/saving/hot-reload
+  - `logging_api.rs` - Cross-language logging interface
+  - `camera_api.rs` - Camera control and frame retrieval
+  - `ai_api.rs` - AI inference service integration
+  - `video_api.rs` - Video transforms and distortion correction
+  - `params_api.rs` - Camera parameter management
 - **usb-camera**: Camera interface and video frame handling
 - **linux-video**: Low-level Linux V4L2 video support
 - **config-parser**: TOML configuration file parsing and validation
@@ -154,7 +163,14 @@ This is a Cargo workspace with multiple crates:
    - No rebuild needed, changes reflected on next run
 
 4. **C API Changes**:
-   - If modifying C FFI exports in `crates/c-ffi/src/lib.rs`
+   - If modifying C FFI exports in `crates/c-ffi/src/` (any module)
+   - The modular architecture means changes are localized to specific domains:
+     - `camera_api.rs` for camera-related FFI
+     - `ai_api.rs` for AI inference FFI
+     - `video_api.rs` for video processing FFI
+     - `config_api.rs` for configuration management FFI
+     - `params_api.rs` for camera parameter FFI
+     - etc.
    - Regenerate headers with `cbindgen` (handled by build scripts)
    - Full rebuild required
 
@@ -180,6 +196,10 @@ This is a Cargo workspace with multiple crates:
 - Thread-safe state management with `RwLock`
 - AI inference uses async patterns with worker thread pools
 - Hardware integration uses safe wrappers around unsafe system calls
+- **Modular FFI Architecture**: C FFI organized into focused modules for maintainability
+  - Each module handles a specific domain (camera, AI, video, config, etc.)
+  - All external C interfaces remain unchanged for compatibility
+  - Internal refactoring improves code organization without breaking API contracts
 
 ### C++ Integration Patterns
 - All Rust functionality accessed through C FFI
@@ -197,7 +217,13 @@ This is a Cargo workspace with multiple crates:
 
 ### Adding New Rust Functionality
 1. Add to appropriate crate (`smartscope-core` for core logic)
-2. If exposing to C++, add C FFI wrapper in `c-ffi` crate
+2. If exposing to C++, add C FFI wrapper in appropriate `c-ffi` module:
+   - `camera_api.rs` for camera functionality
+   - `ai_api.rs` for AI inference features
+   - `video_api.rs` for video processing
+   - `config_api.rs` for configuration features
+   - `params_api.rs` for parameter controls
+   - `types.rs` for new data structures
 3. Update C header generation if needed (cbindgen)
 4. Full rebuild with `./build.sh`
 
@@ -346,3 +372,67 @@ qml/pages/
 - **Stereo Cameras**: Dual camera synchronization and capture
 - **Parameter Control**: Real-time camera parameter adjustment
 - **Distortion Correction**: Hardware-accelerated lens correction
+
+## Modular C FFI Architecture
+
+### Architecture Overview
+The `c-ffi` crate has been refactored from a monolithic 1300+ line file into a focused modular architecture. This improves maintainability, code organization, and developer productivity while preserving all existing C API contracts.
+
+### Module Structure
+```
+crates/c-ffi/src/
+├── lib.rs              # Module declarations and coordination
+├── types.rs            # C-compatible types, enums, error codes
+├── state.rs            # Global application state management
+├── init.rs             # System initialization (smartscope_init/shutdown)
+├── config_api.rs       # Configuration loading/saving/hot-reload
+├── logging_api.rs      # Cross-language logging interface
+├── camera_api.rs       # Camera control, frame retrieval, status
+├── ai_api.rs           # AI inference service integration
+├── video_api.rs        # Video transforms and distortion correction
+└── params_api.rs       # Camera parameter get/set/range operations
+```
+
+### Benefits of Modular Architecture
+
+**1. Maintainability**:
+- Each module focuses on a specific domain (camera, AI, video, etc.)
+- Reduced cognitive load when working with specific functionality
+- Easier to locate and modify related code
+
+**2. Code Organization**:
+- Clear separation of concerns
+- Reduced file size and complexity
+- Better navigation and understanding of code structure
+
+**3. Development Efficiency**:
+- Faster context switching between different functional areas
+- Reduced merge conflicts in team development
+- Easier testing and debugging of specific modules
+
+**4. API Stability**:
+- All external C interfaces remain unchanged
+- Existing C++ integration code continues to work without modification
+- Internal refactoring doesn't break API contracts
+
+### Development Workflow with Modular FFI
+
+**Adding New Camera Features**:
+1. Implement core logic in `smartscope-core`
+2. Add FFI wrapper in `camera_api.rs`
+3. Add new types to `types.rs` if needed
+4. Update C header generation
+
+**Adding New AI Features**:
+1. Implement AI logic in `rknn-inference` crate
+2. Add FFI wrapper in `ai_api.rs`
+3. Define detection structures in `types.rs`
+4. Test with existing C++ integration
+
+**Adding New Video Processing**:
+1. Implement video algorithms in appropriate processing crate
+2. Add FFI wrapper in `video_api.rs`
+3. Ensure hardware acceleration integration
+4. Update QML bindings if needed
+
+This modular approach demonstrates mature software engineering practices while maintaining backward compatibility and improving developer experience.

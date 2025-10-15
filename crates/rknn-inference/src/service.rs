@@ -13,8 +13,8 @@ pub struct InferenceTask {
 }
 
 /// 推理结果（内部使用）
-#[derive(Debug)]
-struct InferenceResult {
+#[derive(Debug, Clone)]
+pub(crate) struct InferenceResult {
     task_id: u64,
     result: Result<Vec<crate::DetectionResult>>,
 }
@@ -64,6 +64,11 @@ impl TaskQueue {
         self.queue.lock().unwrap().len()
     }
 
+    /// 检查队列是否为空
+    pub fn is_empty(&self) -> bool {
+        self.queue.lock().unwrap().is_empty()
+    }
+
     /// 获取丢弃的任务数
     pub fn dropped_count(&self) -> usize {
         self.dropped_count.load(Ordering::Relaxed)
@@ -94,7 +99,7 @@ impl SequenceTracker {
     }
 
     /// 获取下一个顺序的结果（阻塞直到可用）
-    pub fn get_next_result(&self, timeout: Duration) -> Option<InferenceResult> {
+    pub(crate) fn get_next_result(&self, timeout: Duration) -> Option<InferenceResult> {
         let _start = Instant::now();
         let expected = self.next_expected.load(Ordering::Relaxed);
 
@@ -136,9 +141,15 @@ impl SequenceTracker {
     }
 }
 
+impl Default for SequenceTracker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// 工作线程
 struct Worker {
-    id: usize,
+    _id: usize,
     detector: Yolov8Detector,
     task_queue: Arc<TaskQueue>,
     sequence_tracker: Arc<SequenceTracker>,
@@ -156,7 +167,7 @@ impl Worker {
         processed_count: Arc<AtomicUsize>,
     ) -> Self {
         Self {
-            id,
+            _id: id,
             detector,
             task_queue,
             sequence_tracker,
@@ -345,4 +356,3 @@ pub struct ServiceStats {
     pub processed_tasks: usize,
     pub next_expected_task_id: u64,
 }
-

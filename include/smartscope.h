@@ -71,6 +71,17 @@ const char *smartscope_get_error_string(int error_code);
 void smartscope_free_string(char *s);
 
 // =========================
+// External Storage Detection
+// =========================
+
+/**
+ * 列出外置存储（U盘/SD卡）为JSON数组字符串。
+ * 需要调用 smartscope_free_string 释放返回的字符串。
+ * JSON 格式: [{"device":"/dev/sda1","label":"UDISK","mount_point":"/media/...","fs_type":"vfat"}, ...]
+ */
+char* smartscope_list_external_storages_json(void);
+
+// =========================
 // AI Inference (RKNN YOLOv8)
 // =========================
 

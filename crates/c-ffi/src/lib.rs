@@ -16,6 +16,7 @@ mod camera_api;     // 相机启动/停止/取帧/状态
 mod ai_api;         // AI 推理接口
 mod video_api;      // 视频变换与畸变校正接口
 mod params_api;     // 相机参数 get/set/range/reset
+mod storage_api;    // 外置存储检测
 
 // 仅为保证链接导出，将各模块中使用的符号保持为 #[no_mangle] extern "C"
 // 此处不需要再做 re-export。

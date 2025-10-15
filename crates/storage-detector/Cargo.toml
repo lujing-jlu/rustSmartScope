@@ -1,0 +1,13 @@
+[package]
+name = "storage-detector"
+version = "0.1.0"
+edition = "2021"
+description = "Detect external USB/SD storage devices and their mount points"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

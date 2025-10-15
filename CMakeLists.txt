@@ -85,6 +85,7 @@ set(SOURCES
     src/qml_video_item.cpp
     src/video_transform_manager.cpp
     src/ai_detection_manager.cpp
+    src/storage_manager.cpp
 )
 
 # QML资源文件（如果存在）

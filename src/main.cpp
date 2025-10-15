@@ -18,6 +18,7 @@ extern "C" {
 #include "video_transform_manager.h"
 #include <QQmlEngine>
 #include "ai_detection_manager.h"
+#include "storage_manager.h"
 
 int main(int argc, char *argv[])
 {
@@ -77,6 +78,10 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("CameraParameterManager", cameraParameterManager);
     engine.rootContext()->setContextProperty("VideoTransformManager", videoTransformManager);
     engine.rootContext()->setContextProperty("AiDetectionManager", aiDetectionManager);
+
+    // 外置存储管理器
+    StorageManager *storageManager = new StorageManager(&app);
+    engine.rootContext()->setContextProperty("StorageManager", storageManager);
 
     // 加载QML文件
     const QUrl qmlUrl(QStringLiteral("qrc:/main.qml"));

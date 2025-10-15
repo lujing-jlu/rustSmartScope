@@ -80,13 +80,6 @@ struct AsyncInferenceTask {
     preprocessed_image: ImageBuffer,
 }
 
-/// 异步推理结果
-struct AsyncInferenceResult {
-    task_id: usize,
-    result: std::result::Result<Vec<DetectionResult>, Box<dyn std::error::Error + Send + Sync>>,
-    timestamp: Instant,  // 添加时间戳
-}
-
 /// 最新结果缓存
 struct LatestResultCache {
     result: Option<std::result::Result<Vec<DetectionResult>, crate::RknnError>>,
@@ -133,18 +126,14 @@ impl ImagePreprocessor {
         let (orig_w, orig_h) = (img.width(), img.height());
 
         // 计算缩放比例
-        let scale = (self.model_width as f32 / orig_w as f32)
-            .min(self.model_height as f32 / orig_h as f32);
+        let scale =
+            (self.model_width as f32 / orig_w as f32).min(self.model_height as f32 / orig_h as f32);
         let new_w = (orig_w as f32 * scale) as u32;
         let new_h = (orig_h as f32 * scale) as u32;
 
         // 调整图片大小
-        let resized = image::imageops::resize(
-            img,
-            new_w,
-            new_h,
-            image::imageops::FilterType::CatmullRom,
-        );
+        let resized =
+            image::imageops::resize(img, new_w, new_h, image::imageops::FilterType::CatmullRom);
 
         // 创建letterbox图像
         let mut letterbox = image::RgbImage::new(self.model_width, self.model_height);
@@ -204,9 +193,8 @@ impl Default for ImagePreprocessor {
 pub struct MultiDetectorInferenceService {
     workers: Vec<thread::JoinHandle<()>>,
     input_queue: Arc<Mutex<std::collections::VecDeque<AsyncInferenceTask>>>,
-    latest_result: Arc<Mutex<LatestResultCache>>,  // 最新结果缓存
+    latest_result: Arc<Mutex<LatestResultCache>>, // 最新结果缓存
     shutdown: Arc<std::sync::atomic::AtomicBool>,
-    preprocessor: ImagePreprocessor,
     next_task_id: Arc<Mutex<usize>>,
     max_queue_size: usize,
 }
@@ -235,7 +223,10 @@ impl MultiDetectorInferenceService {
     /// let service = MultiDetectorInferenceService::new("models/yolov8m.rknn", 6)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn new<P: AsRef<std::path::Path>>(model_path: P, num_workers: usize) -> Result<Self, crate::RknnError> {
+    pub fn new<P: AsRef<std::path::Path>>(
+        model_path: P,
+        num_workers: usize,
+    ) -> Result<Self, crate::RknnError> {
         Self::new_with_queue_size(model_path, num_workers, 6)
     }
 
@@ -253,8 +244,14 @@ impl MultiDetectorInferenceService {
     /// let service = MultiDetectorInferenceService::new_with_queue_size("models/yolov8m.rknn", 6, 6)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn new_with_queue_size<P: AsRef<std::path::Path>>(model_path: P, num_workers: usize, queue_size: usize) -> Result<Self, crate::RknnError> {
-        let input_queue = Arc::new(Mutex::new(std::collections::VecDeque::<AsyncInferenceTask>::new()));
+    pub fn new_with_queue_size<P: AsRef<std::path::Path>>(
+        model_path: P,
+        num_workers: usize,
+        queue_size: usize,
+    ) -> Result<Self, crate::RknnError> {
+        let input_queue = Arc::new(Mutex::new(
+            std::collections::VecDeque::<AsyncInferenceTask>::new(),
+        ));
         let latest_result = Arc::new(Mutex::new(LatestResultCache {
             result: None,
             task_id: 0,
@@ -266,17 +263,21 @@ impl MultiDetectorInferenceService {
         let mut workers = Vec::new();
 
         // 创建工作线程，每个线程有自己的detector
-        for i in 0..num_workers {
+        for _ in 0..num_workers {
             let input_queue_clone = input_queue.clone();
             let latest_result_clone = latest_result.clone();
             let shutdown_clone = shutdown.clone();
-            let model_path_owned = model_path.as_ref().to_path_buf().to_string_lossy().to_string();
+            let model_path_owned = model_path
+                .as_ref()
+                .to_path_buf()
+                .to_string_lossy()
+                .to_string();
 
             let handle = thread::spawn(move || {
                 // 每个线程创建自己的独立detector
                 let mut detector = match crate::Yolov8Detector::new(&model_path_owned) {
                     Ok(det) => det,
-                    Err(e) => {
+                    Err(_) => {
                         return;
                     }
                 };
@@ -298,19 +299,18 @@ impl MultiDetectorInferenceService {
                         // 直接推理，无需等待锁
                         let inference_start = Instant::now();
                         let result = detector.detect(&task.preprocessed_image);
-                        let inference_time = inference_start.elapsed();
+                        let _inference_time = inference_start.elapsed();
 
                         // 更新最新结果缓存
                         {
                             let mut latest = latest_result_clone.lock().unwrap();
                             latest.result = Some(match result {
                                 Ok(detections) => Ok(detections),
-                                Err(e) => Err(crate::RknnError::InferenceFailed(-1)),
+                                Err(_e) => Err(crate::RknnError::InferenceFailed(-1)),
                             });
                             latest.task_id = task.task_id;
                             latest.timestamp = Instant::now();
                         }
-
                     } else {
                         // 队列为空，短暂休眠避免CPU空转
                         thread::sleep(Duration::from_millis(1));
@@ -326,7 +326,6 @@ impl MultiDetectorInferenceService {
             input_queue,
             latest_result,
             shutdown,
-            preprocessor: ImagePreprocessor::new(),
             next_task_id,
             max_queue_size: queue_size,
         })
@@ -401,7 +400,9 @@ impl MultiDetectorInferenceService {
     ///     println!("暂无结果或结果已过期");
     /// }
     /// ```
-    pub fn try_get_latest_result(&self) -> Option<(usize, Result<Vec<DetectionResult>, crate::RknnError>)> {
+    pub fn try_get_latest_result(
+        &self,
+    ) -> Option<(usize, Result<Vec<DetectionResult>, crate::RknnError>)> {
         let mut latest = self.latest_result.lock().unwrap();
 
         // 检查结果是否超过2秒
@@ -462,7 +463,10 @@ impl MultiDetectorInferenceService {
     /// let results = service.inference_preprocessed(&image_buffer)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn inference_preprocessed(&self, image_buffer: &ImageBuffer) -> Result<Vec<DetectionResult>, crate::RknnError> {
+    pub fn inference_preprocessed(
+        &self,
+        image_buffer: &ImageBuffer,
+    ) -> Result<Vec<DetectionResult>, crate::RknnError> {
         // 提交任务
         let task_id = self.submit_inference(image_buffer)?;
 
@@ -486,13 +490,12 @@ impl MultiDetectorInferenceService {
     pub fn get_stats(&self) -> ServiceStats {
         let input_queue_size = self.input_queue.lock().unwrap().len();
         let completed_tasks = self.next_task_id.lock().unwrap().clone();
-        let has_result = self.has_latest_result();
 
         ServiceStats {
             total_tasks: completed_tasks,
             completed_tasks,
             input_queue_size,
-            output_queue_size: 0,  // 输出队列已移除
+            output_queue_size: 0, // 输出队列已移除
             active_workers: self.workers.len(),
         }
     }
@@ -537,7 +540,8 @@ impl MultiDetectorInferenceService {
 impl Drop for MultiDetectorInferenceService {
     fn drop(&mut self) {
         // 通知所有工作线程停止
-        self.shutdown.store(true, std::sync::atomic::Ordering::Relaxed);
+        self.shutdown
+            .store(true, std::sync::atomic::Ordering::Relaxed);
 
         // 等待所有线程结束
         for worker in self.workers.drain(..) {

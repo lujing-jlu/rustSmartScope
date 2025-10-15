@@ -10,7 +10,8 @@ members = [
     "crates/stereo-calibration-reader",
     "crates/camera-correction",
     "crates/stereo-rectifier",
-    "crates/rknn-inference"
+    "crates/rknn-inference",
+    "crates/storage-detector"
 ]
 
 exclude = [

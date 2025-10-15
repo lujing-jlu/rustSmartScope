@@ -6,7 +6,6 @@ use std::time::Duration;
 
 /// 推理任务
 struct InferenceTask {
-    task_id: u64,
     image: ImageBuffer,
     sender: std::sync::mpsc::Sender<Result<Vec<crate::DetectionResult>>>,
 }
@@ -60,7 +59,7 @@ impl TaskQueue {
 
 /// 工作线程
 struct Worker {
-    id: usize,
+    _id: usize,
     detector: Yolov8Detector,
     task_queue: Arc<TaskQueue>,
     shutdown: Arc<AtomicBool>,
@@ -76,7 +75,7 @@ impl Worker {
         processed_count: Arc<AtomicUsize>,
     ) -> Self {
         Self {
-            id,
+            _id: id,
             detector,
             task_queue,
             shutdown,
@@ -94,7 +93,6 @@ impl Worker {
 
             // 获取任务
             if let Some(task) = self.task_queue.pop() {
-                let task_id = task.task_id;
 
                 // 执行推理
                 let result = self.detector.detect(&task.image);
@@ -167,14 +165,13 @@ impl SimpleInferenceService {
 
     /// 推理任务并等待结果
     pub fn inference(&self, image: ImageBuffer) -> Result<Vec<crate::DetectionResult>> {
-        let task_id = self.task_counter.fetch_add(1, Ordering::Relaxed);
+        let _task_id = self.task_counter.fetch_add(1, Ordering::Relaxed);
 
         // 创建通道接收结果
         let (sender, receiver) = std::sync::mpsc::channel();
 
         // 创建任务
         let task = InferenceTask {
-            task_id,
             image,
             sender,
         };

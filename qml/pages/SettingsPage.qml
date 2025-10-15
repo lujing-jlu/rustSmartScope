@@ -159,6 +159,89 @@ Rectangle {
                     }
                 }
 
+                // 外置存储检测
+                GroupBox {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: externalStorageContent.implicitHeight + 100
+
+                    background: Rectangle {
+                        color: "rgba(20, 20, 20, 0.78)"
+                        border.color: "#10B981"
+                        border.width: 2
+                        radius: 10
+                    }
+
+                    label: Text {
+                        text: "💽 外置存储 (U盘 / SD卡)"
+                        font.pixelSize: 32
+                        font.bold: true
+                        color: "#10B981"
+                        padding: 10
+                    }
+
+                    ColumnLayout {
+                        id: externalStorageContent
+                        width: parent.width
+                        spacing: 16
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 12
+
+                            UniversalButton {
+                                id: refreshStorageBtn
+                                text: "刷新"
+                                iconSource: "qrc:/icons/view.svg"
+                                buttonStyle: "action"
+                                onClicked: {
+                                    try {
+                                        var json = StorageManager ? StorageManager.refreshExternalStoragesJson() : "[]"
+                                        var arr = JSON.parse(json)
+                                        storageListModel.clear()
+                                        for (var i = 0; i < arr.length; i++) {
+                                            storageListModel.append({
+                                                device: arr[i].device,
+                                                label: arr[i].label || "",
+                                                mountPoint: arr[i].mount_point,
+                                                fsType: arr[i].fs_type
+                                            })
+                                        }
+                                    } catch(e) {
+                                        Logger.error("解析外置存储JSON失败: " + e)
+                                    }
+                                }
+                            }
+
+                            Text { text: "点击刷新以检测当前已挂载的外置存储"; font.pixelSize: 20; color: "#9CA3AF" }
+                        }
+
+                        ListModel { id: storageListModel }
+
+                        ListView {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: Math.min(300, contentHeight)
+                            clip: true
+                            model: storageListModel
+                            delegate: Rectangle {
+                                width: ListView.view.width
+                                height: 48
+                                color: index % 2 === 0 ? "#111318" : "#0E1015"
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    spacing: 12
+                                    Text { text: label !== "" ? label : device; color: "white"; font.pixelSize: 20; Layout.preferredWidth: 280; elide: Text.ElideRight }
+                                    Text { text: mountPoint; color: "#A7F3D0"; font.pixelSize: 18; Layout.fillWidth: true; elide: Text.ElideRight }
+                                    Text { text: fsType; color: "#34D399"; font.pixelSize: 18 }
+                                }
+                            }
+                            visible: storageListModel.count > 0
+                        }
+
+                        Text { visible: storageListModel.count === 0; text: "暂无外置存储"; color: "#9CA3AF"; font.pixelSize: 20 }
+                    }
+                }
+
                 // 底部留白
                 Item {
                     Layout.fillHeight: true
