@@ -144,6 +144,8 @@ Rectangle {
                         spacing: 16
                         // 当前选择的设备（空字符串表示机内存储）
                         property string currentDevice: ""
+                        // 自动恢复到外置（按钮开关）
+                        property bool autoRecoverOn: true
 
                         // 子标题与设置项在同一布局
                         Row {
@@ -164,11 +166,52 @@ Rectangle {
                             Layout.fillWidth: true
                             spacing: 12
 
-                            Text { text: "保存位置："; color: "#FFFFFF"; font.pixelSize: st.labelSize }
-
+                            // 标题行：左侧文字，右侧“刷新设备”按钮
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: pageSpacing
+                                Text { text: "保存位置："; color: "#FFFFFF"; font.pixelSize: st.labelSize }
+                                Item { Layout.fillWidth: true }
+                                // 测量“刷新设备”文本
+                                Text { id: refreshTextMeasure; text: "刷新设备"; visible: false; width: 0; height: 0; font.pixelSize: Math.round(actionButtonHeight * 0.48) }
+                                UniversalButton {
+                                    id: btnRefresh
+                                    text: "刷新设备"
+                                    buttonStyle: "action"
+                                    iconSource: "qrc:/icons/restore.svg"
+                                    contentLayout: "horizontal"
+                                    customButtonWidth: Math.max(Math.round(actionButtonHeight * 2.2), refreshTextMeasure.paintedWidth + btnRefresh.customIconSize + 34)
+                                    customButtonHeight: actionButtonHeight
+                                    customIconSize: Math.round(actionButtonHeight * 0.66)
+                                    customTextSize: Math.round(actionButtonHeight * 0.48)
+                                    onClicked: refreshStorageBtn.clicked()
+                                }
+                            }
+
+                            // 选择行：左侧“自动恢复到外置”按钮 + 机内/外置设备
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: pageSpacing
+
+                                // 自动恢复开关（按钮样式）
+                                Text { id: autoRecoverTextMeasure; text: "自动恢复到外置"; visible: false; width: 0; height: 0; font.pixelSize: Math.round(settingButtonHeight * 0.48) }
+                                UniversalButton {
+                                    id: btnAutoRecover
+                                    text: "自动恢复到外置"
+                                    iconSource: "qrc:/icons/view.svg"
+                                    buttonStyle: "navigation"
+                                    contentLayout: "horizontal"
+                                    isActive: externalStorageContent.autoRecoverOn
+                                    customButtonWidth: Math.max(Math.round(settingButtonHeight * 2.6), autoRecoverTextMeasure.paintedWidth + btnAutoRecover.customIconSize + 34)
+                                    customButtonHeight: settingButtonHeight
+                                    customIconSize: Math.round(settingButtonHeight * 0.6)
+                                    customTextSize: Math.round(settingButtonHeight * 0.48)
+                                    onClicked: {
+                                        externalStorageContent.autoRecoverOn = !externalStorageContent.autoRecoverOn
+        
+                                        if (StorageManager) StorageManager.setStorageAutoRecover(externalStorageContent.autoRecoverOn)
+                                    }
+                                }
 
                                 // 机内存储按钮
                                 // 文本测量以确保按钮宽度能完整显示
@@ -251,25 +294,7 @@ Rectangle {
                             }
                         }
 
-                        // 刷新设备按钮
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: pageSpacing
-                            // 测量“刷新设备”文本
-                            Text { id: refreshTextMeasure; text: "刷新设备"; visible: false; width: 0; height: 0; font.pixelSize: Math.round(actionButtonHeight * 0.48) }
-                            UniversalButton {
-                                id: btnRefresh
-                                text: "刷新设备"
-                                buttonStyle: "action"
-                                iconSource: "qrc:/icons/zoom_reset.svg"
-                                contentLayout: "horizontal"
-                                customButtonWidth: Math.max(Math.round(actionButtonHeight * 2.2), refreshTextMeasure.paintedWidth + btnRefresh.customIconSize + 34)
-                                customButtonHeight: actionButtonHeight
-                                customIconSize: Math.round(actionButtonHeight * 0.66)
-                                customTextSize: Math.round(actionButtonHeight * 0.48)
-                                onClicked: refreshStorageBtn.clicked()
-                            }
-                        }
+                        // 刷新设备按钮行已合并到标题行
 
                         // 隐含刷新动作（供“刷新设备”触发）
                         UniversalButton {
@@ -351,6 +376,12 @@ Rectangle {
                 } else {
                     externalStorageContent.currentDevice = ""
                 }
+                // 初始化自动恢复按钮状态
+                if (cfg && cfg.hasOwnProperty('auto_recover')) {
+                    externalStorageContent.autoRecoverOn = cfg.auto_recover === true
+                } else {
+                    externalStorageContent.autoRecoverOn = true
+                }
             }
         } catch(e) {
             Logger.error("初始化外置存储列表失败: " + e)
@@ -392,6 +423,9 @@ Rectangle {
                     externalStorageContent.currentDevice = cfg.external_device
                 } else {
                     externalStorageContent.currentDevice = ""
+                }
+                if (cfg.hasOwnProperty('auto_recover')) {
+                    externalStorageContent.autoRecoverOn = cfg.auto_recover === true
                 }
             } catch(e) {
                 Logger.error("StorageConfigChanged 解析失败: " + e)

@@ -138,6 +138,7 @@ location = "external"
 external_device = "/dev/mmcblk1p1"
 internal_base_path = "/home/eddysun/data"
 external_relative_path = "EAI-520_data"
+auto_recover = true
 EOF
         print_info "✓ 创建默认配置文件: smartscope.toml"
     else

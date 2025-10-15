@@ -63,6 +63,11 @@ bool StorageManager::setStorageExternalRelativePath(const QString& path) {
     return rc == 0;
 }
 
+bool StorageManager::setStorageAutoRecover(bool enabled) {
+    int rc = smartscope_storage_set_auto_recover(enabled);
+    return rc == 0;
+}
+
 #include <QDateTime>
 #include <QDir>
 #include <QJsonDocument>
@@ -82,8 +87,7 @@ QString StorageManager::resolveScreenshotSessionPath(const QString& displayMode)
     if (cfgJson.isEmpty()) return QString();
     QJsonDocument doc = QJsonDocument::fromJson(cfgJson.toUtf8());
     if (!doc.isObject()) return QString();
-    QJsonObject cfg = doc.object();
-    QJsonObject storage = cfg.value("storage").toObject();
+    QJsonObject storage = doc.object();
     QString location = storage.value("location").toString();
 
     QString basePath;

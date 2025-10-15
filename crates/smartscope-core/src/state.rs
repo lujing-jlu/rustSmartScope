@@ -319,13 +319,15 @@ impl AppState {
                                     }
                                 }
                                 crate::config::StorageLocation::Internal => {
-                                    // 自动恢复：若配置了 external_device 且设备可用（无条件启用）
-                                    if let Some(dev) = &cfg.storage.external_device {
-                                        if current_set.contains(dev) {
-                                            tracing::info!("检测到外置设备重新可用，自动恢复到外置存储");
-                                            cfg.storage.location = crate::config::StorageLocation::External;
-                                            need_save = true;
-                                            action_msg = "恢复到外置".to_string();
+                                    // 自动恢复：需开启 auto_recover 且配置了 external_device 且设备可用
+                                    if cfg.storage.auto_recover {
+                                        if let Some(dev) = &cfg.storage.external_device {
+                                            if current_set.contains(dev) {
+                                                tracing::info!("检测到外置设备重新可用，自动恢复到外置存储");
+                                                cfg.storage.location = crate::config::StorageLocation::External;
+                                                need_save = true;
+                                                action_msg = "恢复到外置".to_string();
+                                            }
                                         }
                                     }
                                 }

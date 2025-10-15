@@ -100,3 +100,20 @@ pub extern "C" fn smartscope_storage_set_external_relative_path(path: *const c_c
     }
     ErrorCode::Success as c_int
 }
+
+/// 设置是否自动恢复到外置存储
+#[no_mangle]
+pub extern "C" fn smartscope_storage_set_auto_recover(enabled: bool) -> c_int {
+    let app_state = match get_app_state() { Ok(s)=>s, Err(_)=> return ErrorCode::Error as c_int };
+    {
+        let mut cfg = app_state.config.write().unwrap();
+        cfg.storage.auto_recover = enabled;
+    }
+    if let Some(p) = &app_state.config_path {
+        let cfg = app_state.config.read().unwrap().clone();
+        if let Err(e) = cfg.save_to_file(p) {
+            tracing::warn!("save storage config failed: {}", e);
+        }
+    }
+    ErrorCode::Success as c_int
+}

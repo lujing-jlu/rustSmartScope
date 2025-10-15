@@ -100,6 +100,8 @@ int smartscope_storage_set_external_device(const char* device_path);
 int smartscope_storage_set_internal_base_path(const char* path);
 /** 设置外置相对路径 */
 int smartscope_storage_set_external_relative_path(const char* path);
+/** 设置是否自动恢复到外置存储 */
+int smartscope_storage_set_auto_recover(bool enabled);
 
 // =========================
 // AI Inference (RKNN YOLOv8)
