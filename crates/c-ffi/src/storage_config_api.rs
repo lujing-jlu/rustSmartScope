@@ -20,8 +20,8 @@ pub extern "C" fn smartscope_storage_get_config_json() -> *mut c_char {
         Ok(s) => s,
         Err(_) => return std::ptr::null_mut(),
     };
-    let cfg = app_state.get_config();
-    let json = match serde_json::to_string(&cfg.storage) {
+    let storage = app_state.get_storage_config();
+    let json = match serde_json::to_string(&storage) {
         Ok(s) => s,
         Err(_) => "{}".to_string(),
     };
@@ -41,10 +41,7 @@ pub extern "C" fn smartscope_storage_set_location(location: u32) -> c_int {
 
     let loc = if location == CStorageLocation::External as u32 { smartscope_core::config::StorageLocation::External } else { smartscope_core::config::StorageLocation::Internal };
 
-    {
-        let mut cfg = app_state.config.write().unwrap();
-        cfg.storage.location = loc;
-    }
+    let _ = app_state.set_storage_location(loc);
 
     // 自动保存（如果已设置路径）
     if let Some(path) = &app_state.config_path {
@@ -65,10 +62,7 @@ pub extern "C" fn smartscope_storage_set_external_device(device_path: *const c_c
 
     let path_str = unsafe { match CStr::from_ptr(device_path).to_str() { Ok(s)=>s.to_string(), Err(_)=> return ErrorCode::Error as c_int } };
 
-    {
-        let mut cfg = app_state.config.write().unwrap();
-        cfg.storage.external_device = Some(path_str);
-    }
+    let _ = app_state.set_storage_external_device(Some(path_str));
 
     if let Some(path) = &app_state.config_path {
         let cfg = app_state.config.read().unwrap().clone();
@@ -85,10 +79,7 @@ pub extern "C" fn smartscope_storage_set_internal_base_path(path: *const c_char)
     if path.is_null() { return ErrorCode::Error as c_int; }
     let app_state = match get_app_state() { Ok(s)=>s, Err(_)=> return ErrorCode::Error as c_int };
     let s = unsafe { match CStr::from_ptr(path).to_str() { Ok(s)=>s.to_string(), Err(_)=> return ErrorCode::Error as c_int } };
-    {
-        let mut cfg = app_state.config.write().unwrap();
-        cfg.storage.internal_base_path = s;
-    }
+    let _ = app_state.set_storage_internal_base_path(s);
     if let Some(p) = &app_state.config_path {
         let cfg = app_state.config.read().unwrap().clone();
         let _ = cfg.save_to_file(p);
@@ -102,14 +93,10 @@ pub extern "C" fn smartscope_storage_set_external_relative_path(path: *const c_c
     if path.is_null() { return ErrorCode::Error as c_int; }
     let app_state = match get_app_state() { Ok(s)=>s, Err(_)=> return ErrorCode::Error as c_int };
     let s = unsafe { match CStr::from_ptr(path).to_str() { Ok(s)=>s.to_string(), Err(_)=> return ErrorCode::Error as c_int } };
-    {
-        let mut cfg = app_state.config.write().unwrap();
-        cfg.storage.external_relative_path = s;
-    }
+    let _ = app_state.set_storage_external_relative_path(s);
     if let Some(p) = &app_state.config_path {
         let cfg = app_state.config.read().unwrap().clone();
         let _ = cfg.save_to_file(p);
     }
     ErrorCode::Success as c_int
 }
-

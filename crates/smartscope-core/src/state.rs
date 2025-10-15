@@ -198,6 +198,40 @@ impl AppState {
         self.config.read().unwrap().clone()
     }
 
+    // ==============================
+    // Storage config helpers
+    // ==============================
+    pub fn get_storage_config(&self) -> crate::config::StorageConfig {
+        self.config.read().unwrap().storage.clone()
+    }
+
+    pub fn set_storage_location(
+        &self,
+        loc: crate::config::StorageLocation,
+    ) -> crate::Result<()> {
+        let mut cfg = self.config.write().unwrap();
+        cfg.storage.location = loc;
+        Ok(())
+    }
+
+    pub fn set_storage_external_device(&self, dev: Option<String>) -> crate::Result<()> {
+        let mut cfg = self.config.write().unwrap();
+        cfg.storage.external_device = dev;
+        Ok(())
+    }
+
+    pub fn set_storage_internal_base_path(&self, path: String) -> crate::Result<()> {
+        let mut cfg = self.config.write().unwrap();
+        cfg.storage.internal_base_path = path;
+        Ok(())
+    }
+
+    pub fn set_storage_external_relative_path(&self, path: String) -> crate::Result<()> {
+        let mut cfg = self.config.write().unwrap();
+        cfg.storage.external_relative_path = path;
+        Ok(())
+    }
+
     pub fn is_initialized(&self) -> bool {
         self.initialized
     }

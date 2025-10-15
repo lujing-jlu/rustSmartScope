@@ -134,10 +134,18 @@ void QmlVideoItem::paint(QPainter *painter)
                   destRect.top() + m_viewWindow.top() * sy,
                   m_viewWindow.width() * sx,
                   m_viewWindow.height() * sy);
-        QPen pen(Qt::white, 3.0);
-        painter->setPen(pen);
-        painter->setBrush(Qt::NoBrush);
-        painter->drawRoundedRect(vr, 4, 4);
+        // 当视窗等同于显示区域（或非常接近）时，不绘制内部白框，避免与外层边框重叠产生双线
+        const qreal tol = 2.0; // 容差像素
+        bool nearFull = (qAbs(vr.left()   - destRect.left())   <= tol &&
+                         qAbs(vr.top()    - destRect.top())    <= tol &&
+                         qAbs(vr.right()  - destRect.right())  <= tol &&
+                         qAbs(vr.bottom() - destRect.bottom()) <= tol);
+        if (!nearFull) {
+            QPen pen(Qt::white, 3.0);
+            painter->setPen(pen);
+            painter->setBrush(Qt::NoBrush);
+            painter->drawRoundedRect(vr, 4, 4);
+        }
     }
 }
 

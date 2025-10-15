@@ -75,6 +75,8 @@ Rectangle {
     // 私有/公开交互属性
     property bool hovered: false
     property bool isPressed: false
+    // 可选自定义文字大小（非toolbar样式时生效）
+    property int customTextSize: 0
 
     // 应用样式配置
     width: effectiveButtonWidth
@@ -177,7 +179,7 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         text: universalButton.text
         color: textColor
-        font.pixelSize: 10
+        font.pixelSize: customTextSize > 0 ? customTextSize : 10
         font.family: "Inter"
         visible: text !== "" && buttonStyle !== "toolbar"  // 工具栏按钮不显示文本
         opacity: 0.8
