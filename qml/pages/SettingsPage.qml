@@ -171,8 +171,7 @@ Rectangle {
                                 Layout.fillWidth: true
                                 spacing: pageSpacing
                                 Text { text: "保存位置："; color: "#FFFFFF"; font.pixelSize: st.labelSize }
-                                Item { Layout.fillWidth: true }
-                                // 测量“刷新设备”文本
+                                // 紧挨着标题放置“刷新设备”
                                 Text { id: refreshTextMeasure; text: "刷新设备"; visible: false; width: 0; height: 0; font.pixelSize: Math.round(actionButtonHeight * 0.48) }
                                 UniversalButton {
                                     id: btnRefresh
@@ -186,6 +185,8 @@ Rectangle {
                                     customTextSize: Math.round(actionButtonHeight * 0.48)
                                     onClicked: refreshStorageBtn.clicked()
                                 }
+                                // 其余空间留空
+                                Item { Layout.fillWidth: true }
                             }
 
                             // 选择行：左侧“自动恢复到外置”按钮 + 机内/外置设备
