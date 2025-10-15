@@ -196,6 +196,37 @@ pub extern "C" fn smartscope_save_config(config_path: *const c_char) -> c_int {
     }
 }
 
+/// 启用配置文件热重载
+#[no_mangle]
+pub extern "C" fn smartscope_enable_config_hot_reload(config_path: *const c_char) -> c_int {
+    if config_path.is_null() {
+        return ErrorCode::ConfigError as c_int;
+    }
+
+    let app_state = match get_app_state() {
+        Ok(state) => state,
+        Err(_) => return ErrorCode::Error as c_int,
+    };
+
+    let path_str = unsafe {
+        match CStr::from_ptr(config_path).to_str() {
+            Ok(s) => s,
+            Err(_) => return ErrorCode::ConfigError as c_int,
+        }
+    };
+
+    match app_state.enable_config_hot_reload(path_str) {
+        Ok(_) => {
+            tracing::info!("配置热重载已启用: {}", path_str);
+            ErrorCode::Success as c_int
+        }
+        Err(e) => {
+            tracing::error!("启用配置热重载失败: {}", e);
+            ErrorCode::from(e) as c_int
+        }
+    }
+}
+
 /// 获取版本字符串
 #[no_mangle]
 pub extern "C" fn smartscope_get_version() -> *const c_char {

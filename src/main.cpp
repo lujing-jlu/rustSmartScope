@@ -33,9 +33,19 @@ int main(int argc, char *argv[])
     }
 
     // 加载根目录配置（仅使用 smartscope.toml；若不存在将使用默认配置）
-    result = smartscope_load_config("smartscope.toml");
+    // 配置文件相对于项目根目录（可执行文件在 build/bin/ 下）
+    const char* config_path = "../../smartscope.toml";
+    result = smartscope_load_config(config_path);
     if (result != SMARTSCOPE_ERROR_SUCCESS) {
         LOG_ERROR("Main", "Failed to load config: ", smartscope_get_error_string(result));
+    }
+
+    // 启用配置文件热重载
+    result = smartscope_enable_config_hot_reload(config_path);
+    if (result != SMARTSCOPE_ERROR_SUCCESS) {
+        LOG_WARN("Main", "Failed to enable config hot reload: ", smartscope_get_error_string(result));
+    } else {
+        LOG_INFO("Main", "配置文件热重载已启用，修改 smartscope.toml 将自动生效");
     }
 
     // 注册QML日志组件

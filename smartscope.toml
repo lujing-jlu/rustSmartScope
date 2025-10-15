@@ -1,6 +1,3 @@
-# SmartScope 配置文件（精简版）
-## 说明：当前版本仅使用相机基础参数，其他信息由系统自动检测或在运行时控制
-
 [camera]
 width = 1280
 height = 720
@@ -8,6 +5,19 @@ fps = 30
 
 [camera.left]
 name_keywords = ["cameral", "left", "video3"]
+parameters_path = "camera_parameters/camera0_intrinsics.dat"
+rot_trans_path = "camera_parameters/camera0_rot_trans.dat"
 
 [camera.right]
 name_keywords = ["camerar", "right", "video1"]
+parameters_path = "camera_parameters/camera1_intrinsics.dat"
+rot_trans_path = "camera_parameters/camera1_rot_trans.dat"
+
+[camera.control]
+auto_exposure = true
+exposure_time = 10000
+gain = 1.0
+auto_white_balance = true
+brightness = 0
+contrast = 0
+saturation = 0

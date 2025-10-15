@@ -51,6 +51,11 @@ int smartscope_load_config(const char *config_path);
 int smartscope_save_config(const char *config_path);
 
 /**
+ * 启用配置文件热重载
+ */
+int smartscope_enable_config_hot_reload(const char *config_path);
+
+/**
  * 获取版本字符串
  */
 const char *smartscope_get_version(void);
