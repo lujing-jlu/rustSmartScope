@@ -130,3 +130,50 @@ QString StorageManager::resolveScreenshotSessionPath(const QString& displayMode)
     dir.mkpath(sessionDir);
     return sessionDir;
 }
+
+QString StorageManager::resolveCaptureSessionPath(const QString& displayMode) {
+    // 读取存储配置
+    QString cfgJson = getStorageConfigJson();
+    if (cfgJson.isEmpty()) return QString();
+    QJsonDocument doc = QJsonDocument::fromJson(cfgJson.toUtf8());
+    if (!doc.isObject()) return QString();
+    QJsonObject storage = doc.object();
+    QString location = storage.value("location").toString();
+
+    QString basePath;
+    if (location == "external") {
+        QString dev = storage.value("external_device").toString();
+        QString rel = storage.value("external_relative_path").toString();
+        QString listJson = refreshExternalStoragesJson();
+        QJsonDocument ldoc = QJsonDocument::fromJson(listJson.toUtf8());
+        if (ldoc.isArray()) {
+            for (const auto& v : ldoc.array()) {
+                QJsonObject o = v.toObject();
+                if (o.value("device").toString() == dev) {
+                    QString mp = o.value("mount_point").toString();
+                    basePath = joinPath(mp, rel);
+                    break;
+                }
+            }
+        }
+        if (basePath.isEmpty()) {
+            basePath = storage.value("internal_base_path").toString();
+        }
+    } else {
+        basePath = storage.value("internal_base_path").toString();
+    }
+
+    if (basePath.isEmpty()) return QString();
+
+    const QString dateStr = QDate::currentDate().toString("yyyy-MM-dd");
+    const QString timeStr = QTime::currentTime().toString("HH-mm-ss");
+    const QString sessionName = QString("%1_%2_%3").arg(dateStr, timeStr, displayMode);
+
+    QString picturesDir = joinPath(basePath, "Pictures");
+    QString dateDir = joinPath(picturesDir, dateStr);
+    QString sessionDir = joinPath(dateDir, sessionName);
+
+    QDir dir;
+    dir.mkpath(sessionDir);
+    return sessionDir;
+}

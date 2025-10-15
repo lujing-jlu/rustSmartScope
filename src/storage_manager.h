@@ -25,6 +25,10 @@ public:
     // 返回目录: <base>/Screenshots/YYYY-MM-DD/YYYY-MM-DD_HH-mm-ss_<displayMode>
     Q_INVOKABLE QString resolveScreenshotSessionPath(const QString& displayMode);
 
+    // 解析当前存储配置并创建本次拍照会话目录
+    // 返回目录: <base>/Pictures/YYYY-MM-DD/YYYY-MM-DD_HH-mm-ss_<displayMode>
+    Q_INVOKABLE QString resolveCaptureSessionPath(const QString& displayMode);
+
 signals:
     void storageListChanged(const QString& json);
     void storageConfigChanged(const QString& json);

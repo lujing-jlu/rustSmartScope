@@ -354,49 +354,50 @@ ApplicationWindow {
                     }
                 }
 
-                // 双目截图按钮
+                // 拍照按钮（保存原图+处理后图 → Pictures）
                 UniversalButton {
                     id: captureButton
-                    text: "双目截图"
+                    text: "拍照"
                     iconSource: "qrc:/icons/camera.svg"
                     buttonStyle: "toolbar"
                     onClicked: {
                         if (!StorageManager || !CameraManager) return
-                        var modeStr = (CameraManager.cameraMode === 2) ? "双目" : "单目"
-                        var sessionDir = StorageManager.resolveScreenshotSessionPath(modeStr)
+                        var modeStr = (CameraManager.cameraMode === 2) ? "stereo" : "single"
+                        var sessionDir = StorageManager.resolveCaptureSessionPath(modeStr)
                         if (sessionDir && sessionDir.length > 0) {
                             var ok = CameraManager.saveScreenshotSession(sessionDir)
                             if (ok) {
-                                Logger.info("截图已保存: " + sessionDir)
+                                Logger.info("拍照已保存: " + sessionDir)
                             } else {
-                                Logger.error("保存截图失败")
+                                Logger.error("保存拍照失败")
                             }
                         } else {
-                            Logger.error("无法解析截图目录")
+                            Logger.error("无法解析拍照目录")
                         }
                     }
                 }
 
-                // 屏幕截图按钮
+                // 屏幕截图按钮（保存UI截图 → Screenshots）
                 UniversalButton {
                     id: screenshotButton
                     text: "屏幕截图"
                     iconSource: "qrc:/icons/screenshot.svg"
                     buttonStyle: "toolbar"
                     onClicked: {
-                        if (!StorageManager || !CameraManager) return
-                        var modeStr = (CameraManager.cameraMode === 2) ? "双目" : "单目"
+                        if (!StorageManager) return
+                        var modeStr = (CameraManager && CameraManager.cameraMode === 2) ? "stereo" : "single"
                         var sessionDir = StorageManager.resolveScreenshotSessionPath(modeStr)
-                        if (sessionDir && sessionDir.length > 0) {
-                            var ok = CameraManager.saveScreenshotSession(sessionDir)
-                            if (ok) {
-                                Logger.info("截图已保存: " + sessionDir)
+                        if (!sessionDir || sessionDir.length === 0) { Logger.error("无法解析截图目录"); return }
+                        var filePath = sessionDir + "/screenshot.png"
+                        // 抓取整个主内容容器
+                        rootContainer.grabToImage(function(result) {
+                            var saved = result.saveToFile(filePath)
+                            if (saved) {
+                                Logger.info("截图已保存: " + filePath)
                             } else {
-                                Logger.error("保存截图失败")
+                                Logger.error("保存截图失败: " + filePath)
                             }
-                        } else {
-                            Logger.error("无法解析截图目录")
-                        }
+                        })
                     }
                 }
 
