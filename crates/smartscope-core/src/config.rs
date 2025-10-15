@@ -46,6 +46,9 @@ pub struct StorageConfig {
     pub internal_base_path: String,
     /// 外置存储相对于选中设备根挂载点的相对目录
     pub external_relative_path: String,
+    /// 外置设备可用时是否自动恢复到外置
+    #[serde(default)]
+    pub auto_recover: bool,
 }
 
 impl Default for StorageConfig {
@@ -55,6 +58,7 @@ impl Default for StorageConfig {
             external_device: None,
             internal_base_path: "data".to_string(),
             external_relative_path: "smartscope".to_string(),
+            auto_recover: true,
         }
     }
 }

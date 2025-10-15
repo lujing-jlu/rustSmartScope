@@ -17,6 +17,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "local-time", 
 tracing-appender = { workspace = true }
 notify = { workspace = true }
 storage-detector = { path = "../storage-detector" }
+udev = "0.8"
+nix = { workspace = true }
 
 # Camera support
 usb-camera = { path = "../usb-camera" }

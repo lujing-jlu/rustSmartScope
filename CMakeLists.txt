@@ -48,6 +48,17 @@ message(STATUS "Using OpenCV ${OpenCV_VERSION}")
 
 # 查找线程库
 find_package(Threads REQUIRED)
+find_package(PkgConfig)
+if(PKG_CONFIG_FOUND)
+    pkg_check_modules(UDEV IMPORTED_TARGET libudev)
+    if(TARGET PkgConfig::UDEV)
+        message(STATUS "Found libudev via pkg-config")
+    else()
+        message(WARNING "pkg-config found, but libudev not detected; will try linking with -ludev")
+    endif()
+else()
+    message(WARNING "pkg-config not found; will try linking with -ludev")
+endif()
 
 # 包含目录
 include_directories(
@@ -119,6 +130,10 @@ target_link_libraries(rustsmartscope
     -lturbojpeg
     -lrga
     -lrknnrt
+    
+    # libudev (required by Rust udev crate)
+    $<$<TARGET_EXISTS:PkgConfig::UDEV>:PkgConfig::UDEV>
+    $<$<NOT:$<TARGET_EXISTS:PkgConfig::UDEV>>:-ludev>
 )
 
 # 输出构建信息

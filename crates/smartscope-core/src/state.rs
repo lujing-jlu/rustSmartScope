@@ -264,49 +264,87 @@ impl AppState {
         let stop_clone = Arc::clone(&stop);
         let config_arc = Arc::clone(&self.config);
         let handle = thread::spawn(move || {
+            // 尝试创建 udev 监控（失败则使用轮询）
+            let mut monitor_opt = match udev::MonitorBuilder::new()
+                .and_then(|mut b| b.match_subsystem("block"))
+                .and_then(|b| b.listen())
+            {
+                Ok(m) => Some(m),
+                Err(e) => {
+                    tracing::warn!("创建 udev 监控失败，使用轮询: {}", e);
+                    None
+                }
+            };
+
             let mut last_set: HashSet<String> = HashSet::new();
+            let mut last_check = std::time::Instant::now();
+
             loop {
                 if stop_clone.load(Ordering::Relaxed) { break; }
-                // 获取当前外置存储列表
-                let current_list = storage_detector::list().unwrap_or_default();
-                let current_set: HashSet<String> = current_list.iter().map(|e| e.device.clone()).collect();
 
-                // 若设备集合发生变化，记录日志
-                if current_set != last_set {
-                    tracing::info!("外置存储设备变更: {} → {}", last_set.len(), current_set.len());
-                    last_set = current_set.clone();
+                let mut changed = false;
+                // 尝试从 udev 读取事件，非阻塞；有事件则标记 changed
+                if let Some(monitor) = &monitor_opt {
+                    // 读取尽可能多的事件（udev 套接字为非阻塞）
+                    let mut it = monitor.iter();
+                    while let Some(_event) = it.next() { changed = true; }
                 }
 
-                // 检查当前配置是否需要回退
-                let mut need_save = false;
-                {
-                    if let Ok(mut cfg) = config_arc.write() {
-                        if let crate::config::StorageLocation::External = cfg.storage.location {
-                            let missing = match &cfg.storage.external_device {
-                                Some(dev) => !current_set.contains(dev),
-                                None => true,
-                            };
-                            if missing {
-                                tracing::warn!("选中的外置设备不可用，自动回退到机内存储");
-                                cfg.storage.location = crate::config::StorageLocation::Internal;
-                                need_save = true;
+                // 定期 sanity 检查，避免仅依赖事件
+                if changed || last_check.elapsed() >= Duration::from_secs(1) {
+                    last_check = std::time::Instant::now();
+                    let current_list = storage_detector::list().unwrap_or_default();
+                    let current_set: HashSet<String> = current_list.iter().map(|e| e.device.clone()).collect();
+
+                    if current_set != last_set {
+                        tracing::info!("外置存储设备变更: {} → {}", last_set.len(), current_set.len());
+                        last_set = current_set.clone();
+                    }
+
+                    let mut need_save = false;
+                    let mut action_msg = String::new();
+                    {
+                        if let Ok(mut cfg) = config_arc.write() {
+                            match cfg.storage.location {
+                                crate::config::StorageLocation::External => {
+                                    let missing = match &cfg.storage.external_device {
+                                        Some(dev) => !current_set.contains(dev),
+                                        None => true,
+                                    };
+                                    if missing {
+                                        tracing::warn!("选中的外置设备不可用，自动回退到机内存储");
+                                        cfg.storage.location = crate::config::StorageLocation::Internal;
+                                        need_save = true;
+                                        action_msg = "回退到机内".to_string();
+                                    }
+                                }
+                                crate::config::StorageLocation::Internal => {
+                                    // 自动恢复：若配置了 external_device 且设备可用（无条件启用）
+                                    if let Some(dev) = &cfg.storage.external_device {
+                                        if current_set.contains(dev) {
+                                            tracing::info!("检测到外置设备重新可用，自动恢复到外置存储");
+                                            cfg.storage.location = crate::config::StorageLocation::External;
+                                            need_save = true;
+                                            action_msg = "恢复到外置".to_string();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if need_save {
+                        if let Ok(cfg) = config_arc.read() {
+                            if let Err(e) = cfg.save_to_file(&config_path) {
+                                tracing::error!("保存存储配置({})失败: {}", action_msg, e);
+                            } else {
+                                tracing::info!("已保存存储配置: {}", action_msg);
                             }
                         }
                     }
                 }
 
-                if need_save {
-                    // 保存到配置文件（原子写入）
-                    if let Ok(cfg) = config_arc.read() {
-                        if let Err(e) = cfg.save_to_file(&config_path) {
-                            tracing::error!("保存回退配置失败: {}", e);
-                        } else {
-                            tracing::info!("已保存配置回退至机内存储");
-                        }
-                    }
-                }
-
-                thread::sleep(Duration::from_millis(1000));
+                thread::sleep(Duration::from_millis(100));
             }
         });
         self.storage_monitor_stop = Some(stop);
