@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
 import QtGraphicalEffects 1.15
+import QtGraphicalEffects 1.15
 import "../components"
 import RustSmartScope.Logger 1.0
 
@@ -78,21 +79,23 @@ Rectangle {
                         radius: 10
                     }
 
-                    label: Row {
-                        spacing: 10
-                        anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-                        Item {
-                            width: st.sectionSize * 0.8
-                            height: st.sectionSize * 0.8
-                            Image { id: sectionIcon1; anchors.fill: parent; source: "qrc:/icons/setting.svg"; fillMode: Image.PreserveAspectFit; visible: false }
-                            ColorOverlay { anchors.fill: sectionIcon1; source: sectionIcon1; color: "#FFFFFF" }
-                        }
-                        Text { text: "系统设置"; font.pixelSize: st.sectionSize; font.bold: true; color: "#FFFFFF" }
-                    }
-
                     ColumnLayout {
                         width: parent.width
                         spacing: 15
+
+                        // 子标题与设置项在同一布局
+                        Row {
+                            spacing: 10
+                            Layout.alignment: Qt.AlignLeft
+                            Layout.bottomMargin: 8
+                            Item {
+                                width: st.sectionSize * 0.8
+                                height: st.sectionSize * 0.8
+                                Image { id: sectionIcon1; anchors.fill: parent; source: "qrc:/icons/setting.svg"; fillMode: Image.PreserveAspectFit; visible: false }
+                                ColorOverlay { anchors.fill: sectionIcon1; source: sectionIcon1; color: "#FFFFFF" }
+                            }
+                            Text { text: "系统设置"; font.pixelSize: st.sectionSize; font.bold: true; color: "#FFFFFF" }
+                        }
 
                         Text {
                             text: "其他系统设置（待实现）"
@@ -115,24 +118,26 @@ Rectangle {
                         radius: 10
                     }
 
-                    label: Row {
-                        spacing: 10
-                        anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-                        Item {
-                            width: st.sectionSize * 0.8
-                            height: st.sectionSize * 0.8
-                            Image { id: storageIcon; anchors.fill: parent; source: "qrc:/icons/save.svg"; fillMode: Image.PreserveAspectFit; visible: false }
-                            ColorOverlay { anchors.fill: storageIcon; source: storageIcon; color: "#FFFFFF" }
-                        }
-                        Text { text: "外置存储 (U盘 / SD卡)"; font.pixelSize: st.sectionSize; font.bold: true; color: "#FFFFFF" }
-                    }
-
                     ColumnLayout {
                         id: externalStorageContent
                         width: parent.width
                         spacing: 16
                         // 外置设备区可见性（由互斥按钮控制/初始化同步配置）
                         property bool externalSectionVisible: false
+
+                        // 子标题与设置项在同一布局
+                        Row {
+                            spacing: 10
+                            Layout.alignment: Qt.AlignLeft
+                            Layout.bottomMargin: 8
+                            Item {
+                                width: st.sectionSize * 0.8
+                                height: st.sectionSize * 0.8
+                                Image { id: storageIcon; anchors.fill: parent; source: "qrc:/icons/save.svg"; fillMode: Image.PreserveAspectFit; visible: false }
+                                ColorOverlay { anchors.fill: storageIcon; source: storageIcon; color: "#FFFFFF" }
+                            }
+                            Text { text: "外置存储 (U盘 / SD卡)"; font.pixelSize: st.sectionSize; font.bold: true; color: "#FFFFFF" }
+                        }
 
                         // 保存位置选择（互斥按钮）
                         RowLayout {
