@@ -172,38 +172,62 @@ bool CameraManager::saveScreenshotSession(const QString& sessionDir)
 
     auto saveImage = [](const QImage& img, const QString& path) -> bool {
         if (img.isNull()) return false;
-        return img.save(path, "JPG", 95);
+        return img.save(path, "PNG");
     };
 
-    bool ok = true;
+    int saved = 0;
     uint32_t mode = smartscope_get_camera_mode();
 
     if (mode == StereoCamera) {
-        CCameraFrame lf{}; CCameraFrame rf{};
-        if (smartscope_get_left_frame(&lf) == 0) {
-            QImage leftRaw = decodeRawFrame(lf);
-            ok = saveImage(leftRaw, sessionDir + "/left_original.jpg") && ok;
-            // 处理后图基于左图
-            QImage leftProcessed = processFrame(lf);
-            ok = saveImage(leftProcessed, sessionDir + "/processed.jpg") && ok;
+        // 左图（优先使用现有显示帧）
+        QImage leftProcessedImg;
+        {
+            QMutexLocker locker(&m_frameMutex);
+            leftProcessedImg = m_leftFrame.copy();
         }
+        if (!leftProcessedImg.isNull()) {
+            // 原图近似：对处理后图做逆变换
+            QImage leftOriginalImg = recoverOriginalFromProcessed(leftProcessedImg);
+            if (saveImage(leftOriginalImg, sessionDir + "/left_original.png")) saved++;
+            if (saveImage(leftProcessedImg, sessionDir + "/processed.png")) saved++;
+        } else {
+            // 退化：直接抓取一次
+            CCameraFrame lf{};
+            if (smartscope_get_left_frame(&lf) == 0) {
+                QImage leftAny = decodeRawFrame(lf);
+                if (saveImage(leftAny, sessionDir + "/left_original.png")) saved++;
+                if (saveImage(leftAny, sessionDir + "/processed.png")) saved++;
+            }
+        }
+
+        // 右图原图（逆变换）
+        CCameraFrame rf{};
         if (smartscope_get_right_frame(&rf) == 0) {
-            QImage rightRaw = decodeRawFrame(rf);
-            ok = saveImage(rightRaw, sessionDir + "/right_original.jpg") && ok;
+            QImage rightAny = decodeRawFrame(rf);
+            QImage rightOriginal = recoverOriginalFromProcessed(rightAny);
+            if (saveImage(rightOriginal, sessionDir + "/right_original.png")) saved++;
         }
     } else if (mode == SingleCamera) {
-        CCameraFrame sf{};
-        if (smartscope_get_single_frame(&sf) == 0) {
-            QImage raw = decodeRawFrame(sf);
-            ok = saveImage(raw, sessionDir + "/single_original.jpg") && ok;
-            QImage processed = processFrame(sf);
-            ok = saveImage(processed, sessionDir + "/processed.jpg") && ok;
+        QImage processedImg;
+        {
+            QMutexLocker locker(&m_frameMutex);
+            processedImg = m_singleFrame.copy();
         }
-    } else {
-        ok = false;
+        if (!processedImg.isNull()) {
+            QImage originalImg = recoverOriginalFromProcessed(processedImg);
+            if (saveImage(originalImg, sessionDir + "/single_original.png")) saved++;
+            if (saveImage(processedImg, sessionDir + "/processed.png")) saved++;
+        } else {
+            CCameraFrame sf{};
+            if (smartscope_get_single_frame(&sf) == 0) {
+                QImage any = decodeRawFrame(sf);
+                if (saveImage(any, sessionDir + "/single_original.png")) saved++;
+                if (saveImage(any, sessionDir + "/processed.png")) saved++;
+            }
+        }
     }
 
-    return ok;
+    return saved > 0;
 }
 
 void CameraManager::updateFrames()

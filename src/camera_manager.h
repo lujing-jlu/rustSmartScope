@@ -103,6 +103,7 @@ private:
     QImage processFrame(const CCameraFrame& frame);
     QImage decodeRawFrame(const CCameraFrame& frame);
     QImage applyVideoTransforms(const QImage& image);
+    QImage recoverOriginalFromProcessed(const QImage& processed);
     void updateStatus();
 
     QTimer* m_updateTimer;
