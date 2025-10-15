@@ -100,15 +100,48 @@ prepare_runtime() {
     mkdir -p logs
     print_info "✓ 日志目录: logs/"
 
-    # 创建默认配置文件（如果不存在）
-    if [ ! -f "simple_config.toml" ]; then
-        cat > simple_config.toml << EOF
-name = "RustSmartScope"
-version = "0.1.0"
+    # 确保使用 smartscope.toml（不再使用 simple_config.toml）
+    if [ ! -f "smartscope.toml" ]; then
+        cat > smartscope.toml << 'EOF'
+[camera]
+width = 1280
+height = 720
+fps = 30
+
+[camera.left]
+name_keywords = [
+    "cameral",
+    "left",
+]
+parameters_path = "camera_parameters/camera0_intrinsics.dat"
+rot_trans_path = "camera_parameters/camera0_rot_trans.dat"
+
+[camera.right]
+name_keywords = [
+    "camerar",
+    "right",
+]
+parameters_path = "camera_parameters/camera1_intrinsics.dat"
+rot_trans_path = "camera_parameters/camera1_rot_trans.dat"
+
+[camera.control]
+auto_exposure = true
+exposure_time = 10000
+gain = 1.0
+auto_white_balance = true
+brightness = 0
+contrast = 0
+saturation = 0
+
+[storage]
+location = "external"
+external_device = "/dev/mmcblk1p1"
+internal_base_path = "/home/eddysun/data"
+external_relative_path = "EAI-520_data"
 EOF
-        print_info "✓ 创建默认配置文件: simple_config.toml"
+        print_info "✓ 创建默认配置文件: smartscope.toml"
     else
-        print_info "✓ 配置文件: simple_config.toml"
+        print_info "✓ 使用配置文件: smartscope.toml"
     fi
 
     print_success "运行时环境准备完成"

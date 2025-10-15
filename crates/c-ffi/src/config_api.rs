@@ -44,12 +44,26 @@ pub extern "C" fn smartscope_load_config(config_path: *const c_char) -> c_int {
     match SmartScopeConfig::load_from_file(path_str) {
         Ok(config) => {
             *app_state.config.write().unwrap() = config;
+            app_state.config_path = Some(path_str.to_string());
             tracing::info!("Configuration loaded from: {}", path_str);
             ErrorCode::Success as c_int
         }
         Err(e) => {
-            tracing::error!("Failed to load config: {}", e);
-            ErrorCode::from(e) as c_int
+            // 配置缺失或损坏：写入默认配置并继续
+            tracing::warn!("配置加载失败，将写入默认配置: {}", e);
+            let default_cfg = SmartScopeConfig::default();
+            *app_state.config.write().unwrap() = default_cfg.clone();
+            app_state.config_path = Some(path_str.to_string());
+            match default_cfg.save_to_file(path_str) {
+                Ok(_) => {
+                    tracing::info!("默认配置已写入: {}", path_str);
+                    ErrorCode::Success as c_int
+                }
+                Err(e2) => {
+                    tracing::error!("写入默认配置失败: {}", e2);
+                    ErrorCode::from(e2) as c_int
+                }
+            }
         }
     }
 }
@@ -148,4 +162,3 @@ pub extern "C" fn smartscope_free_string(s: *mut c_char) {
         let _ = CString::from_raw(s);
     }
 }
-

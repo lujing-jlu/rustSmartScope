@@ -29,8 +29,9 @@ Rectangle {
     property int pageMargins: Math.max(12, Math.min(width, height) * 0.015 * sizeAdjustment * 1.5)
     property int pageSpacing: Math.max(10, Math.min(width, height) * 0.0052 * sizeAdjustment * 2)
     property int pageCorner: Math.max(12, Math.min(width, height) * 0.006 * sizeAdjustment * 2)
-    property int settingButtonHeight: Math.max(80, Math.min(width, height) * 0.05 * sizeAdjustment)
-    property int actionButtonHeight: Math.max(64, Math.min(width, height) * 0.045 * sizeAdjustment)
+    // 按钮高度整体放大20%
+    property int settingButtonHeight: Math.max(80, Math.min(width, height) * 0.05 * sizeAdjustment * 1.2)
+    property int actionButtonHeight: Math.max(64, Math.min(width, height) * 0.045 * sizeAdjustment * 1.2)
 
     // Settings页专用文字层级（集中管理）
     QtObject {
@@ -169,6 +170,8 @@ Rectangle {
                                 spacing: pageSpacing
 
                                 // 机内存储按钮
+                                // 文本测量以确保按钮宽度能完整显示
+                                Text { id: internalTextMeasure; text: "机内存储"; visible: false; width: 0; height: 0; font.pixelSize: Math.round(settingButtonHeight * 0.48) }
                                 UniversalButton {
                                     id: btnInternal
                                     text: "机内存储"
@@ -176,9 +179,14 @@ Rectangle {
                                     buttonStyle: "navigation"
                                     contentLayout: "horizontal"
                                     isActive: externalStorageContent.currentDevice === ""
-                                    customButtonWidth: Math.round(settingButtonHeight * 2.2)
+                                    // 宽度= max(比例宽, 文本宽+图标宽+内边距)
+                                    customButtonWidth: Math.max(
+                                                            Math.round(settingButtonHeight * 2.2),
+                                                            internalTextMeasure.paintedWidth + btnInternal.customIconSize + 34)
                                     customButtonHeight: settingButtonHeight
-                                    customTextSize: Math.round(settingButtonHeight * 0.32)
+                                    // 图标与字号放大50%
+                                    customIconSize: Math.round(settingButtonHeight * 0.6)
+                                    customTextSize: Math.round(settingButtonHeight * 0.48)
                                     onClicked: {
                                         externalStorageContent.currentDevice = ""
                                         if (StorageManager) StorageManager.setStorageLocation(0)
@@ -188,22 +196,31 @@ Rectangle {
                                 // 动态外置设备按钮
                                 Repeater {
                                     model: storageListModel
-                                    delegate: UniversalButton {
+                                    delegate: Item {
                                         // 展示 label(设备) 或设备
                                         property string devicePath: model.device
-                                        text: model._display
-                                        iconSource: "qrc:/icons/save.svg"
-                                        buttonStyle: "navigation"
-                                        contentLayout: "horizontal"
-                                        isActive: externalStorageContent.currentDevice === devicePath
-                                        customButtonWidth: Math.round(settingButtonHeight * 2.6)
-                                        customButtonHeight: settingButtonHeight
-                                        customTextSize: Math.round(settingButtonHeight * 0.32)
-                                        onClicked: {
-                                            externalStorageContent.currentDevice = devicePath
-                                            if (StorageManager) {
-                                                StorageManager.setStorageLocation(1)
-                                                StorageManager.setStorageExternalDevice(devicePath)
+                                        width: Math.max(Math.round(settingButtonHeight * 2.6), textMeasure.paintedWidth + btnDev.customIconSize + 34)
+                                        height: settingButtonHeight
+                                        // 文本测量
+                                        Text { id: textMeasure; text: model._display; visible: false; width: 0; height: 0; font.pixelSize: Math.round(settingButtonHeight * 0.48) }
+                                        UniversalButton {
+                                            id: btnDev
+                                            anchors.fill: parent
+                                            text: model._display
+                                            iconSource: "qrc:/icons/save.svg"
+                                            buttonStyle: "navigation"
+                                            contentLayout: "horizontal"
+                                            isActive: externalStorageContent.currentDevice === devicePath
+                                            customButtonWidth: parent.width
+                                            customButtonHeight: parent.height
+                                            customIconSize: Math.round(settingButtonHeight * 0.6)
+                                            customTextSize: Math.round(settingButtonHeight * 0.48)
+                                            onClicked: {
+                                                externalStorageContent.currentDevice = devicePath
+                                                if (StorageManager) {
+                                                    StorageManager.setStorageLocation(1)
+                                                    StorageManager.setStorageExternalDevice(devicePath)
+                                                }
                                             }
                                         }
                                     }
@@ -215,15 +232,18 @@ Rectangle {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: pageSpacing
+                            // 测量“刷新设备”文本
+                            Text { id: refreshTextMeasure; text: "刷新设备"; visible: false; width: 0; height: 0; font.pixelSize: Math.round(actionButtonHeight * 0.48) }
                             UniversalButton {
+                                id: btnRefresh
                                 text: "刷新设备"
                                 buttonStyle: "action"
-                                iconSource: "qrc:/icons/restore.svg"
+                                iconSource: "qrc:/icons/zoom_reset.svg"
                                 contentLayout: "horizontal"
-                                customButtonWidth: Math.round(actionButtonHeight * 2.2)
+                                customButtonWidth: Math.max(Math.round(actionButtonHeight * 2.2), refreshTextMeasure.paintedWidth + btnRefresh.customIconSize + 34)
                                 customButtonHeight: actionButtonHeight
-                                customIconSize: 32
-                                customTextSize: Math.round(actionButtonHeight * 0.32)
+                                customIconSize: Math.round(actionButtonHeight * 0.66)
+                                customTextSize: Math.round(actionButtonHeight * 0.48)
                                 onClicked: refreshStorageBtn.clicked()
                             }
                         }

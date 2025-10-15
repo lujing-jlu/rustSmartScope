@@ -358,13 +358,33 @@ impl SmartScopeConfig {
         Ok(config)
     }
 
-    /// 保存配置到TOML文件
+    /// 保存配置到TOML文件（原子写入，避免热重载读取到部分内容）
     pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+        use std::fs::{File, rename};
+        use std::io::Write;
+
         let content = toml::to_string_pretty(self)
             .map_err(|e| SmartScopeError::Config(format!("序列化配置失败: {}", e)))?;
 
-        std::fs::write(path, content)
-            .map_err(|e| SmartScopeError::Config(format!("写入配置文件失败: {}", e)))?;
+        let p = path.as_ref();
+        let mut tmp_path = p.to_path_buf();
+        // 在同目录使用 .tmp 扩展，避免部分写入导致解析失败
+        tmp_path.set_extension(match p.extension().and_then(|s| s.to_str()) {
+            Some(ext) => format!("{}.tmp", ext),
+            None => String::from("tmp"),
+        });
+
+        // 写入临时文件并刷盘
+        let mut f = File::create(&tmp_path)
+            .map_err(|e| SmartScopeError::Config(format!("创建临时配置文件失败: {}", e)))?;
+        f.write_all(content.as_bytes())
+            .map_err(|e| SmartScopeError::Config(format!("写入临时配置文件失败: {}", e)))?;
+        f.sync_all()
+            .map_err(|e| SmartScopeError::Config(format!("同步临时配置文件失败: {}", e)))?;
+
+        // 原子替换目标文件
+        rename(&tmp_path, p)
+            .map_err(|e| SmartScopeError::Config(format!("替换配置文件失败: {}", e)))?;
 
         Ok(())
     }
