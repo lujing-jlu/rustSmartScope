@@ -59,6 +59,23 @@ Rectangle {
             anchors.fill: parent
             anchors.margins: 4
         }
+
+        // 根据主视频缩放更新PIP视窗白框
+        function updatePipViewWindow() {
+            if (pipDisplay.frameWidth <= 0 || pipDisplay.frameHeight <= 0) return
+            var fw = pipDisplay.frameWidth
+            var fh = pipDisplay.frameHeight
+            var mw = videoDisplay.width
+            var mh = videoDisplay.height
+            var k = Math.min(mw / fw, mh / fh)   // letterbox缩放因子
+            var s = Math.max(1.0, videoDisplay.scale)
+            var vw = mw / (k * s)   // 可见区域在帧坐标系的宽度
+            var vh = mh / (k * s)   // 可见区域在帧坐标系的高度
+            // 居中窗口（当前未实现平移）
+            var vx = (fw - vw) / 2
+            var vy = (fh - vh) / 2
+            pipDisplay.viewWindow = Qt.rect(vx, vy, vw, vh)
+        }
     }
 
     // 左侧缩放工具栏（自下而上显示）
@@ -152,6 +169,18 @@ Rectangle {
         }
     }
 
+    // 监听缩放与帧尺寸变化，更新PIP白框
+    Connections {
+        target: videoDisplay
+        function onScaleChanged() { pipContainer.updatePipViewWindow() }
+        function onWidthChanged() { pipContainer.updatePipViewWindow() }
+        function onHeightChanged() { pipContainer.updatePipViewWindow() }
+    }
+    Connections {
+        target: pipDisplay
+        function onFrameSizeChanged() { pipContainer.updatePipViewWindow() }
+    }
+
     // 连接AI检测结果，用于绘制覆盖层
     Connections {
         target: AiDetectionManager
@@ -202,6 +231,9 @@ Rectangle {
         } else {
             Logger.error("CameraManager not available!")
         }
+
+        // 初始化PIP视窗白框
+        pipContainer.updatePipViewWindow()
 
         // 默认连接一次（防止初始无触发）
         if (CameraManager) {

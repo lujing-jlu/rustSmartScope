@@ -5,6 +5,7 @@
 #include <QPixmap>
 #include <QPainter>
 #include <QMutex>
+#include <QRectF>
 
 /**
  * @brief QML中可用的视频显示Item，直接渲染QPixmap
@@ -20,6 +21,7 @@ class QmlVideoItem : public QQuickPaintedItem
     Q_PROPERTY(int modelInputSize READ modelInputSize WRITE setModelInputSize NOTIFY modelInputSizeChanged)
     Q_PROPERTY(int frameWidth READ frameWidth NOTIFY frameSizeChanged)
     Q_PROPERTY(int frameHeight READ frameHeight NOTIFY frameSizeChanged)
+    Q_PROPERTY(QRectF viewWindow READ viewWindow WRITE setViewWindow NOTIFY viewWindowChanged)
 
 public:
     explicit QmlVideoItem(QQuickItem *parent = nullptr);
@@ -38,6 +40,9 @@ public:
     int frameWidth() const { return m_frameWidth; }
     int frameHeight() const { return m_frameHeight; }
 
+    QRectF viewWindow() const { return m_viewWindow; }
+    void setViewWindow(const QRectF& r) { m_viewWindow = r; emit viewWindowChanged(); update(); }
+
 public slots:
     /**
      * @brief 更新显示的视频帧
@@ -55,6 +60,7 @@ signals:
     void detectionsChanged();
     void modelInputSizeChanged();
     void frameSizeChanged();
+    void viewWindowChanged();
 
 private:
     QPixmap m_currentFrame;
@@ -63,6 +69,7 @@ private:
     int m_modelInputSize {640};
     int m_frameWidth {0};
     int m_frameHeight {0};
+    QRectF m_viewWindow;
 };
 
 #endif // QML_VIDEO_ITEM_H

@@ -125,6 +125,20 @@ void QmlVideoItem::paint(QPainter *painter)
             painter->drawText(tb.adjusted(6, 2, -6, -2), Qt::AlignVCenter|Qt::AlignLeft, text);
         }
     }
+
+    // 绘制视窗白框（当前主画面可见区域）
+    if (m_frameWidth > 0 && m_frameHeight > 0 && m_viewWindow.width() > 0 && m_viewWindow.height() > 0) {
+        const qreal sx = destRect.width() / m_frameWidth;
+        const qreal sy = destRect.height() / m_frameHeight;
+        QRectF vr(destRect.left() + m_viewWindow.left() * sx,
+                  destRect.top() + m_viewWindow.top() * sy,
+                  m_viewWindow.width() * sx,
+                  m_viewWindow.height() * sy);
+        QPen pen(Qt::white, 3.0);
+        painter->setPen(pen);
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRoundedRect(vr, 4, 4);
+    }
 }
 
 void QmlVideoItem::updateFrame(const QPixmap& pixmap)
