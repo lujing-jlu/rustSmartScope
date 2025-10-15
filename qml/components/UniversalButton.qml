@@ -18,8 +18,7 @@ Rectangle {
     property color activeColor: "#0EA5E9"
     property color hoverColor: Qt.rgba(0.31, 0.31, 0.31, 0.7)
     property color backgroundColor: isActive ?
-        (customActiveBackground !== "transparent" ? customActiveBackground : Qt.rgba(0.2, 0.2, 0.2, 0.8))
-        : (customInactiveBackground !== "transparent" ? customInactiveBackground : Qt.rgba(0.12, 0.12, 0.12, 0.6))
+        Qt.rgba(0.2, 0.2, 0.2, 0.8) : Qt.rgba(0.12, 0.12, 0.12, 0.6)
     property color textColor: "#FFFFFF"
     property color iconColor: isActive ? activeColor : "#FFFFFF"
 
@@ -78,25 +77,15 @@ Rectangle {
     property bool isPressed: false
     // 可选自定义文字大小（非toolbar样式时生效）
     property int customTextSize: 0
-    // 可选自定义边框和背景（提升可视性）
-    property real customBorderWidth: 0
-    property color customBorderColor: "transparent"
-    property color customActiveBorderColor: "transparent"
-    property color customActiveBackground: "transparent"
-    property color customInactiveBackground: "transparent"
 
     // 应用样式配置
     width: effectiveButtonWidth
     height: effectiveButtonHeight
     color: backgroundColor
     radius: styleConfig.borderRadius
-    border.width: customBorderWidth > 0 ? customBorderWidth : styleConfig.borderWidth
-    border.color: {
-        if (isActive) {
-            return customActiveBorderColor !== "transparent" ? customActiveBorderColor : Qt.rgba(14/255, 165/255, 233/255, 0.5)
-        }
-        return customBorderColor !== "transparent" ? customBorderColor : Qt.rgba(1, 1, 1, 0.1)
-    }
+    border.width: styleConfig.borderWidth
+    border.color: isActive ?
+        Qt.rgba(14/255, 165/255, 233/255, 0.5) : Qt.rgba(1, 1, 1, 0.1)
 
     // 鼠标交互
     MouseArea {

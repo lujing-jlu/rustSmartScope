@@ -160,35 +160,25 @@ Rectangle {
                                     customButtonHeight: 80
                                     customIconSize: 0
                                     customTextSize: st.buttonSize
-                                    customBorderWidth: 2
-                                    customActiveBorderColor: "#0EA5E9"
-                                    customBorderColor: Qt.rgba(1,1,1,0.18)
-                                    customActiveBackground: Qt.rgba(14/255,165/255,233/255,0.16)
-                                    customInactiveBackground: Qt.rgba(18/255,18/255,24/255,0.8)
                                     onClicked: {
                                         externalStorageContent.currentDevice = ""
                                         if (StorageManager) StorageManager.setStorageLocation(0)
                                     }
                                 }
 
-                                // 动态外置设备按钮（仅显示设备名称：优先label，否则device）
+                                // 动态外置设备按钮
                                 Repeater {
                                     model: storageListModel
                                     delegate: UniversalButton {
                                         // 展示 label(设备) 或设备
                                         property string devicePath: model.device
-                                        text: (model.label && model.label.length>0) ? model.label : model.device
+                                        text: model._display
                                         buttonStyle: "navigation"
                                         isActive: externalStorageContent.currentDevice === devicePath
                                         customButtonWidth: 300
                                         customButtonHeight: 80
                                         customIconSize: 0
                                         customTextSize: st.buttonSize
-                                        customBorderWidth: 2
-                                        customActiveBorderColor: "#0EA5E9"
-                                        customBorderColor: Qt.rgba(1,1,1,0.18)
-                                        customActiveBackground: Qt.rgba(14/255,165/255,233/255,0.16)
-                                        customInactiveBackground: Qt.rgba(18/255,18/255,24/255,0.8)
                                         onClicked: {
                                             externalStorageContent.currentDevice = devicePath
                                             if (StorageManager) {
