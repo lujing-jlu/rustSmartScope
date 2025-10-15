@@ -135,12 +135,18 @@ void QmlVideoItem::paint(QPainter *painter)
                   m_viewWindow.width() * sx,
                   m_viewWindow.height() * sy);
         // 当视窗等同于显示区域（或非常接近）时，不绘制内部白框，避免与外层边框重叠产生双线
-        const qreal tol = 2.0; // 容差像素
-        bool nearFull = (qAbs(vr.left()   - destRect.left())   <= tol &&
-                         qAbs(vr.top()    - destRect.top())    <= tol &&
-                         qAbs(vr.right()  - destRect.right())  <= tol &&
-                         qAbs(vr.bottom() - destRect.bottom()) <= tol);
-        if (!nearFull) {
+        const qreal tol = 4.0; // 放宽容差
+        // 判定1：比较映射后矩形与显示矩形
+        bool nearFullDest = (qAbs(vr.left()   - destRect.left())   <= tol &&
+                             qAbs(vr.top()    - destRect.top())    <= tol &&
+                             qAbs(vr.right()  - destRect.right())  <= tol &&
+                             qAbs(vr.bottom() - destRect.bottom()) <= tol);
+        // 判定2：直接比较视窗（帧坐标系）是否覆盖完整帧
+        bool nearFullFrame = (qAbs(m_viewWindow.left())   <= 1.0 &&
+                              qAbs(m_viewWindow.top())    <= 1.0 &&
+                              qAbs(m_viewWindow.width()  - m_frameWidth)  <= 1.0 &&
+                              qAbs(m_viewWindow.height() - m_frameHeight) <= 1.0);
+        if (!(nearFullDest || nearFullFrame)) {
             QPen pen(Qt::white, 3.0);
             painter->setPen(pen);
             painter->setBrush(Qt::NoBrush);

@@ -42,12 +42,14 @@ Rectangle {
         property bool rotated90: (VideoTransformManager && (VideoTransformManager.rotationDegrees % 180 !== 0))
         property real fw: pipDisplay.frameWidth  > 0 ? pipDisplay.frameWidth  : 16
         property real fh: pipDisplay.frameHeight > 0 ? pipDisplay.frameHeight : 9
-        width: rotated90 ? (pipBase * (fw / fh)) : pipBase
-        height: rotated90 ? pipBase : (pipBase * (fh / fw))
+        // 确保容器尺寸与帧宽高比严格一致，并取整到像素，避免与内部缩略图出现1px偏差
+        width: Math.round(rotated90 ? (pipBase * (fw / fh)) : pipBase)
+        height: Math.round(rotated90 ? pipBase : (pipBase * (fh / fw)))
         radius: 0
         color: Qt.rgba(0,0,0,0.35)
-        border.width: 3
-        border.color: "#FFFFFF"
+        // 由叠加边框绘制显示边框，避免被子项覆盖
+        border.width: 0
+        border.color: "transparent"
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.leftMargin: 16
@@ -57,7 +59,18 @@ Rectangle {
         VideoDisplay {
             id: pipDisplay
             anchors.fill: parent
-            anchors.margins: 4
+            // 去掉内边距，避免容器边框与缩略图之间的多余留白，确保两者完全重合
+            anchors.margins: 0
+        }
+
+        // 边框叠加层：绘制在内容之上，确保边框可见
+        Rectangle {
+            anchors.fill: parent
+            color: "transparent"
+            border.width: 3
+            border.color: "#FFFFFF"
+            radius: 0
+            z: 1000
         }
 
         // 根据主视频缩放更新PIP视窗白框
