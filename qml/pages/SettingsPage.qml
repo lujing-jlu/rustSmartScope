@@ -38,94 +38,7 @@ Rectangle {
                 width: parent.width
                 spacing: 30
 
-                // 相机设置区域
-                GroupBox {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: cameraSettingsContent.height + 100
-
-                    background: Rectangle {
-                        color: "rgba(20, 20, 20, 0.78)"
-                        border.color: "#3B82F6"
-                        border.width: 2
-                        radius: 10
-                    }
-
-                    label: Text {
-                        text: "📷 相机参数设置"
-                        font.pixelSize: 32
-                        font.bold: true
-                        color: "#3B82F6"
-                        padding: 10
-                    }
-
-                    ColumnLayout {
-                        id: cameraSettingsContent
-                        width: parent.width
-                        spacing: 20
-
-                        // 相机状态显示
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 20
-
-                            Text {
-                                text: "相机模式:"
-                                font.pixelSize: 24
-                                color: "white"
-                            }
-
-                            Text {
-                                text: {
-                                    var mode = CameraManager.cameraMode
-                                    if (mode === 0) return "无相机"
-                                    else if (mode === 1) return "单相机"
-                                    else if (mode === 2) return "双目相机"
-                                    else return "未知"
-                                }
-                                font.pixelSize: 24
-                                font.bold: true
-                                color: {
-                                    var mode = CameraManager.cameraMode
-                                    if (mode === 0) return "#EF4444"  // 红色
-                                    else if (mode === 1) return "#F59E0B"  // 橙色
-                                    else if (mode === 2) return "#10B981"  // 绿色
-                                    else return "#6B7280"  // 灰色
-                                }
-                            }
-
-                            Item { Layout.fillWidth: true }
-
-                            Text {
-                                text: CameraManager.cameraRunning ? "运行中 🟢" : "已停止 🔴"
-                                font.pixelSize: 24
-                                color: CameraManager.cameraRunning ? "#10B981" : "#EF4444"
-                            }
-                        }
-
-                        // 相机参数面板
-                        CameraParameterPanel {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 800
-
-                            cameraMode: CameraManager.cameraMode
-
-                            onApplySettings: {
-                                Logger.info("应用相机参数设置")
-                            }
-
-                            onResetToDefaults: {
-                                Logger.info("重置相机参数到默认值")
-                                // 调用FFI重置
-                                if (cameraMode === 1) {
-                                    CameraParameterManager.resetSingleCameraParameters()
-                                } else if (cameraMode === 2) {
-                                    CameraParameterManager.resetLeftCameraParameters()
-                                    CameraParameterManager.resetRightCameraParameters()
-                                }
-                            }
-                        }
-                    }
-                }
+                // 相机参数设置已移至独立窗口
 
                 // 其他设置区域（预留）
                 GroupBox {
@@ -133,7 +46,7 @@ Rectangle {
                     Layout.preferredHeight: 200
 
                     background: Rectangle {
-                        color: "rgba(20, 20, 20, 0.78)"
+                        color: Qt.rgba(20/255, 20/255, 20/255, 0.78)
                         border.color: "#8B5CF6"
                         border.width: 2
                         radius: 10
@@ -162,10 +75,11 @@ Rectangle {
                 // 外置存储检测
                 GroupBox {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: externalStorageContent.implicitHeight + 100
+                    // 固定较为稳妥的高度，避免implicitHeight为0导致不可见
+                    Layout.preferredHeight: 360
 
                     background: Rectangle {
-                        color: "rgba(20, 20, 20, 0.78)"
+                        color: Qt.rgba(20/255, 20/255, 20/255, 0.78)
                         border.color: "#10B981"
                         border.width: 2
                         radius: 10
@@ -219,7 +133,7 @@ Rectangle {
 
                         ListView {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: Math.min(300, contentHeight)
+                            Layout.preferredHeight: Math.min(280, contentHeight > 0 ? contentHeight : 280)
                             clip: true
                             model: storageListModel
                             delegate: Rectangle {
@@ -253,5 +167,23 @@ Rectangle {
 
     Component.onCompleted: {
         Logger.info("SettingsPage initialized")
+        // 自动刷新一次外置存储列表，避免空白
+        try {
+            if (typeof StorageManager !== 'undefined' && StorageManager) {
+                var json = StorageManager.refreshExternalStoragesJson()
+                var arr = JSON.parse(json)
+                storageListModel.clear()
+                for (var i = 0; i < arr.length; i++) {
+                    storageListModel.append({
+                        device: arr[i].device,
+                        label: arr[i].label || "",
+                        mountPoint: arr[i].mount_point,
+                        fsType: arr[i].fs_type
+                    })
+                }
+            }
+        } catch(e) {
+            Logger.error("初始化外置存储列表失败: " + e)
+        }
     }
 }
