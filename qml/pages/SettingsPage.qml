@@ -44,7 +44,7 @@ Rectangle {
                     Layout.preferredHeight: cameraSettingsContent.height + 100
 
                     background: Rectangle {
-                        color: "rgba(20, 20, 20, 200)"
+                        color: "rgba(20, 20, 20, 0.78)"
                         border.color: "#3B82F6"
                         border.width: 2
                         radius: 10
@@ -133,7 +133,7 @@ Rectangle {
                     Layout.preferredHeight: 200
 
                     background: Rectangle {
-                        color: "rgba(20, 20, 20, 200)"
+                        color: "rgba(20, 20, 20, 0.78)"
                         border.color: "#8B5CF6"
                         border.width: 2
                         radius: 10

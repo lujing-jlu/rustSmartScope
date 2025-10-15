@@ -6,30 +6,17 @@ use serde::{Deserialize, Serialize};
 use crate::error::{SmartScopeError, Result};
 use std::path::Path;
 
-/// SmartScope主配置结构
+/// SmartScope主配置结构（精简版）
+/// 目前仅使用与相机相关的配置；其余参数由系统自动检测或在运行时控制
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SmartScopeConfig {
-    pub app: AppConfig,
     pub camera: CameraConfig,
-    pub stereo: StereoConfig,
-    pub hardware: HardwareConfig,
-    pub ui: UiConfig,
-    pub measurement: MeasurementConfig,
-    pub logging: LoggingConfig,
-    pub performance: PerformanceConfig,
 }
 
 impl Default for SmartScopeConfig {
     fn default() -> Self {
         Self {
-            app: AppConfig::default(),
             camera: CameraConfig::default(),
-            stereo: StereoConfig::default(),
-            hardware: HardwareConfig::default(),
-            ui: UiConfig::default(),
-            measurement: MeasurementConfig::default(),
-            logging: LoggingConfig::default(),
-            performance: PerformanceConfig::default(),
         }
     }
 }
@@ -344,65 +331,30 @@ impl SmartScopeConfig {
         Ok(())
     }
 
-    /// 验证配置有效性
+    /// 验证配置有效性（精简，仅校验相机基础参数）
     pub fn validate(&self) -> Result<()> {
-        // 验证相机配置
         if self.camera.width == 0 || self.camera.height == 0 {
             return Err(SmartScopeError::Config("相机分辨率不能为0".to_string()));
         }
-
         if self.camera.fps == 0 || self.camera.fps > 120 {
             return Err(SmartScopeError::Config("相机帧率应在1-120之间".to_string()));
         }
-
-        // 验证立体视觉配置
-        if self.stereo.num_disparities <= 0 || self.stereo.num_disparities % 16 != 0 {
-            return Err(SmartScopeError::Config("视差数量必须是16的倍数且大于0".to_string()));
-        }
-
-        if self.stereo.block_size < 5 || self.stereo.block_size % 2 == 0 {
-            return Err(SmartScopeError::Config("块大小必须是奇数且>=5".to_string()));
-        }
-
-        // 验证硬件配置
-        if self.hardware.device.light_level > 4 {
-            return Err(SmartScopeError::Config("LED亮度级别应在0-4之间".to_string()));
-        }
-
-        if self.hardware.device.servo_x_angle < 0.0 || self.hardware.device.servo_x_angle > 180.0 {
-            return Err(SmartScopeError::Config("舵机X角度应在0-180度之间".to_string()));
-        }
-
-        if self.hardware.device.servo_y_angle < 0.0 || self.hardware.device.servo_y_angle > 180.0 {
-            return Err(SmartScopeError::Config("舵机Y角度应在0-180度之间".to_string()));
-        }
-
-        // 验证测量配置
-        if self.measurement.precision > 6 {
-            return Err(SmartScopeError::Config("测量精度不应超过6位小数".to_string()));
-        }
-
         Ok(())
     }
 
-    /// 从环境变量或默认路径加载配置
+    /// 从默认路径加载配置（仅使用根目录smartscope.toml）
     pub fn load_with_fallback() -> Self {
-        let config_paths = vec![
-            "smartscope.toml",
-            "config/smartscope.toml",
-            "smartscope_config.toml",
-            "test_config.toml",  // 向后兼容
-        ];
-
-        for path in config_paths {
-            if let Ok(config) = Self::load_from_file(path) {
+        let path = "smartscope.toml";
+        match Self::load_from_file(path) {
+            Ok(cfg) => {
                 tracing::debug!("配置加载成功: {}", path);
-                return config;
+                cfg
+            }
+            Err(_) => {
+                tracing::debug!("未找到配置文件，使用默认配置");
+                Self::default()
             }
         }
-
-        tracing::debug!("未找到配置文件，使用默认配置");
-        Self::default()
     }
 
     /// 合并配置（部分更新）
@@ -410,16 +362,6 @@ impl SmartScopeConfig {
         if let Some(camera) = partial.camera {
             self.camera = camera;
         }
-        if let Some(stereo) = partial.stereo {
-            self.stereo = stereo;
-        }
-        if let Some(hardware) = partial.hardware {
-            self.hardware = hardware;
-        }
-        if let Some(ui) = partial.ui {
-            self.ui = ui;
-        }
-
         self.validate()?;
         Ok(())
     }
@@ -429,22 +371,6 @@ impl SmartScopeConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PartialConfig {
     pub camera: Option<CameraConfig>,
-    pub stereo: Option<StereoConfig>,
-    pub hardware: Option<HardwareConfig>,
-    pub ui: Option<UiConfig>,
 }
 
-impl AppConfig {
-    /// 保持向后兼容性的简单配置加载
-    pub fn load_from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let full_config = SmartScopeConfig::load_from_file(path)?;
-        Ok(full_config.app)
-    }
-
-    /// 保持向后兼容性的简单配置保存
-    pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
-        let mut full_config = SmartScopeConfig::default();
-        full_config.app = self.clone();
-        full_config.save_to_file(path)
-    }
-}
+// 旧版AppConfig读取接口已不再需要

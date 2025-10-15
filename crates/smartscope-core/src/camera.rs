@@ -10,6 +10,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use crate::error::{SmartScopeError, Result};
 use crate::config::SmartScopeConfig;
+use linuxvideo::{Device as LvDevice, BufType as LvBufType};
+use linuxvideo::format::{PixelFormat as LvPixFmt, FrameSizes, FrameIntervals};
 
 // 重新导出USB相机相关类型
 pub use usb_camera::{
@@ -215,13 +217,60 @@ impl CameraManager {
             return Ok(()); // 允许在无相机模式下运行
         }
 
-        // 创建相机配置
-        let camera_config = CameraConfig {
-            width: self.config.camera.width,
-            height: self.config.camera.height,
-            framerate: self.config.camera.fps,
-            pixel_format: "MJPG".to_string(),
-            parameters: std::collections::HashMap::new(),
+        // 自动选择相机参数（优先MJPG，FPS>=25，分辨率尽可能高，兜底1280x720@30）
+        let pick_best = |dev_path: &str| -> (u32,u32,u32,String) {
+            if let Ok(dev) = LvDevice::open(std::path::Path::new(dev_path)) {
+                let mut has_mjpg = false;
+                for f in dev.formats(LvBufType::VIDEO_CAPTURE) {
+                    if let Ok(desc) = f { if desc.pixel_format()==LvPixFmt::MJPG { has_mjpg = true; break; } }
+                }
+                let primary_pf = if has_mjpg { LvPixFmt::MJPG } else { LvPixFmt::YUYV };
+                let mut chosen_w=1280u32; let mut chosen_h=720u32; let mut chosen_fps=30u32; let mut chosen_pf=primary_pf;
+                let scan_pf = |pf: LvPixFmt, dev: &LvDevice, cw: &mut u32, ch:&mut u32, cf:&mut u32| {
+                    if let Ok(sizes) = dev.frame_sizes(pf) {
+                        let mut candidates: Vec<(u32,u32)> = vec![];
+                        match sizes {
+                            FrameSizes::Discrete(list) => { for s in list { candidates.push((s.width(), s.height())); } }
+                            FrameSizes::Stepwise(sw) | FrameSizes::Continuous(sw) => { candidates.push((sw.max_width(), sw.max_height())); }
+                        }
+                        let mut best_ok: Option<(u32,u32,u32)> = None; // fps,w,h
+                        let mut best_any: Option<(f32,u32,u32)> = None; // fps,w,h
+                        for (w,h) in candidates {
+                            if let Ok(ivals) = dev.frame_intervals(pf,w,h) {
+                                let max_fps = match ivals {
+                                    FrameIntervals::Discrete(list) => { let mut best=0f32; for ival in list { let f=1.0/ival.fract().as_f32(); if f>best { best=f; } } best }
+                                    FrameIntervals::Stepwise(sw) | FrameIntervals::Continuous(sw) => { 1.0 / sw.min().as_f32() }
+                                };
+                                let area = (w as u64)*(h as u64);
+                                if max_fps >= 25.0 {
+                                    let fu = max_fps.floor() as u32;
+                                    match best_ok { Some((bf,bw,bh)) => { let barea=(bw as u64)*(bh as u64); if area>barea || (area==barea && fu>bf) { best_ok=Some((fu,w,h)); } }, None => best_ok=Some((fu,w,h)) }
+                                } else {
+                                    match best_any { Some((bfps,bw,bh)) => { let barea=(bw as u64)*(bh as u64); if max_fps>bfps || ((max_fps-bfps).abs()<1e-3 && area>barea) { best_any=Some((max_fps,w,h)); } }, None => best_any=Some((max_fps,w,h)) }
+                                }
+                            }
+                        }
+                        if let Some((fu,w,h)) = best_ok.or_else(|| best_any.map(|(f,w,h)|(f.floor() as u32,w,h))) {
+                            *cw = w; *ch = h; *cf = if fu>=1 { fu } else { 30 };
+                            return true;
+                        }
+                    }
+                    false
+                };
+                if scan_pf(primary_pf, &dev, &mut chosen_w, &mut chosen_h, &mut chosen_fps) {
+                    chosen_pf = primary_pf;
+                } else {
+                    let fallback_pf = if has_mjpg { LvPixFmt::YUYV } else { LvPixFmt::MJPG };
+                    if scan_pf(fallback_pf, &dev, &mut chosen_w, &mut chosen_h, &mut chosen_fps) {
+                        chosen_pf = fallback_pf;
+                    }
+                }
+                let pf_str = if chosen_pf==LvPixFmt::MJPG { "MJPG" } else { "YUYV" }.to_string();
+                tracing::info!("自动选择相机参数: {} -> {}x{}@{} {}", dev_path, chosen_w, chosen_h, chosen_fps, pf_str);
+                (chosen_w, chosen_h, chosen_fps, pf_str)
+            } else {
+                (1280,720,30,"MJPG".to_string())
+            }
         };
 
         match mode {
@@ -230,10 +279,11 @@ impl CameraManager {
                 for camera in detected_cameras {
                     if camera.is_left {
                         tracing::info!("创建左相机流读取器: {}", camera.device_path);
+                        let (w,h,fps,pf) = pick_best(&camera.device_path);
                         let reader = CameraStreamReader::new(
                             &camera.device_path,
                             &camera.name,
-                            camera_config.clone(),
+                            CameraConfig{ width:w, height:h, framerate:fps, pixel_format: pf.clone(), parameters: std::collections::HashMap::new() },
                         );
                         self.left_reader = Some(reader);
 
@@ -243,10 +293,11 @@ impl CameraManager {
                         self.left_control = Some(control);
                     } else if camera.is_right {
                         tracing::info!("创建右相机流读取器: {}", camera.device_path);
+                        let (w,h,fps,pf) = pick_best(&camera.device_path);
                         let reader = CameraStreamReader::new(
                             &camera.device_path,
                             &camera.name,
-                            camera_config.clone(),
+                            CameraConfig{ width:w, height:h, framerate:fps, pixel_format: pf.clone(), parameters: std::collections::HashMap::new() },
                         );
                         self.right_reader = Some(reader);
 
@@ -261,10 +312,11 @@ impl CameraManager {
                 // 单目模式：使用第一个检测到的相机
                 if let Some(camera) = detected_cameras.first() {
                     tracing::info!("创建单相机流读取器: {}", camera.device_path);
+                    let (w,h,fps,pf) = pick_best(&camera.device_path);
                     let reader = CameraStreamReader::new(
                         &camera.device_path,
                         &camera.name,
-                        camera_config.clone(),
+                        CameraConfig{ width:w, height:h, framerate:fps, pixel_format: pf.clone(), parameters: std::collections::HashMap::new() },
                     );
                     self.single_reader = Some(reader);
 

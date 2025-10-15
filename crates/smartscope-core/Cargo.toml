@@ -27,6 +27,7 @@ rockchip-rga = { path = "../rockchip-rga" }
 turbojpeg = { workspace = true }
 camera-correction = { path = "../camera-correction", features = ["opencv"] }
 opencv = { workspace = true }
+linuxvideo = { path = "../linux-video" }
 
 [dev-dependencies]
 tempfile = { workspace = true }

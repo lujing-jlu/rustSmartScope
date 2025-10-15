@@ -32,19 +32,10 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    // 测试配置文件操作
-    const char* configPath = "test_config.toml";
-
-    // 尝试保存配置
-    result = smartscope_save_config(configPath);
-    if (result == SMARTSCOPE_ERROR_SUCCESS) {
-        // 尝试加载配置
-        result = smartscope_load_config(configPath);
-        if (result != SMARTSCOPE_ERROR_SUCCESS) {
-            LOG_ERROR("Main", "Failed to load config: ", smartscope_get_error_string(result));
-        }
-    } else {
-        LOG_ERROR("Main", "Failed to save config: ", smartscope_get_error_string(result));
+    // 加载根目录配置（仅使用 smartscope.toml；若不存在将使用默认配置）
+    result = smartscope_load_config("smartscope.toml");
+    if (result != SMARTSCOPE_ERROR_SUCCESS) {
+        LOG_ERROR("Main", "Failed to load config: ", smartscope_get_error_string(result));
     }
 
     // 注册QML日志组件
