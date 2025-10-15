@@ -29,7 +29,7 @@ contrast = 0
 saturation = 0
 
 [storage]
-location = "external"
+location = "internal"
 external_device = "/dev/mmcblk1p1"
 internal_base_path = "/home/eddysun/data"
 external_relative_path = "EAI-520_data"

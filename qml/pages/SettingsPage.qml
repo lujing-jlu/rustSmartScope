@@ -166,35 +166,26 @@ Rectangle {
                             Layout.fillWidth: true
                             spacing: 12
 
-                            // 标题行：左侧文字，右侧“刷新设备”按钮
+                            // 标题行：左侧文字，紧挨其右为“刷新设备”和“自动恢复到外置”按钮
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: pageSpacing
                                 Text { text: "保存位置："; color: "#FFFFFF"; font.pixelSize: st.labelSize }
-                                // 紧挨着标题放置“刷新设备”
-                                Text { id: refreshTextMeasure; text: "刷新设备"; visible: false; width: 0; height: 0; font.pixelSize: Math.round(actionButtonHeight * 0.48) }
+                                // 紧挨着标题放置“刷新设备”与“自动恢复到外置”
+                                Text { id: refreshTextMeasure; text: "刷新设备"; visible: false; width: 0; height: 0; font.pixelSize: Math.round(settingButtonHeight * 0.48) }
                                 UniversalButton {
                                     id: btnRefresh
                                     text: "刷新设备"
-                                    buttonStyle: "action"
+                                    buttonStyle: "navigation"
                                     iconSource: "qrc:/icons/restore.svg"
                                     contentLayout: "horizontal"
-                                    customButtonWidth: Math.max(Math.round(actionButtonHeight * 2.2), refreshTextMeasure.paintedWidth + btnRefresh.customIconSize + 34)
-                                    customButtonHeight: actionButtonHeight
-                                    customIconSize: Math.round(actionButtonHeight * 0.66)
-                                    customTextSize: Math.round(actionButtonHeight * 0.48)
+                                    customButtonWidth: Math.max(Math.round(settingButtonHeight * 2.2), refreshTextMeasure.paintedWidth + btnRefresh.customIconSize + 34)
+                                    customButtonHeight: settingButtonHeight
+                                    customIconSize: Math.round(settingButtonHeight * 0.6)
+                                    customTextSize: Math.round(settingButtonHeight * 0.48)
                                     onClicked: refreshStorageBtn.clicked()
                                 }
-                                // 其余空间留空
-                                Item { Layout.fillWidth: true }
-                            }
-
-                            // 选择行：左侧“自动恢复到外置”按钮 + 机内/外置设备
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: pageSpacing
-
-                                // 自动恢复开关（按钮样式）
+                                // 自动恢复按钮紧随刷新按钮
                                 Text { id: autoRecoverTextMeasure; text: "自动恢复到外置"; visible: false; width: 0; height: 0; font.pixelSize: Math.round(settingButtonHeight * 0.48) }
                                 UniversalButton {
                                     id: btnAutoRecover
@@ -209,10 +200,17 @@ Rectangle {
                                     customTextSize: Math.round(settingButtonHeight * 0.48)
                                     onClicked: {
                                         externalStorageContent.autoRecoverOn = !externalStorageContent.autoRecoverOn
-        
                                         if (StorageManager) StorageManager.setStorageAutoRecover(externalStorageContent.autoRecoverOn)
                                     }
                                 }
+                                // 其余空间留空
+                                Item { Layout.fillWidth: true }
+                            }
+
+                            // 选择行：机内/外置设备
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: pageSpacing
 
                                 // 机内存储按钮
                                 // 文本测量以确保按钮宽度能完整显示
