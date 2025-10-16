@@ -41,10 +41,16 @@ count_file_stats() {
     local description="$2"
     local exclude_pattern="$3"
 
+    # 默认排除 target、build、reference_code 目录
+    local default_exclude="*/target/*"
+    local exclude="$default_exclude"
+
     if [ -z "$exclude_pattern" ]; then
-        files=$(find . -type f \( -name "$pattern" \) 2>/dev/null)
+        files=$(find . -type f \( -name "$pattern" \) -not -path "$default_exclude" -not -path "*/build/*" -not -path "*/reference_code/*" 2>/dev/null)
     else
-        files=$(find . -type f \( -name "$pattern" \) -not -path "$exclude_pattern" 2>/dev/null)
+        # 合并排除模式
+        exclude="$exclude_pattern -not -path \"*/build/*\" -not -path \"*/reference_code/*\""
+        files=$(find . -type f \( -name "$pattern" \) -not -path "$exclude_pattern" -not -path "*/build/*" -not -path "*/reference_code/*" 2>/dev/null)
     fi
 
     if [ -z "$files" ]; then
@@ -100,10 +106,10 @@ count_rust_stats() {
         local stats
 
         if [ "$pattern" = "*.rs" ]; then
-            # 排除已经统计过的特定文件类型
-            stats=$(count_file_stats "$pattern" "$description" "*/target/*" -not -name "lib.rs" -not -name "main.rs" -not -name "mod.rs" -not -name "*ffi.rs" -not -name "*api.rs" -not -name "types.rs" -not -name "error.rs" -not -name "config.rs" -not -name "service.rs" -not -name "manager.rs")
-        else
+            # 排除已经统计过的特定文件类型，并自动排除 reference_code
             stats=$(count_file_stats "$pattern" "$description" "*/target/*")
+        else
+            stats=$(count_file_stats "$pattern" "$description" "")
         fi
 
         IFS=',' read -r file_count line_count code_count comment_count blank_count avg_lines desc <<< "$stats"
@@ -204,11 +210,8 @@ main_statistics() {
         local description="${file_types[$pattern]}"
         local exclude_pattern="*/target/*"
 
-        if [[ "$pattern" == "*.rs" || "$pattern" == "*.toml" ]]; then
-            stats=$(count_file_stats "$pattern" "$description" "$exclude_pattern")
-        else
-            stats=$(count_file_stats "$pattern" "$description" "")
-        fi
+        # 现在所有文件类型都默认排除 reference_code
+        stats=$(count_file_stats "$pattern" "$description" "$exclude_pattern")
 
         IFS=',' read -r file_count line_count code_count comment_count blank_count avg_lines desc <<< "$stats"
 
@@ -233,7 +236,7 @@ main_statistics() {
     echo "  💻 有效代码行: ${GREEN}$project_total_code${NC}"
     echo "  📋 注释行数: ${YELLOW}$project_total_comments${NC}"
     echo "  ⬜ 空白行数: ${GRAY}$project_total_blanks${NC}"
-    echo "  📊 代码注释率: ${PURPLE}$(echo "scale=1; $project_total_comments * 100 / $project_total_code" | bc -l)%${NC}"
+    echo "  📊 代码注释率: ${PURPLE}$(printf "%.1f" $(echo "scale=2; $project_total_comments * 100 / $project_total_code" | bc -l))%${NC}"
     echo "  📈 平均文件大小: ${CYAN}$(echo "scale=1; $project_total_lines / $project_total_files" | bc -l)${NC} 行/文件"
     echo ""
 }
@@ -261,15 +264,15 @@ generate_detailed_report() {
 
         # 输出所有 Rust 文件详细信息
         echo "Rust 源码文件列表:"
-        find . -name "*.rs" -not -path "*/target/*" -exec wc -l {} + | sort -nr
+        find . -name "*.rs" -not -path "*/target/*" -not -path "*/reference_code/*" -exec wc -l {} + | sort -nr
 
         echo ""
         echo "C++ 源码文件列表:"
-        find . -name "*.cpp" -exec wc -l {} + | sort -nr
+        find . -name "*.cpp" -not -path "*/reference_code/*" -exec wc -l {} + | sort -nr
 
         echo ""
         echo "QML 文件列表:"
-        find . -name "*.qml" -exec wc -l {} + | sort -nr
+        find . -name "*.qml" -not -path "*/reference_code/*" -exec wc -l {} + | sort -nr
 
     } > "$report_file"
 
@@ -285,6 +288,7 @@ main() {
 
     print_info "开始统计项目代码量..."
     print_info "项目路径: $(pwd)"
+    print_info "排除目录: target/, build/, reference_code/"
     echo ""
 
     # 执行统计

@@ -6,6 +6,7 @@
 #include <QIODevice>
 #include <QMutexLocker>
 #include <QTransform>
+#include <thread>
 
 // Rust FFI for video transforms
 extern "C" {
@@ -429,4 +430,60 @@ QImage CameraManager::recoverOriginalFromProcessed(const QImage& processed)
     }
 
     return result;
+}
+
+
+void CameraManager::startCameraAsync()
+{
+    if (m_starting || m_cameraRunning) return;
+    m_starting = true;
+    LOG_INFO("CameraManager", "startCameraAsync: spawning worker");
+    std::thread([this]() {
+        int result = smartscope_start_camera();
+        QMetaObject::invokeMethod(this, [this, result]() {
+            m_starting = false;
+            if (result == 0) {
+                m_cameraRunning = true;
+                m_updateTimer->start();
+                emit cameraRunningChanged();
+                LOG_INFO("CameraManager", "Camera system started (async)");
+            } else {
+                LOG_ERROR("CameraManager", "Camera start (async) failed, code: ", result);
+            }
+        });
+    }).detach();
+}
+
+
+void CameraManager::stopCameraAsync()
+{
+    if (m_stopping || !m_cameraRunning) {
+        return;
+    }
+    m_stopping = true;
+    LOG_INFO("CameraManager", "stopCameraAsync: spawning worker");
+    m_updateTimer->stop();
+    std::thread([this]() {
+        int result = smartscope_stop_camera();
+        QMetaObject::invokeMethod(this, [this, result]() {
+            m_stopping = false;
+            if (result == 0) {
+                m_cameraRunning = false;
+                m_leftConnected = false;
+                m_rightConnected = false;
+                m_cameraMode = NoCamera;
+                emit cameraRunningChanged();
+                emit leftConnectedChanged();
+                emit rightConnectedChanged();
+                emit cameraModeChanged();
+                emit leftFrameChanged();
+                emit rightFrameChanged();
+                emit singleFrameChanged();
+                LOG_INFO("CameraManager", "Camera system stopped (async)");
+            } else {
+                m_updateTimer->start();
+                LOG_ERROR("CameraManager", "Camera stop (async) failed, code: ", result);
+            }
+        });
+    }).detach();
 }

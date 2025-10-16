@@ -27,7 +27,7 @@ Rectangle {
     function setActiveTab(tabName) {
         activeTab = tabName
         homeButton.isActive = (tabName === "home")
-        detectionButton.isActive = (tabName === "preview")
+        detectionButton.isActive = (tabName === "media")
         reportButton.isActive = (tabName === "report")
         settingsButton.isActive = (tabName === "settings")
         measurementButton.isActive = (tabName === "measurement")
@@ -63,7 +63,7 @@ Rectangle {
             id: detectionButton
             text: "媒体库"
             iconSource: "qrc:/icons/preview.svg"
-            isActive: activeTab === "preview"
+            isActive: activeTab === "media"
             activeColor: "#38BDF8"
             onClicked: {
                 Logger.info("Media Library clicked")

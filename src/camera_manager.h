@@ -66,6 +66,8 @@ public:
 
     Q_INVOKABLE bool startCamera();
     Q_INVOKABLE bool stopCamera();
+    Q_INVOKABLE void startCameraAsync();
+    Q_INVOKABLE void stopCameraAsync();
 
     QImage leftFrame() const;
     QImage rightFrame() const;
@@ -110,6 +112,8 @@ private:
     void updateStatus();
 
     QTimer* m_updateTimer;
+    bool m_starting = false;
+    bool m_stopping = false;
     QImage m_leftFrame;      // QImage用于QML
     QImage m_rightFrame;
     QImage m_singleFrame;

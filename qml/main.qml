@@ -295,7 +295,7 @@ ApplicationWindow {
             source: {
                 switch(currentPage) {
                     case "home": return "pages/HomePage.qml"
-                    case "preview": return "pages/PreviewPage.qml"
+                    case "media": return "pages/HomePage.qml" // 媒体库独立窗口，中心保持主页以减少干扰
                     case "measurement": return "pages/MeasurementPage.qml"
                     case "report": return "pages/HomePage.qml"
                     case "settings": return "pages/SettingsPage.qml"
@@ -459,6 +459,8 @@ ApplicationWindow {
                     navigateTo("home")
                 }
                 onPreviewClicked: {
+                    // 切换到“媒体库”状态以关闭相机/AI，但中心内容保持主页
+                    navigateTo("media")
                     if (mediaLibraryWindow.visibility === Window.Hidden || mediaLibraryWindow.visibility === Window.Minimized) {
                         mediaLibraryWindow.show()
                         mediaLibraryWindow.raise()
@@ -677,7 +679,30 @@ ApplicationWindow {
     property string currentPage: "home"
 
     // 页面路由函数
+    // 仅在主页显示与处理视频（含AI检测/后处理），其他页面停止相机并关闭AI以节省资源
+    property bool _prevAiEnabled: false
     function navigateTo(pageName) {
+        // 管理视频与AI检测开关
+        if (pageName === "home") {
+            // 恢复相机与AI（尊重用户之前的AI启用状态）
+            if (CameraManager && !CameraManager.cameraRunning) {
+                CameraManager.startCameraAsync()
+            }
+            if (typeof AiDetectionManager !== 'undefined' && AiDetectionManager) {
+                // 仅在用户先前启用了AI时恢复
+                AiDetectionManager.enabled = _prevAiEnabled
+            }
+        } else {
+            // 离开主页：记录AI状态并关闭，停止相机
+            if (typeof AiDetectionManager !== 'undefined' && AiDetectionManager) {
+                _prevAiEnabled = AiDetectionManager.enabled
+                AiDetectionManager.enabled = false
+            }
+            if (CameraManager && CameraManager.cameraRunning) {
+                CameraManager.stopCameraAsync()
+            }
+        }
+
         currentPage = pageName
 
         // 更新导航栏按钮状态
