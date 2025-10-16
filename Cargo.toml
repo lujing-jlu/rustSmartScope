@@ -11,7 +11,9 @@ members = [
     "crates/camera-correction",
     "crates/stereo-rectifier",
     "crates/rknn-inference",
-    "crates/storage-detector"
+    "crates/storage-detector",
+    "crates/video-recorder",
+    "crates/rockchip-mpp"
 ]
 
 exclude = [

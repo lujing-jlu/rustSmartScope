@@ -19,6 +19,7 @@ lazy_static = { workspace = true }
 image = { workspace = true }
 rknn-inference = { path = "../rknn-inference" }
 storage-detector = { path = "../storage-detector" }
+video-recorder = { path = "../video-recorder" }
 serde_json.workspace = true
 
 [build-dependencies]

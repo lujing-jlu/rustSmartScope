@@ -130,7 +130,20 @@ target_link_libraries(rustsmartscope
     -lturbojpeg
     -lrga
     -lrknnrt
-    
+
+    # FFmpeg libraries (required by video-recorder crate)
+    -lavcodec
+    -lavformat
+    -lavutil
+    -lavfilter
+    -lavdevice
+    -lswscale
+    -lswresample
+
+    # X11 libraries (required by video-recorder crate)
+    -lxcb
+    -lxcb-shm
+
     # libudev (required by Rust udev crate)
     $<$<TARGET_EXISTS:PkgConfig::UDEV>:PkgConfig::UDEV>
     $<$<NOT:$<TARGET_EXISTS:PkgConfig::UDEV>>:-ludev>
