@@ -67,7 +67,6 @@ Rectangle {
             activeColor: "#38BDF8"
             onClicked: {
                 Logger.info("Media Library clicked")
-                setActiveTab("preview")
                 navigationBar.previewClicked()
             }
         }

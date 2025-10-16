@@ -21,6 +21,7 @@
         <!-- 窗口 -->
         <file>Measurement3DWindow.qml</file>
         <file>VideoOperationsWindow.qml</file>
+        <file>RecordingToolWindow.qml</file>
         <file>CameraParameterWindow.qml</file>
 
         <!-- 页面 -->
@@ -74,5 +75,9 @@
         <file alias="icons/advanced_settings.svg">../resources/icons/advanced_settings.svg</file>
 
         <!-- 字体文件已移动到fonts.qrc -->
+        <file>components/StandardAppWindow.qml</file>
+    <file>MediaLibraryWindow.qml</file>
+    <file>pages/MediaLibraryPage.qml</file>
+
     </qresource>
 </RCC>

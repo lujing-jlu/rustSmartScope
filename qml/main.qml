@@ -459,7 +459,14 @@ ApplicationWindow {
                     navigateTo("home")
                 }
                 onPreviewClicked: {
-                    navigateTo("preview")
+                    if (mediaLibraryWindow.visibility === Window.Hidden || mediaLibraryWindow.visibility === Window.Minimized) {
+                        mediaLibraryWindow.show()
+                        mediaLibraryWindow.raise()
+                        mediaLibraryWindow.requestActivate()
+                    } else {
+                        mediaLibraryWindow.raise()
+                        mediaLibraryWindow.requestActivate()
+                    }
                 }
                 onReportClicked: {
                     navigateTo("report")
@@ -709,7 +716,34 @@ ApplicationWindow {
         id: cameraParameterWindow
     }
 
-    Component.onCompleted: {
+    
+    // 全局录制工具栏（独立置顶窗口）
+    RecordingToolWindow {
+        id: recordingTool
+        // 可在此连接录制开始/停止与后端桥接
+        onRecordingToggled: function(on) {
+            Logger.info(on ? "开始录制" : "停止录制")
+            // TODO: 调用后端开始/停止录制接口
+        }
+    }
+
+    // 媒体库窗口实例（独立窗口）
+    MediaLibraryWindow {
+        id: mediaLibraryWindow
+        currentTime: mainWindow.currentTime
+        currentDate: mainWindow.currentDate
+        batteryLevel: mainWindow.batteryLevel
+        isCharging: mainWindow.isCharging
+        fontSize: mainWindow.fontSize
+        mixedFontMedium: mixedFontMedium
+        statusBarHeight: mainWindow.statusBarHeight
+        margins: margins
+        backgroundColor: mainWindow.backgroundColor
+        backgroundSecondary: mainWindow.backgroundSecondary
+        textPrimary: mainWindow.textPrimary
+        borderPrimary: mainWindow.borderPrimary
+    }
+Component.onCompleted: {
         // 立即更新时间
         currentTime = formatCurrentTime()
         currentDate = formatCurrentDate()
