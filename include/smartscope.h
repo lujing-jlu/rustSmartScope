@@ -134,6 +134,16 @@ int smartscope_ai_submit_rgb888(int width, int height, const uint8_t* data, size
 /** 尝试获取最新推理结果；返回检测数量（>=0），错误返回-1 */
 int smartscope_ai_try_get_latest_result(smartscope_CDetection* results_out, int max_results);
 
+// =========================
+// Capture (Save to Directory)
+// =========================
+
+/** 立体拍照：保存原始与处理后图像到指定目录（返回0成功） */
+int smartscope_capture_stereo_to_dir(const char* dir);
+/** 单目拍照：保存原始与处理后图像到指定目录（返回0成功） */
+int smartscope_capture_single_to_dir(const char* dir);
+
+
 #ifdef __cplusplus
 }
 #endif

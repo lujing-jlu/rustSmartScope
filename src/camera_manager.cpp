@@ -2,12 +2,16 @@
 #include "logger.h"
 #include <QBuffer>
 #include <QImageReader>
+#include <QFile>
+#include <QIODevice>
 #include <QMutexLocker>
 #include <QTransform>
 
 // Rust FFI for video transforms
 extern "C" {
     uint32_t smartscope_video_get_rotation();
+    int smartscope_capture_stereo_to_dir(const char* dir);
+    int smartscope_capture_single_to_dir(const char* dir);
     bool smartscope_video_get_flip_horizontal();
     bool smartscope_video_get_flip_vertical();
     bool smartscope_video_get_invert();
@@ -166,6 +170,23 @@ QImage CameraManager::decodeRawFrame(const CCameraFrame& frame)
     }
 }
 
+bool CameraManager::saveRawFrameToFile(const CCameraFrame& frame, const QString& basePathNoExt)
+{
+    if (frame.data == nullptr || frame.data_len == 0) return false;
+    // format == 0: RGB888 raw buffer; otherwise assume compressed (e.g., MJPEG)
+    if (frame.format == 0) {
+        QImage img(frame.data, frame.width, frame.height, frame.width * 3, QImage::Format_RGB888);
+        QImage copy = img.copy();
+        return copy.save(basePathNoExt + ".png", "PNG");
+    } else {
+        QFile f(basePathNoExt + ".jpg");
+        if (!f.open(QIODevice::WriteOnly)) return false;
+        qint64 written = f.write(reinterpret_cast<const char*>(frame.data), static_cast<qint64>(frame.data_len));
+        f.close();
+        return written == static_cast<qint64>(frame.data_len);
+    }
+}
+
 bool CameraManager::saveScreenshotSession(const QString& sessionDir)
 {
     if (sessionDir.isEmpty()) return false;
@@ -179,54 +200,24 @@ bool CameraManager::saveScreenshotSession(const QString& sessionDir)
     uint32_t mode = smartscope_get_camera_mode();
 
     if (mode == StereoCamera) {
-        // 左图（优先使用现有显示帧）
-        QImage leftProcessedImg;
-        {
-            QMutexLocker locker(&m_frameMutex);
-            leftProcessedImg = m_leftFrame.copy();
-        }
-        if (!leftProcessedImg.isNull()) {
-            // 原图近似：对处理后图做逆变换
-            QImage leftOriginalImg = recoverOriginalFromProcessed(leftProcessedImg);
-            if (saveImage(leftOriginalImg, sessionDir + "/left_original.png")) saved++;
-            if (saveImage(leftProcessedImg, sessionDir + "/processed.png")) saved++;
-        } else {
-            // 退化：直接抓取一次
-            CCameraFrame lf{};
-            if (smartscope_get_left_frame(&lf) == 0) {
-                QImage leftAny = decodeRawFrame(lf);
-                if (saveImage(leftAny, sessionDir + "/left_original.png")) saved++;
-                if (saveImage(leftAny, sessionDir + "/processed.png")) saved++;
-            }
-        }
-
-        // 右图原图（逆变换）
-        CCameraFrame rf{};
-        if (smartscope_get_right_frame(&rf) == 0) {
-            QImage rightAny = decodeRawFrame(rf);
-            QImage rightOriginal = recoverOriginalFromProcessed(rightAny);
-            if (saveImage(rightOriginal, sessionDir + "/right_original.png")) saved++;
+        // 由后端统一采集与处理并落盘，避免前端解码与失败边界
+        QByteArray dir = sessionDir.toUtf8();
+        int rc = smartscope_capture_stereo_to_dir(dir.constData());
+        if (rc == 0) {
+            saved = 1; // 标记成功
         }
     } else if (mode == SingleCamera) {
-        QImage processedImg;
-        {
-            QMutexLocker locker(&m_frameMutex);
-            processedImg = m_singleFrame.copy();
-        }
-        if (!processedImg.isNull()) {
-            QImage originalImg = recoverOriginalFromProcessed(processedImg);
-            if (saveImage(originalImg, sessionDir + "/single_original.png")) saved++;
-            if (saveImage(processedImg, sessionDir + "/processed.png")) saved++;
-        } else {
-            CCameraFrame sf{};
-            if (smartscope_get_single_frame(&sf) == 0) {
-                QImage any = decodeRawFrame(sf);
-                if (saveImage(any, sessionDir + "/single_original.png")) saved++;
-                if (saveImage(any, sessionDir + "/processed.png")) saved++;
-            }
+        QByteArray dir = sessionDir.toUtf8();
+        int rc = smartscope_capture_single_to_dir(dir.constData());
+        if (rc == 0) {
+            saved = 1;
         }
     }
 
+    if (saved == 0) {
+        LOG_ERROR("CameraManager", "saveScreenshotSession: no files saved, mode=", static_cast<int>(mode), 
+                  ", dir=", sessionDir.toStdString());
+    }
     return saved > 0;
 }
 
@@ -264,9 +255,7 @@ void CameraManager::updateFrames()
             }
         }
 
-        // 丢弃右相机帧（不解码，只是清空Rust缓存）
-        CCameraFrame rightFrame;
-        smartscope_get_right_frame(&rightFrame);  // 只获取不处理，避免缓存积压
+        // 不再主动丢弃右相机帧，保留以便拍照/立体处理使用
 
         // 发出信号通知QML更新
         if (frameUpdated) {
@@ -402,6 +391,41 @@ QImage CameraManager::applyVideoTransforms(const QImage& image)
     // 应用反色
     if (invert) {
         result.invertPixels();
+    }
+
+    return result;
+}
+
+QImage CameraManager::recoverOriginalFromProcessed(const QImage& processed)
+{
+    if (processed.isNull()) {
+        return processed;
+    }
+
+    QImage result = processed;
+
+    // 获取当前视频变换状态（按逆序还原）
+    uint32_t rotation = smartscope_video_get_rotation();
+    bool flipH = smartscope_video_get_flip_horizontal();
+    bool flipV = smartscope_video_get_flip_vertical();
+    bool invert = smartscope_video_get_invert();
+
+    // 先还原反色
+    if (invert) {
+        result.invertPixels();
+    }
+    // 再还原翻转（镜像一次）
+    if (flipH || flipV) {
+        result = result.mirrored(flipH, flipV);
+    }
+    // 最后还原旋转（逆向角度）
+    if (rotation != 0) {
+        QTransform transform;
+        uint32_t r = rotation % 360u;
+        if (r != 0u) {
+            transform.rotate(360 - r);
+            result = result.transformed(transform, Qt::SmoothTransformation);
+        }
     }
 
     return result;

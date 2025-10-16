@@ -44,6 +44,8 @@ extern "C" {
     int smartscope_get_camera_status(CCameraStatus* status_out);
     uint32_t smartscope_get_camera_mode();
     bool smartscope_is_camera_running();
+    int smartscope_stereo_snapshot(CCameraFrame* left_out, CCameraFrame* right_out);
+    int smartscope_stereo_raw_snapshot(CCameraFrame* left_out, CCameraFrame* right_out);
 
 }
 
@@ -102,6 +104,7 @@ private slots:
 private:
     QImage processFrame(const CCameraFrame& frame);
     QImage decodeRawFrame(const CCameraFrame& frame);
+    bool saveRawFrameToFile(const CCameraFrame& frame, const QString& basePathNoExt);
     QImage applyVideoTransforms(const QImage& image);
     QImage recoverOriginalFromProcessed(const QImage& processed);
     void updateStatus();
