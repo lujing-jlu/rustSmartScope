@@ -29,7 +29,6 @@
         <file>pages/MeasurementPage.qml</file>
         <file>pages/SettingsPage.qml</file>
         <file>pages/PreviewPage.qml</file>
-        <file>pages/ReportPage.qml</file>
         <file>pages/DebugPage.qml</file>
 
         <!-- 图标资源 -->

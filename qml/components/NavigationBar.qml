@@ -71,8 +71,12 @@ Rectangle {
             }
         }
 
-        // 报告按钮
+        // 报告按钮（已隐藏）
         UnifiedNavigationButton {
+            visible: false
+            width: 0
+            height: 0
+
             id: reportButton
             text: "报告"
             iconSource: "qrc:/icons/report.svg"

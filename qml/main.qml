@@ -297,7 +297,7 @@ ApplicationWindow {
                     case "home": return "pages/HomePage.qml"
                     case "preview": return "pages/PreviewPage.qml"
                     case "measurement": return "pages/MeasurementPage.qml"
-                    case "report": return "pages/ReportPage.qml"
+                    case "report": return "pages/HomePage.qml"
                     case "settings": return "pages/SettingsPage.qml"
                     default: return "pages/HomePage.qml"
                 }
@@ -683,9 +683,16 @@ ApplicationWindow {
         // 更新导航栏按钮状态
         navigationBar.setActiveTab(pageName)
     }
+
+    // 快速返回首页
+    function goHome() {
+        navigateTo("home")
+    }
     // 3D测量窗口实例
     Measurement3DWindow {
         id: measurement3DWindow
+        onClosing: mainWindow.goHome()
+        onVisibleChanged: if (!visible) mainWindow.goHome()
     }
 
     // 系统设置窗口实例（独立窗口，复用主窗口状态栏样式）
@@ -700,6 +707,8 @@ ApplicationWindow {
         mixedFontMedium: mixedFontMedium
         statusBarHeight: mainWindow.statusBarHeight
         margins: margins
+        onClosing: mainWindow.goHome()
+        onVisibleChanged: if (!visible) mainWindow.goHome()
     }
 
     // 视频操作窗口实例
@@ -709,11 +718,15 @@ ApplicationWindow {
             // 打开相机参数设置窗口
             cameraParameterWindow.show()
         }
+        onClosing: mainWindow.goHome()
+        onVisibleChanged: if (!visible) mainWindow.goHome()
     }
 
     // 相机参数设置窗口实例
     CameraParameterWindow {
         id: cameraParameterWindow
+        onClosing: mainWindow.goHome()
+        onVisibleChanged: if (!visible) mainWindow.goHome()
     }
 
     
@@ -742,6 +755,8 @@ ApplicationWindow {
         backgroundSecondary: mainWindow.backgroundSecondary
         textPrimary: mainWindow.textPrimary
         borderPrimary: mainWindow.borderPrimary
+        onClosing: mainWindow.goHome()
+        onVisibleChanged: if (!visible) mainWindow.goHome()
     }
 Component.onCompleted: {
         // 立即更新时间
