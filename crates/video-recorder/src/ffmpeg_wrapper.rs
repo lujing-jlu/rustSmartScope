@@ -1,6 +1,6 @@
 //! Simple FFmpeg process wrapper for video recording
 
-use crate::{RecorderError, Result, VideoFrame, RecorderConfig};
+use crate::{RecorderError, Result, VideoFrame, RecorderConfig, VideoCodec, HardwareAccelType};
 use std::process::{Command, Child, Stdio};
 use std::io::Write;
 
@@ -29,29 +29,41 @@ impl FFmpegRecorder {
             return Err(RecorderError::AlreadyRunning);
         }
 
-        log::info!("Starting FFmpeg for recording: {}x{} @ {}fps",
-                  self.config.width, self.config.height, self.config.fps);
+        log::info!(
+            "Starting FFmpeg: {}x{} @ {}fps, codec={:?}, hw={:?}",
+            self.config.width, self.config.height, self.config.fps, self.config.codec, self.config.hardware_accel
+        );
 
-        let child = Command::new("ffmpeg")
-            .args(&[
-                "-y",  // Overwrite output
-                "-f", "rawvideo",
-                "-vcodec", "rawvideo",
-                "-pix_fmt", "rgb24",
-                "-s", &format!("{}x{}", self.config.width, self.config.height),
-                "-r", &self.config.fps.to_string(),
-                "-i", "-",  // Read from stdin
-                "-c:v", "libx264",
-                "-preset", "superfast",
-                "-tune", "zerolatency",
-                "-pix_fmt", "yuv420p",
-                "-b:v", &self.config.bitrate.to_string(),
-                &self.config.output_path,
-            ])
-            .stdin(Stdio::piped())
-            .stderr(Stdio::inherit())
-            .spawn()
-            .map_err(|e| RecorderError::Io(e))?;
+        // 尝试按配置硬件编码启动，失败则自动回退到软件编码
+        let try_spawn = |codec: VideoCodec, hw: HardwareAccelType| -> std::io::Result<Child> {
+            let args = build_ffmpeg_args(&self.config, codec, hw);
+            Command::new("ffmpeg")
+                .args(args.iter().map(|s| s.as_str()))
+                .stdin(Stdio::piped())
+                .stderr(Stdio::inherit())
+                .spawn()
+        };
+
+        // 1) 优先使用配置的硬件编码
+        let mut child = match try_spawn(self.config.codec, self.config.hardware_accel) {
+            Ok(c) => c,
+            Err(e) => {
+                log::warn!("FFmpeg spawn failed with hw={:?}: {}. Falling back to software encoder.", self.config.hardware_accel, e);
+                // 2) 回退到软件编码
+                try_spawn(self.config.codec, HardwareAccelType::None)
+                    .map_err(RecorderError::Io)?
+            }
+        };
+
+        // 若 ffmpeg 很快退出（编码器不可用等），也做回退检测
+        if let Ok(Some(status)) = child.try_wait() {
+            if !status.success() {
+                log::warn!("FFmpeg exited immediately (hw={:?}, status={:?}). Falling back to software encoder.", self.config.hardware_accel, status);
+                // 再尝试一次软件编码
+                child = try_spawn(self.config.codec, HardwareAccelType::None)
+                    .map_err(RecorderError::Io)?;
+            }
+        }
 
         self.child = Some(child);
         self.is_recording = true;
@@ -151,6 +163,52 @@ impl FFmpegRecorder {
     pub fn frames_sent(&self) -> u64 {
         self.frames_sent
     }
+}
+
+fn build_ffmpeg_args(cfg: &RecorderConfig, codec: VideoCodec, hw: HardwareAccelType) -> Vec<String> {
+    let mut args: Vec<String> = Vec::new();
+    // Input rawvideo over stdin
+    args.push("-y".into());
+    args.push("-f".into()); args.push("rawvideo".into());
+    args.push("-vcodec".into()); args.push("rawvideo".into());
+    args.push("-pix_fmt".into()); args.push("rgb24".into());
+    args.push("-s".into()); args.push(format!("{}x{}", cfg.width, cfg.height));
+    args.push("-r".into()); args.push(cfg.fps.to_string());
+    args.push("-i".into()); args.push("-".into());
+
+    match hw {
+        HardwareAccelType::VaApi => {
+            args.push("-vaapi_device".into());
+            args.push("/dev/dri/renderD128".into());
+            args.push("-vf".into());
+            args.push("format=nv12,hwupload".into());
+        }
+        HardwareAccelType::RkMpp => { /* no-op */ }
+        HardwareAccelType::None => {}
+    }
+
+    let (codec_name, add_sw_opts) = match (codec, hw) {
+        (VideoCodec::H264, HardwareAccelType::RkMpp) => ("h264_rkmpp", false),
+        (VideoCodec::H265, HardwareAccelType::RkMpp) => ("hevc_rkmpp", false),
+        (VideoCodec::H264, HardwareAccelType::VaApi) => ("h264_vaapi", false),
+        (VideoCodec::H265, HardwareAccelType::VaApi) => ("hevc_vaapi", false),
+        (VideoCodec::H264, HardwareAccelType::None) => ("libx264", true),
+        (VideoCodec::H265, HardwareAccelType::None) => ("libx265", true),
+        (VideoCodec::VP8,  _) => ("libvpx", true),
+        (VideoCodec::VP9,  _) => ("libvpx-vp9", true),
+    };
+
+    args.push("-c:v".into()); args.push(codec_name.into());
+
+    if add_sw_opts {
+        args.push("-preset".into()); args.push("superfast".into());
+        args.push("-tune".into()); args.push("zerolatency".into());
+        args.push("-pix_fmt".into()); args.push("yuv420p".into());
+    }
+
+    args.push("-b:v".into()); args.push(cfg.bitrate.to_string());
+    args.push(cfg.output_path.clone());
+    args
 }
 
 impl Drop for FFmpegRecorder {

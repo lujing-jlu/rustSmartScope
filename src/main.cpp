@@ -19,6 +19,7 @@ extern "C" {
 #include <QQmlEngine>
 #include "ai_detection_manager.h"
 #include "storage_manager.h"
+#include "screen_recorder_manager.h"
 
 int main(int argc, char *argv[])
 {
@@ -82,6 +83,10 @@ int main(int argc, char *argv[])
     // 外置存储管理器
     StorageManager *storageManager = new StorageManager(&app);
     engine.rootContext()->setContextProperty("StorageManager", storageManager);
+
+    // 屏幕录制管理器
+    ScreenRecorderManager *screenRecorder = new ScreenRecorderManager(&app);
+    engine.rootContext()->setContextProperty("ScreenRecorderManager", screenRecorder);
 
     // 加载QML文件
     const QUrl qmlUrl(QStringLiteral("qrc:/main.qml"));

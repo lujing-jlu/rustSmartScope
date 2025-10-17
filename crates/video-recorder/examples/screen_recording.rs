@@ -25,6 +25,14 @@ fn main() {
 
     let (screen_width, screen_height) = capturer.dimensions();
 
+    // 从环境变量选择硬编: VR_HW=rkmpp|vaapi|none（默认 none）
+    let hw = std::env::var("VR_HW").ok();
+    let hw_mode = match hw.as_deref() {
+        Some("vaapi") => HardwareAccelType::VaApi,
+        Some("rkmpp") => HardwareAccelType::RkMpp,
+        _ => HardwareAccelType::None,
+    };
+
     // Configure recorder
     let config = RecorderConfig {
         width: screen_width,
@@ -32,7 +40,7 @@ fn main() {
         fps: 30,  // 提升到 30 FPS
         bitrate: 4_000_000,  // 4 Mbps
         codec: VideoCodec::H264,
-        hardware_accel: HardwareAccelType::RkMpp,
+        hardware_accel: hw_mode,
         max_queue_size: 60,
         output_path: "screen_recording.mp4".to_string(),
     };

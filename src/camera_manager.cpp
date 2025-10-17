@@ -321,26 +321,6 @@ void CameraManager::updateFrames()
                 // 发送QPixmap信号给原生Widget（不需要锁，信号是异步的）
                 emit leftPixmapUpdated(newLeftPixmap);
 
-                // 如果在录制，提交帧（RGB打包为连续缓冲区）
-                if (isRecording()) {
-                    QImage rgb = newLeftImage;
-                    if (rgb.format() != QImage::Format_RGB888)
-                        rgb = rgb.convertToFormat(QImage::Format_RGB888);
-                    const int line = rgb.bytesPerLine();
-                    const int rowBytes = rgb.width() * 3;
-                    QByteArray packed;
-                    packed.resize(rgb.width() * rgb.height() * 3);
-                    for (int y = 0; y < rgb.height(); ++y) {
-                        memcpy(packed.data() + y * rowBytes, rgb.constBits() + y * line, rowBytes);
-                    }
-                    const qint64 ts_us = QDateTime::currentMSecsSinceEpoch() * 1000;
-                    smartscope_recorder_submit_rgb888(reinterpret_cast<const uint8_t*>(packed.constData()),
-                                                      static_cast<size_t>(packed.size()),
-                                                      static_cast<uint32_t>(rgb.width()),
-                                                      static_cast<uint32_t>(rgb.height()),
-                                                      static_cast<int64_t>(ts_us));
-                }
-
             }
         }
 
@@ -367,25 +347,6 @@ void CameraManager::updateFrames()
 
                 // 发送QPixmap信号给原生Widget
                 emit singlePixmapUpdated(newSinglePixmap);
-
-                if (isRecording()) {
-                    QImage rgb = newSingleImage;
-                    if (rgb.format() != QImage::Format_RGB888)
-                        rgb = rgb.convertToFormat(QImage::Format_RGB888);
-                    const int line = rgb.bytesPerLine();
-                    const int rowBytes = rgb.width() * 3;
-                    QByteArray packed;
-                    packed.resize(rgb.width() * rgb.height() * 3);
-                    for (int y = 0; y < rgb.height(); ++y) {
-                        memcpy(packed.data() + y * rowBytes, rgb.constBits() + y * line, rowBytes);
-                    }
-                    const qint64 ts_us = QDateTime::currentMSecsSinceEpoch() * 1000;
-                    smartscope_recorder_submit_rgb888(reinterpret_cast<const uint8_t*>(packed.constData()),
-                                                      static_cast<size_t>(packed.size()),
-                                                      static_cast<uint32_t>(rgb.width()),
-                                                      static_cast<uint32_t>(rgb.height()),
-                                                      static_cast<int64_t>(ts_us));
-                }
 
                 // PiP 缩略图改为前端直接缩放显示帧
             }

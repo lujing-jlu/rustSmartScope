@@ -97,6 +97,7 @@ set(SOURCES
     src/video_transform_manager.cpp
     src/ai_detection_manager.cpp
     src/storage_manager.cpp
+    src/screen_recorder_manager.cpp
 )
 
 # QML资源文件（如果存在）

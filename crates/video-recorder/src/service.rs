@@ -172,6 +172,11 @@ impl RecordingService {
     pub fn queue_size(&self) -> usize {
         self.rx_for_drop.len()
     }
+
+    /// 获取当前录制配置（用于FFI层做参数校验）
+    pub fn config(&self) -> &RecorderConfig {
+        &self.config
+    }
 }
 
 impl Drop for RecordingService {

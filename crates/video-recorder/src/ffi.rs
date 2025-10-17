@@ -3,13 +3,17 @@
 use crate::{RecorderConfig, RecordingService, VideoCodec, HardwareAccelType, X11ScreenCapturer};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
-use std::sync::Mutex;
+use std::sync::{Mutex, atomic::{AtomicBool, Ordering}};
+use std::thread;
 
 lazy_static::lazy_static! {
     static ref RECORDING_SERVICE: Mutex<Option<RecordingService>> = Mutex::new(None);
     static ref SCREEN_CAPTURER: Mutex<Option<X11ScreenCapturer>> = Mutex::new(None);
     static ref LAST_ERROR: Mutex<Option<CString>> = Mutex::new(None);
+    static ref SCREENREC_THREAD: Mutex<Option<std::thread::JoinHandle<()>>> = Mutex::new(None);
 }
+
+static SCREENREC_RUNNING: AtomicBool = AtomicBool::new(false);
 
 fn set_last_error(msg: &str) {
     let c_msg = CString::new(msg).unwrap_or_else(|_| CString::new("Unknown error").unwrap());
@@ -38,9 +42,8 @@ pub struct RecorderStatsC {
     pub is_recording: u32,
 }
 
-/// Initialize screen capturer
-#[no_mangle]
-pub extern "C" fn smartscope_recorder_init_capturer() -> i32 {
+/// Initialize screen capturer (Rust-callable; C export via c-ffi)
+pub fn smartscope_recorder_init_capturer() -> i32 {
     match X11ScreenCapturer::new() {
         Ok(capturer) => {
             *SCREEN_CAPTURER.lock().unwrap() = Some(capturer);
@@ -55,8 +58,7 @@ pub extern "C" fn smartscope_recorder_init_capturer() -> i32 {
 }
 
 /// Get screen dimensions
-#[no_mangle]
-pub extern "C" fn smartscope_recorder_get_screen_size(width: *mut u32, height: *mut u32) -> i32 {
+pub fn smartscope_recorder_get_screen_size(width: *mut u32, height: *mut u32) -> i32 {
     let capturer_guard = SCREEN_CAPTURER.lock().unwrap();
     if let Some(capturer) = capturer_guard.as_ref() {
         let (w, h) = capturer.dimensions();
@@ -76,8 +78,7 @@ pub extern "C" fn smartscope_recorder_get_screen_size(width: *mut u32, height: *
 }
 
 /// Initialize recording service with configuration
-#[no_mangle]
-pub extern "C" fn smartscope_recorder_init(config: *const RecorderConfigC) -> i32 {
+pub fn smartscope_recorder_init(config: *const RecorderConfigC) -> i32 {
     if config.is_null() {
         set_last_error("Null config pointer");
         return -1;
@@ -129,8 +130,7 @@ pub extern "C" fn smartscope_recorder_init(config: *const RecorderConfigC) -> i3
 }
 
 /// Start recording
-#[no_mangle]
-pub extern "C" fn smartscope_recorder_start() -> i32 {
+pub fn smartscope_recorder_start() -> i32 {
     let mut service_guard = RECORDING_SERVICE.lock().unwrap();
     if let Some(service) = service_guard.as_mut() {
         match service.start() {
@@ -150,8 +150,7 @@ pub extern "C" fn smartscope_recorder_start() -> i32 {
 }
 
 /// Convenience init without struct from C/C++
-#[no_mangle]
-pub extern "C" fn smartscope_recorder_init_simple(
+pub fn smartscope_recorder_init_simple(
     output_path: *const c_char,
     width: u32,
     height: u32,
@@ -179,8 +178,7 @@ pub extern "C" fn smartscope_recorder_init_simple(
 }
 
 /// Capture and submit a frame from screen
-#[no_mangle]
-pub extern "C" fn smartscope_recorder_capture_frame() -> i32 {
+pub fn smartscope_recorder_capture_frame() -> i32 {
     let mut capturer_guard = SCREEN_CAPTURER.lock().unwrap();
     let service_guard = RECORDING_SERVICE.lock().unwrap();
 
@@ -207,8 +205,7 @@ pub extern "C" fn smartscope_recorder_capture_frame() -> i32 {
 }
 
 /// Submit an RGB888 frame from external producer (e.g., camera path)
-#[no_mangle]
-pub extern "C" fn smartscope_recorder_submit_rgb888(
+pub fn smartscope_recorder_submit_rgb888(
     data: *const u8,
     data_len: usize,
     width: u32,
@@ -218,6 +215,15 @@ pub extern "C" fn smartscope_recorder_submit_rgb888(
     if data.is_null() { return -1; }
     let guard = RECORDING_SERVICE.lock().unwrap();
     if let Some(service) = guard.as_ref() {
+        // 校验分辨率与服务配置一致，否则丢弃该帧以避免FFmpeg原始帧尺寸不匹配
+        let cfg = service.config();
+        if width != cfg.width || height != cfg.height {
+            log::warn!(
+                "Drop mismatched frame: input={}x{}, expected={}x{}",
+                width, height, cfg.width, cfg.height
+            );
+            return 0;
+        }
         // Copy into Vec<u8> (contiguous RGB24 expected: width*height*3)
         let slice = unsafe { std::slice::from_raw_parts(data, data_len) };
         let mut v = Vec::with_capacity((width as usize) * (height as usize) * 3);
@@ -246,8 +252,7 @@ pub extern "C" fn smartscope_recorder_submit_rgb888(
 }
 
 /// Stop recording
-#[no_mangle]
-pub extern "C" fn smartscope_recorder_stop() -> i32 {
+pub fn smartscope_recorder_stop() -> i32 {
     let mut service_guard = RECORDING_SERVICE.lock().unwrap();
     if let Some(service) = service_guard.as_mut() {
         match service.stop() {
@@ -267,8 +272,7 @@ pub extern "C" fn smartscope_recorder_stop() -> i32 {
 }
 
 /// Get recording statistics
-#[no_mangle]
-pub extern "C" fn smartscope_recorder_get_stats(stats: *mut RecorderStatsC) -> i32 {
+pub fn smartscope_recorder_get_stats(stats: *mut RecorderStatsC) -> i32 {
     if stats.is_null() {
         set_last_error("Null stats pointer");
         return -1;
@@ -292,8 +296,7 @@ pub extern "C" fn smartscope_recorder_get_stats(stats: *mut RecorderStatsC) -> i
 }
 
 /// Check if recording is active
-#[no_mangle]
-pub extern "C" fn smartscope_recorder_is_recording() -> i32 {
+pub fn smartscope_recorder_is_recording() -> i32 {
     let service_guard = RECORDING_SERVICE.lock().unwrap();
     if let Some(service) = service_guard.as_ref() {
         if service.is_running() { 1 } else { 0 }
@@ -303,8 +306,7 @@ pub extern "C" fn smartscope_recorder_is_recording() -> i32 {
 }
 
 /// Get current queue size
-#[no_mangle]
-pub extern "C" fn smartscope_recorder_get_queue_size() -> i32 {
+pub fn smartscope_recorder_get_queue_size() -> i32 {
     let service_guard = RECORDING_SERVICE.lock().unwrap();
     if let Some(service) = service_guard.as_ref() {
         service.queue_size() as i32
@@ -314,8 +316,7 @@ pub extern "C" fn smartscope_recorder_get_queue_size() -> i32 {
 }
 
 /// Get last error message
-#[no_mangle]
-pub extern "C" fn smartscope_recorder_get_last_error() -> *const c_char {
+pub fn smartscope_recorder_get_last_error() -> *const c_char {
     let error_guard = LAST_ERROR.lock().unwrap();
     if let Some(error) = error_guard.as_ref() {
         error.as_ptr()
@@ -325,8 +326,7 @@ pub extern "C" fn smartscope_recorder_get_last_error() -> *const c_char {
 }
 
 /// Shutdown recorder and free resources
-#[no_mangle]
-pub extern "C" fn smartscope_recorder_shutdown() {
+pub fn smartscope_recorder_shutdown() {
     let mut service_guard = RECORDING_SERVICE.lock().unwrap();
     if let Some(mut service) = service_guard.take() {
         let _ = service.stop();
@@ -336,4 +336,91 @@ pub extern "C" fn smartscope_recorder_shutdown() {
     *capturer_guard = None;
 
     log::info!("Recorder shutdown");
+}
+
+/// Start background X11 screen recording with given parameters (non-blocking)
+pub fn smartscope_screenrec_start(output_path: *const c_char, fps: u32, bitrate: u64) -> i32 {
+    if output_path.is_null() { set_last_error("Null output path"); return -1; }
+    if SCREENREC_RUNNING.swap(true, Ordering::SeqCst) { set_last_error("Screen recorder already running"); return -1; }
+
+    let path = unsafe { CStr::from_ptr(output_path).to_string_lossy().into_owned() };
+
+    // Initialize capturer locally
+    let capturer = match X11ScreenCapturer::new() {
+        Ok(c) => c,
+        Err(e) => { set_last_error(&format!("Init capturer failed: {}", e)); SCREENREC_RUNNING.store(false, Ordering::SeqCst); return -1; }
+    };
+    let (w, h) = capturer.dimensions();
+
+    // Build config and service
+    let config = RecorderConfig {
+        width: w,
+        height: h,
+        fps: if fps == 0 { 30 } else { fps },
+        bitrate: if bitrate == 0 { 4_000_000 } else { bitrate },
+        codec: VideoCodec::H264,
+        // Try HW if env says so; otherwise default None and auto-fallback inside ffmpeg wrapper
+        hardware_accel: match std::env::var("VR_HW").ok().as_deref() { Some("vaapi") => HardwareAccelType::VaApi, Some("rkmpp") => HardwareAccelType::RkMpp, _ => HardwareAccelType::None },
+        max_queue_size: 120, // 4s @ 30fps
+        output_path: path,
+    };
+
+    let mut service = RecordingService::new(config);
+    if let Err(e) = service.start() {
+        set_last_error(&format!("Start service failed: {}", e));
+        SCREENREC_RUNNING.store(false, Ordering::SeqCst);
+        return -1;
+    }
+
+    // Put service into global
+    *RECORDING_SERVICE.lock().unwrap() = Some(service);
+
+    // Spawn background capture loop
+    let handle = thread::spawn(move || {
+        let mut cap = capturer;
+        let interval = std::time::Duration::from_micros(1_000_000 / (fps.max(1)) as u64);
+        while SCREENREC_RUNNING.load(Ordering::SeqCst) {
+            let start = std::time::Instant::now();
+            match cap.capture_frame() {
+                Ok(frame) => {
+                    let guard = RECORDING_SERVICE.lock().unwrap();
+                    if let Some(service) = guard.as_ref() {
+                        if let Err(e) = service.submit_frame(frame) {
+                            log::error!("submit_frame failed: {}", e);
+                        }
+                    } else {
+                        log::warn!("Recording service missing; stopping screen loop");
+                        break;
+                    }
+                }
+                Err(e) => {
+                    log::error!("capture_frame failed: {}", e);
+                }
+            }
+            let elapsed = start.elapsed();
+            if elapsed < interval { thread::sleep(interval - elapsed); }
+        }
+    });
+
+    *SCREENREC_THREAD.lock().unwrap() = Some(handle);
+    0
+}
+
+/// Stop background screen recording
+pub fn smartscope_screenrec_stop() -> i32 {
+    if !SCREENREC_RUNNING.swap(false, Ordering::SeqCst) {
+        return 0;
+    }
+
+    // Join capture thread
+    if let Some(handle) = SCREENREC_THREAD.lock().unwrap().take() {
+        let _ = handle.join();
+    }
+
+    // Stop service
+    let mut guard = RECORDING_SERVICE.lock().unwrap();
+    if let Some(service) = guard.as_mut() {
+        if let Err(e) = service.stop() { set_last_error(&format!("Stop service failed: {}", e)); return -1; }
+    }
+    0
 }

@@ -15,12 +15,14 @@ Window {
     // 尺寸与位置
     property int panelWidth: 100
     property int panelHeight: 100
-    // 底部预留比例（从下向上预留10%的屏幕高度）
-    property real bottomReserveRatio: 0.10
+    // 底部预留比例（从下向上预留20%的屏幕高度）
+    property real bottomReserveRatio: 0.20
+    // 右侧边距（与右上工具栏对齐，可由父级传入）
+    property int rightMargin: 24
     width: panelWidth
     height: panelHeight
-    // 右侧紧贴屏幕，无边距
-    x: (Screen.width || 1920) - width
+    // 右侧预留边距，与上方工具栏对齐
+    x: (Screen.width || 1920) - width - rightMargin
     // 从底部向上按比例预留空间
     y: (Screen.height || 1200) - height - Math.round((Screen.height || 1200) * bottomReserveRatio)
 
