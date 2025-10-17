@@ -94,12 +94,13 @@ fn run_file_pipeline(
         &core::Vector::new(),
     )?;
 
-    // Get Q matrix
+    // Q 矩阵
     let q = rectifier
         .get_rectification()
         .and_then(|r| Some(r.q.clone()))
         .ok_or_else(|| opencv::Error::new(0, "Missing Q matrix"))?;
 
+    // 基础SGBM：全图计算，无预处理/后处理/ROI裁剪
     compute_and_save(&left_rect, &right_rect, &q, out_prefix)
 }
 
@@ -164,7 +165,7 @@ fn run_camera_pipeline(params_dir: &str, out_prefix: &str) -> opencv::Result<()>
         &core::Vector::new(),
     )?;
 
-    // Q
+    // Q 矩阵
     let q = rectifier
         .get_rectification()
         .and_then(|r| Some(r.q.clone()))
@@ -264,6 +265,8 @@ fn save_colormap(src32f: &Mat, path: &str, cmap: i32) -> opencv::Result<()> {
     imgcodecs::imwrite(path, &color, &core::Vector::new())?;
     Ok(())
 }
+
+// 基础SGBM：不做ROI裁剪与后处理
 
 fn rotate_cw_90(src: &Mat) -> opencv::Result<Mat> {
     let mut dst = Mat::default();

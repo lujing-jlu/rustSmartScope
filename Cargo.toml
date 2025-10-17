@@ -10,6 +10,7 @@ members = [
     "crates/stereo-calibration-reader",
     "crates/camera-correction",
     "crates/stereo-rectifier",
+    "crates/stereo-sgbm",
     "crates/rknn-inference",
     "crates/storage-detector",
     "crates/video-recorder",
