@@ -763,12 +763,9 @@ ApplicationWindow {
             Logger.info(on ? "开始录制" : "停止录制")
             if (on) {
                 var dir = StorageManager.resolveVideoSessionPath("screen")
-                var ts = Qt.formatDateTime(new Date(), "yyyyMMdd_HHmmss")
-                var file = dir + "/screen_" + ts + ".mp4"
-                // 固定为屏幕刷新率（不自适应）
-                var fps = Math.max(1, Math.round(Screen.refreshRate || 60))
-                if (!ScreenRecorderManager.startScreenRecording(file, fps, 4000000)) {
-                    Logger.error("启动屏幕录制失败: " + file)
+                // C++端会自动生成时间戳文件名和处理所有参数
+                if (!ScreenRecorderManager.startScreenRecording(dir)) {
+                    Logger.error("启动屏幕录制失败")
                     recordingTool.recording = false
                 }
             } else {
