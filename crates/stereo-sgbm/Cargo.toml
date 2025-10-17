@@ -1,0 +1,19 @@
+[package]
+name = "stereo-sgbm"
+version = "0.1.0"
+edition = "2021"
+description = "Stereo SGBM disparity computation using OpenCV for SmartScope"
+license = "MIT"
+
+[dependencies]
+log = "0.4"
+opencv = { workspace = true, optional = true }
+
+[features]
+default = []
+opencv = ["dep:opencv"]
+
+[dev-dependencies]
+camera-correction = { path = "../camera-correction", features = ["opencv"] }
+smartscope-core = { path = "../smartscope-core" }
+turbojpeg = { workspace = true }
