@@ -38,9 +38,11 @@ set(CMAKE_PCH_INSTANTIATE_TEMPLATES ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# 查找Qt5
-find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets Quick Qml Svg)
+# 查找Qt5（Svg 设为可选）
+find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets Quick Qml)
 message(STATUS "Using Qt5.${Qt5Core_VERSION}")
+# Svg 可选（用于加载SVG图标）；若缺失则继续构建但可能无法渲染SVG
+find_package(Qt5Svg QUIET)
 
 # 查找OpenCV
 find_package(OpenCV REQUIRED COMPONENTS core imgproc calib3d highgui imgcodecs)
@@ -122,7 +124,7 @@ target_link_libraries(rustsmartscope
     Qt5::Widgets
     Qt5::Quick
     Qt5::Qml
-    Qt5::Svg
+    $<$<TARGET_EXISTS:Qt5::Svg>:Qt5::Svg>
     Threads::Threads
     ${RUST_SMARTSCOPE_LIB}
     ${OpenCV_LIBS}
@@ -131,19 +133,6 @@ target_link_libraries(rustsmartscope
     -lturbojpeg
     -lrga
     -lrknnrt
-
-    # FFmpeg libraries (required by video-recorder crate)
-    -lavcodec
-    -lavformat
-    -lavutil
-    -lavfilter
-    -lavdevice
-    -lswscale
-    -lswresample
-
-    # X11 libraries (required by video-recorder crate)
-    -lxcb
-    -lxcb-shm
 
     # libudev (required by Rust udev crate)
     $<$<TARGET_EXISTS:PkgConfig::UDEV>:PkgConfig::UDEV>

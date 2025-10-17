@@ -9,6 +9,7 @@ class StorageManager : public QObject {
     Q_OBJECT
 public:
     explicit StorageManager(QObject* parent = nullptr);
+    ~StorageManager();
 
     // 返回JSON数组字符串；调用方无需释放
     Q_INVOKABLE QString refreshExternalStoragesJson();
@@ -32,6 +33,10 @@ public:
     // 解析当前存储配置并创建本次“视频录制”会话目录
     // 返回目录: <base>/Videos/YYYY-MM-DD/YYYY-MM-DD_HH-mm-ss_<displayMode>
     Q_INVOKABLE QString resolveVideoSessionPath(const QString& displayMode);
+
+    // 供Rust回调线程通过invokeMethod调用，转发为Qt信号（线程安全）
+    Q_INVOKABLE void emitStorageListChanged(const QString& json);
+    Q_INVOKABLE void emitStorageConfigChanged(const QString& json);
 
 signals:
     void storageListChanged(const QString& json);

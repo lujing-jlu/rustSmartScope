@@ -18,6 +18,8 @@ mod video_api;      // 视频变换与畸变校正接口
 mod params_api;     // 相机参数 get/set/range/reset
 mod storage_api;    // 外置存储检测
 mod storage_config_api; // 存储配置设置/获取
+mod storage_paths_api;  // 存储会话路径解析与创建
+mod storage_events_api; // 存储变更回调（推送）
 
 // 仅为保证链接导出，将各模块中使用的符号保持为 #[no_mangle] extern "C"
 // 此处不需要再做 re-export。

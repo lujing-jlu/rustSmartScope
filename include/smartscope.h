@@ -104,6 +104,48 @@ int smartscope_storage_set_external_relative_path(const char* path);
 int smartscope_storage_set_auto_recover(bool enabled);
 
 // =========================
+// Storage Session Paths
+// =========================
+
+/**
+ * 解析并创建“屏幕截图”会话目录
+ * 返回目录路径字符串（需 smartscope_free_string 释放）
+ * 目录格式: <base>/Screenshots/YYYY-MM-DD/YYYY-MM-DD_HH-mm-ss_<displayMode>
+ */
+char* smartscope_storage_resolve_screenshot_session_path(const char* display_mode);
+
+/**
+ * 解析并创建“拍照”会话目录
+ * 返回目录路径字符串（需 smartscope_free_string 释放）
+ * 目录格式: <base>/Pictures/YYYY-MM-DD/YYYY-MM-DD_HH-mm-ss_<displayMode>
+ */
+char* smartscope_storage_resolve_capture_session_path(const char* display_mode);
+
+/**
+ * 解析并创建“视频录制”会话目录
+ * 返回目录路径字符串（需 smartscope_free_string 释放）
+ * 目录格式: <base>/Videos/YYYY-MM-DD/YYYY-MM-DD_HH-mm-ss_<displayMode>
+ */
+char* smartscope_storage_resolve_video_session_path(const char* display_mode);
+
+// =========================
+// Storage Events (Callbacks)
+// =========================
+
+typedef void (*smartscope_storage_list_changed_cb)(void* ctx, const char* json);
+typedef void (*smartscope_storage_config_changed_cb)(void* ctx, const char* json);
+
+/** 注册回调：当外置存储列表或存储配置变化时由Rust线程调用 */
+void smartscope_storage_register_callbacks(
+    void* ctx,
+    smartscope_storage_list_changed_cb list_cb,
+    smartscope_storage_config_changed_cb cfg_cb
+);
+
+/** 取消注册并停止回调监控线程 */
+void smartscope_storage_unregister_callbacks(void* ctx);
+
+// =========================
 // AI Inference (RKNN YOLOv8)
 // =========================
 

@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import QtGraphicalEffects 1.15
 import QtQuick.Window 2.15
 import "../components"
 
@@ -63,16 +64,19 @@ ApplicationWindow {
         source: contentSource
     }
 
-    // 底部关闭栏
+    // 底部关闭栏（参考3D测量页样式）
     Rectangle {
         id: bottomBar
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: 96
+        // 整体高度适度提升（原96的120%）
+        height: Math.round(96 * 1.2)
         color: backgroundSecondary
         border.color: borderPrimary
         border.width: 1
+
+        // 顶部分割线放在子项之后，确保不被覆盖
 
         RowLayout {
             anchors.fill: parent
@@ -80,25 +84,73 @@ ApplicationWindow {
             spacing: margins
 
             Rectangle {
-                Layout.preferredWidth: 200
+                id: closeButton
+                // 参考3D测量页的动态按钮宽度策略：限制在一个舒适范围
+                Layout.preferredWidth: Math.max(156, Math.min(234, (bottomBar.width - margins * 4) / 6))
                 Layout.fillHeight: true
-                color: Qt.rgba(0.7, 0.2, 0.2, 0.85)
-                radius: 14
+                color: Qt.rgba(0.7, 0.2, 0.2, 0.80)
+                radius: 16
                 border.width: 1
-                border.color: Qt.rgba(1,1,1,0.12)
+                border.color: Qt.rgba(1, 1, 1, 0.10)
 
-                MouseArea { anchors.fill: parent; onClicked: stdWin.close() }
+                property bool hovered: false
+                property int iconSize: Math.max(36, Math.round(height * 0.45))
 
-                Text {
-                    text: "关闭"
-                    color: "#FFFFFF"
-                    font.pixelSize: Math.max(28, stdWin.fontSize * 1.6)
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: stdWin.close()
+                    onEntered: closeButton.hovered = true
+                    onExited: closeButton.hovered = false
+                }
+
+                Row {
                     anchors.centerIn: parent
+                    spacing: Math.max(12, Math.round(closeButton.height * 0.06))
+
+                    // 使用 ColorOverlay 统一着色为白色，靠近3D测量页风格
+                    Item {
+                        width: closeButton.iconSize
+                        height: closeButton.iconSize
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        Image {
+                            id: closeIcon
+                            source: "qrc:/icons/close.svg"
+                            anchors.fill: parent
+                            anchors.margins: Math.round(parent.width * 0.15)
+                            fillMode: Image.PreserveAspectFit
+                            visible: false
+                        }
+                        ColorOverlay {
+                            anchors.fill: closeIcon
+                            source: closeIcon
+                            color: "#FFFFFF"
+                        }
+                    }
+
+                    Text {
+                        text: "关闭"
+                        color: "#FFFFFF"
+                        font.pixelSize: Math.max(28, stdWin.fontSize * 1.5)
+                        font.weight: Font.Medium
+                        font.family: stdWin.mixedFontMedium
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
             }
 
             Item { Layout.fillWidth: true }
         }
+
+        // 明确绘制顶部1px分割线，置于最上层，避免被子项遮挡
+        Rectangle {
+            z: 1000
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: Math.max(1, Math.round(1 / Screen.devicePixelRatio))
+            color: Qt.rgba(1, 1, 1, 0.10) // 柔和的浅色分割线，贴近测量页风格
+        }
     }
 }
-
