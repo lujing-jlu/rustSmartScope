@@ -62,8 +62,25 @@ bool AiDetectionManager::initialize(const QString& modelPath, int numWorkers) {
         return false;
     }
     LOG_INFO("AiDetectionManager", "AI service initialized at ", modelPath.toStdString(), " workers:", numWorkers);
-    // 试图加载标签
+    // 试图加载英文与中文标签（中文存在则优先使用中文）
     loadLabels("models/coco_labels.txt");
+    QFile zhFileCheck("models/coco_labels_zh.txt");
+    if (zhFileCheck.exists()) {
+        // 加载中文翻译表（与英文列表一一对应）
+        QFile f("models/coco_labels_zh.txt");
+        if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QVector<QString> labels;
+            while (!f.atEnd()) {
+                QByteArray line = f.readLine();
+                QString s = QString::fromUtf8(line).trimmed();
+                if (!s.isEmpty()) labels.push_back(s);
+            }
+            if (!labels.isEmpty()) {
+                m_labelsZh = std::move(labels);
+                LOG_INFO("AiDetectionManager", "Loaded CN labels: ", m_labelsZh.size());
+            }
+        }
+    }
     return true;
 }
 
@@ -193,6 +210,8 @@ void AiDetectionManager::onAiResultJson(const QString& json) {
 }
 
 QString AiDetectionManager::className(int classId) const {
+    // 优先返回中文翻译
+    if (classId >= 0 && classId < m_labelsZh.size()) return m_labelsZh[classId];
     if (classId >= 0 && classId < m_labels.size()) return m_labels[classId];
     return QString("class_%1").arg(classId);
 }

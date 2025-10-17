@@ -58,6 +58,7 @@ private:
     QTimer m_pollTimer;
     QMutex m_submitMutex;
     QVector<QString> m_labels;
+    QVector<QString> m_labelsZh;
 
     // Debugging / health stats
     QTimer m_aliveTimer;
