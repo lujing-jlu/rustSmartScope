@@ -26,6 +26,8 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setApplicationName("RustSmartScope");
     app.setApplicationVersion("0.1.0");
+    QCoreApplication::setOrganizationName("EDDYSUN");
+    QCoreApplication::setOrganizationDomain("eddysun.local");
 
     // 初始化Rust核心（包含日志系统）
     int result = smartscope_init();

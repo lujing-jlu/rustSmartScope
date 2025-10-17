@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtGraphicalEffects 1.15
 import RustSmartScope.Logger 1.0
+import "../i18n" 1.0 as I18n
 
 Rectangle {
     id: navigationBar
@@ -48,7 +49,7 @@ Rectangle {
         // 主页按钮
         UnifiedNavigationButton {
             id: homeButton
-            text: "主页"
+            text: I18n.I18n.tr("nav.home", "主页")
             iconSource: "qrc:/icons/home.svg"
             isActive: activeTab === "home"
             iconOnly: true
@@ -63,7 +64,7 @@ Rectangle {
         // 媒体库按钮
         UnifiedNavigationButton {
             id: detectionButton
-            text: "媒体库"
+            text: I18n.I18n.tr("nav.media", "媒体库")
             iconSource: "qrc:/icons/preview.svg"
             isActive: activeTab === "media"
             activeColor: "#38BDF8"
@@ -80,7 +81,7 @@ Rectangle {
             height: 0
 
             id: reportButton
-            text: "报告"
+            text: I18n.I18n.tr("nav.report", "报告")
             iconSource: "qrc:/icons/report.svg"
             isActive: activeTab === "report"
             onClicked: {
@@ -93,7 +94,7 @@ Rectangle {
         // 设置按钮
         UnifiedNavigationButton {
             id: settingsButton
-            text: "设置"
+            text: I18n.I18n.tr("nav.settings", "设置")
             iconSource: "qrc:/icons/setting.svg"
             isActive: activeTab === "settings"
             onClicked: {
@@ -106,7 +107,7 @@ Rectangle {
         // 3D测量按钮
         UnifiedNavigationButton {
             id: measurementButton
-            text: "3D测量"
+            text: I18n.I18n.tr("nav.measurement", "3D测量")
             iconSource: "qrc:/icons/3D.svg"
             isActive: activeTab === "measurement"
             visible: navigationBar.stereoAvailable
@@ -119,7 +120,7 @@ Rectangle {
         // 退出按钮
         UnifiedNavigationButton {
             id: exitButton
-            text: "退出"
+            text: I18n.I18n.tr("nav.exit", "退出")
             iconSource: "qrc:/icons/close.svg"
             isExitButton: true
             iconOnly: true

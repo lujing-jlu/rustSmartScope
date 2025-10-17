@@ -4,6 +4,7 @@ import QtQuick.Layouts 1.15
 import QtGraphicalEffects 1.15
 import QtQuick.Window 2.15
 import "../components"
+import "../i18n" 1.0 as I18n
 
 // 标准独立窗口模板：顶部状态栏 + 内容区 + 底部关闭栏
 ApplicationWindow {
@@ -128,7 +129,7 @@ ApplicationWindow {
                     }
 
                     Text {
-                        text: "关闭"
+                        text: I18n.I18n.tr("common.close", "关闭")
                         color: "#FFFFFF"
                         font.pixelSize: Math.max(28, stdWin.fontSize * 1.5)
                         font.weight: Font.Medium

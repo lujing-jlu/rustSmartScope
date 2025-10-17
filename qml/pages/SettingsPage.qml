@@ -5,6 +5,7 @@ import QtQuick.Window 2.15
 import QtGraphicalEffects 1.15
 import QtQml 2.15
 import "../components"
+import "../i18n" 1.0 as I18n
 import RustSmartScope.Logger 1.0
 
 Rectangle {
@@ -66,7 +67,7 @@ Rectangle {
             }
 
             Text {
-                text: "系统设置"
+                text: I18n.I18n.tr("win.settings.title", "系统设置")
                 font.pixelSize: st.titleSize
                 font.bold: true
                 color: "#FFFFFF"
@@ -86,6 +87,29 @@ Rectangle {
                 spacing: 30
 
                 // 相机参数设置已移至独立窗口
+
+                // 语言设置
+                GroupBox {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 180
+                    background: Rectangle { color: Qt.rgba(20/255,20/255,20/255,0.78); border.color: "#38BDF8"; border.width: 2; radius: pageCorner }
+                    ColumnLayout {
+                        width: parent.width
+                        spacing: 15
+                        Row { spacing: 10; Layout.alignment: Qt.AlignLeft; Layout.bottomMargin: 8
+                            Item { width: st.sectionSize*0.8; height: st.sectionSize*0.8
+                                Image { id: langIcon; anchors.fill: parent; source: "qrc:/icons/view.svg"; fillMode: Image.PreserveAspectFit; visible: false }
+                                ColorOverlay { anchors.fill: langIcon; source: langIcon; color: "#FFFFFF" }
+                            }
+                            Text { text: I18n.I18n.tr("settings.language", "界面语言"); font.pixelSize: st.sectionSize; font.bold: true; color: "#FFFFFF" }
+                        }
+                        RowLayout {
+                            spacing: pageSpacing
+                            RadioButton { text: I18n.I18n.tr("settings.lang.zh","中文"); checked: I18n.I18n.language==='zh'; onToggled: if (checked) I18n.I18n.setLanguage('zh') }
+                            RadioButton { text: I18n.I18n.tr("settings.lang.en","English"); checked: I18n.I18n.language==='en'; onToggled: if (checked) I18n.I18n.setLanguage('en') }
+                        }
+                    }
+                }
 
                 // 其他设置区域（预留）
                 GroupBox {

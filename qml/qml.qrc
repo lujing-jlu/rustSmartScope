@@ -17,6 +17,12 @@
         <file>components/GlassPopupWindow.qml</file>
         <file>components/VideoAdjustmentContent.qml</file>
         <file>components/CameraParameterPanel.qml</file>
+        <file>i18n/I18n.qml</file>
+        <file>i18n/strings_zh.json</file>
+        <file>i18n/strings_en.json</file>
+        <file>i18n/strings_zh.js</file>
+        <file>i18n/strings_en.js</file>
+        <file>i18n/qmldir</file>
         <file>components/DetectionsOverlay.qml</file>
 
         <!-- 窗口 -->

@@ -1,4 +1,5 @@
 import QtQuick 2.15
+import "../i18n" 1.0 as I18n
 
 // Lightweight overlay that draws detection boxes on a cached layer
 // Renders only when detections change; video frames run at full FPS.
@@ -127,7 +128,13 @@ Canvas {
             ctx.stroke()
 
             // Label (optional)
-            const label = d.label ? String(d.label) : ('cls ' + (d.class_id||0))
+            // 根据语言动态选择标签
+            let label = ''
+            if (I18n.I18n.language === 'en') {
+                label = d.label_en ? String(d.label_en) : (d.label ? String(d.label) : ('cls ' + (d.class_id||0)))
+            } else {
+                label = d.label_zh ? String(d.label_zh) : (d.label ? String(d.label) : ('cls ' + (d.class_id||0)))
+            }
             const tw = Math.round(ctx.measureText(label).width)
             const th = fontSize + pad
             // Place inside top-left of the box, keep fully on screen
@@ -147,6 +154,12 @@ Canvas {
             ctx.fillStyle = '#FFFFFF'
             ctx.fillText(label, lbx + pad, lby + Math.round(pad/2))
         }
+    }
+
+    // 语言切换时强制重绘
+    Connections {
+        target: I18n.I18n
+        function onLanguageChanged() { overlay.requestPaint() }
     }
 
     function boundsWidth() { return width }

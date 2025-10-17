@@ -4,6 +4,7 @@ import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
 import QtGraphicalEffects 1.15
 import RustSmartScope.Logger 1.0
+import "i18n" 1.0 as I18n
 import "pages"
 import "components"
 
@@ -339,7 +340,7 @@ ApplicationWindow {
                 // 相机调整按钮
                 UniversalButton {
                     id: adjustButton
-                    text: "画面调整"
+                    text: I18n.I18n.tr("toolbar.adjust", "画面调整")
                     iconSource: "qrc:/icons/config.svg"
                     buttonStyle: "toolbar"
                     onClicked: {
@@ -357,7 +358,7 @@ ApplicationWindow {
                 // 拍照按钮（保存原图+处理后图 → Pictures）
                 UniversalButton {
                     id: captureButton
-                    text: "拍照"
+                    text: I18n.I18n.tr("toolbar.capture", "拍照")
                     iconSource: "qrc:/icons/camera.svg"
                     buttonStyle: "toolbar"
                     onClicked: {
@@ -380,7 +381,7 @@ ApplicationWindow {
                 // 屏幕截图按钮（保存UI截图 → Screenshots）
                 UniversalButton {
                     id: screenshotButton
-                    text: "屏幕截图"
+                    text: I18n.I18n.tr("toolbar.screenshot", "屏幕截图")
                     iconSource: "qrc:/icons/screenshot.svg"
                     buttonStyle: "toolbar"
                     onClicked: {
@@ -404,7 +405,7 @@ ApplicationWindow {
                 // LED控制按钮
                 UniversalButton {
                     id: ledControlButton
-                    text: "LED控制"
+                    text: I18n.I18n.tr("toolbar.led", "LED控制")
                     iconSource: "qrc:/icons/brightness.svg"
                     buttonStyle: "toolbar"
                 }
@@ -412,7 +413,7 @@ ApplicationWindow {
                 // AI检测按钮
                 UniversalButton {
                     id: aiDetectionButton
-                    text: "AI检测"
+                    text: I18n.I18n.tr("toolbar.ai", "AI检测")
                     iconSource: "qrc:/icons/AI.svg"
                     buttonStyle: "toolbar"
                     onClicked: {

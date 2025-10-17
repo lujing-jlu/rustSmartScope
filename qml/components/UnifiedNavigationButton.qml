@@ -133,13 +133,19 @@ Rectangle {
 
         // 按钮文字 (只在非图标模式显示)
         Text {
+            id: labelText
             text: navButton.text
             color: "#FFFFFF"
-            font.pixelSize: fontSize * 1.4
+            // 自动按可用宽度缩放字号，防止英文溢出
+            readonly property int baseSize: Math.round(fontSize * 1.4)
+            readonly property int maxWidth: navButton.width - (navButton.iconOnly ? 0 : (navButton.iconSize + 8 + 16))
+            font.pixelSize: Math.max(12, Math.min(baseSize, Math.floor(baseSize * (maxWidth / Math.max(1, paintedWidth)))))
             font.weight: Font.Medium
             font.family: mixedFontRegular
+            elide: Text.ElideRight
             anchors.verticalCenter: parent.verticalCenter
             visible: !iconOnly
+            horizontalAlignment: Text.AlignHCenter
             Behavior on color { ColorAnimation { duration: 300 } }
         }
     }

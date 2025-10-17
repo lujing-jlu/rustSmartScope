@@ -16,17 +16,32 @@ extern "C" {
 
 // AI result callback registration (Rust push)
 extern "C" {
-    typedef void (*smartscope_ai_result_cb)(void* ctx, const char* json);
-    void smartscope_ai_register_result_callback(void* ctx, smartscope_ai_result_cb cb, int max_fps);
-    void smartscope_ai_unregister_result_callback(void* ctx);
+    typedef void (*smartscope_ai_result_raw_cb)(void* ctx, const smartscope_CDetection* dets, int count);
+    void smartscope_ai_register_result_callback_raw(void* ctx, smartscope_ai_result_raw_cb cb, int max_fps);
+    void smartscope_ai_unregister_result_callback_raw(void* ctx);
 }
 
-extern "C" void ai_result_trampoline(void* ctx, const char* json) {
+// Forward trampoline: convert C array to QVariantList and dispatch to UI thread
+extern "C" void ai_result_raw_trampoline(void* ctx, const smartscope_CDetection* dets, int count) {
     AiDetectionManager* self = reinterpret_cast<AiDetectionManager*>(ctx);
     if (!self) return;
-    QString s = json ? QString::fromUtf8(json) : QString();
-    QMetaObject::invokeMethod(self, "onAiResultJson", Qt::QueuedConnection,
-                              Q_ARG(QString, s));
+    QVariantList list;
+    if (dets && count > 0) {
+        list.reserve(count);
+        for (int i = 0; i < count; ++i) {
+            const smartscope_CDetection& d = dets[i];
+            QVariantMap m;
+            m.insert("left", d.left);
+            m.insert("top", d.top);
+            m.insert("right", d.right);
+            m.insert("bottom", d.bottom);
+            m.insert("confidence", d.confidence);
+            m.insert("class_id", d.class_id);
+            list.push_back(m);
+        }
+    }
+    QMetaObject::invokeMethod(self, "onAiResultRaw", Qt::QueuedConnection,
+                              Q_ARG(QVariantList, list));
 }
 
 AiDetectionManager::AiDetectionManager(QObject* parent)
@@ -87,7 +102,7 @@ bool AiDetectionManager::initialize(const QString& modelPath, int numWorkers) {
 void AiDetectionManager::shutdown() {
     smartscope_ai_shutdown();
     m_pollTimer.stop();
-    smartscope_ai_unregister_result_callback(this);
+    smartscope_ai_unregister_result_callback_raw(this);
 }
 
 void AiDetectionManager::setEnabled(bool en) {
@@ -95,11 +110,11 @@ void AiDetectionManager::setEnabled(bool en) {
     m_enabled = en;
     smartscope_ai_set_enabled(en);
     if (en) {
-        // 由Rust侧主动推送；max_fps=0 表示尽可能快（由Rust侧最小间隔1ms防止忙等）
-        smartscope_ai_register_result_callback(this, ai_result_trampoline, 0);
+        // 由Rust侧主动推送；限制30FPS，使用raw回调
+        smartscope_ai_register_result_callback_raw(this, ai_result_raw_trampoline, 30);
         m_aliveTimer.start();
     } else {
-        smartscope_ai_unregister_result_callback(this);
+        smartscope_ai_unregister_result_callback_raw(this);
         m_pollTimer.stop();
         m_aliveTimer.stop();
         // 清空覆盖层
@@ -164,7 +179,11 @@ void AiDetectionManager::pollResults() {
         m.insert("bottom", d.bottom);
         m.insert("confidence", d.confidence);
         m.insert("class_id", d.class_id);
-        m.insert("label", className(d.class_id));
+        QString zh = classNameZh(d.class_id);
+        QString en = classNameEn(d.class_id);
+        if (!zh.isEmpty()) m.insert("label_zh", zh);
+        if (!en.isEmpty()) m.insert("label_en", en);
+        m.insert("label", !zh.isEmpty() ? zh : (!en.isEmpty() ? en : QString("class_%1").arg(d.class_id)));
         list.push_back(m);
     }
 
@@ -199,7 +218,13 @@ void AiDetectionManager::onAiResultJson(const QString& json) {
         m.insert("confidence", o.value("confidence").toDouble());
         int cid = o.value("class_id").toInt();
         m.insert("class_id", cid);
-        m.insert("label", className(cid));
+        // 同时下发中英文标签，前端根据语言选择
+        QString zh = classNameZh(cid);
+        QString en = classNameEn(cid);
+        if (!zh.isEmpty()) m.insert("label_zh", zh);
+        if (!en.isEmpty()) m.insert("label_en", en);
+        // 兼容旧逻辑的默认label（中文优先）
+        m.insert("label", !zh.isEmpty() ? zh : (!en.isEmpty() ? en : QString("class_%1").arg(cid)));
         list.push_back(m);
     }
     emit detectionsUpdated(list);
@@ -214,6 +239,16 @@ QString AiDetectionManager::className(int classId) const {
     if (classId >= 0 && classId < m_labelsZh.size()) return m_labelsZh[classId];
     if (classId >= 0 && classId < m_labels.size()) return m_labels[classId];
     return QString("class_%1").arg(classId);
+}
+
+QString AiDetectionManager::classNameZh(int classId) const {
+    if (classId >= 0 && classId < m_labelsZh.size()) return m_labelsZh[classId];
+    return QString();
+}
+
+QString AiDetectionManager::classNameEn(int classId) const {
+    if (classId >= 0 && classId < m_labels.size()) return m_labels[classId];
+    return QString();
 }
 
 bool AiDetectionManager::loadLabels(const QString& path) {

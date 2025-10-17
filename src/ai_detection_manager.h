@@ -29,6 +29,7 @@ public:
     bool enabled() const { return m_enabled; }
     Q_INVOKABLE void setEnabled(bool en);
     Q_INVOKABLE void onAiResultJson(const QString& json);
+    Q_INVOKABLE void onAiResultRaw(const QVariantList& list);
 
     // Stats for debugging overlay vs detection pipeline health
     int lastDetectionsCount() const { return m_lastDetectionsCount; }
@@ -52,6 +53,8 @@ private slots:
 private:
     void submitPixmap(const QPixmap& pixmap);
     QString className(int classId) const;
+    QString classNameZh(int classId) const;
+    QString classNameEn(int classId) const;
     bool loadLabels(const QString& path);
 
     bool m_enabled { false };
