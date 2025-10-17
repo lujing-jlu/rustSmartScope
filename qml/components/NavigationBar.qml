@@ -23,6 +23,8 @@ Rectangle {
 
     // 活动状态管理
     property string activeTab: "home"
+    // 仅在双相机(立体)模式下显示3D测量入口
+    property bool stereoAvailable: (typeof CameraManager !== 'undefined' && CameraManager) ? (CameraManager.cameraMode === 2) : false
 
     function setActiveTab(tabName) {
         activeTab = tabName
@@ -107,6 +109,10 @@ Rectangle {
             text: "3D测量"
             iconSource: "qrc:/icons/3D.svg"
             isActive: activeTab === "measurement"
+            visible: navigationBar.stereoAvailable
+            // 可选：在隐藏时避免占位
+            width: visible ? implicitWidth : 0
+            height: visible ? implicitHeight : 0
             onClicked: {
                 Logger.info("3D测量窗口打开")
                 navigationBar.measurementClicked()
