@@ -2,11 +2,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum RecorderError {
-    #[error("X11 connection error: {0}")]
-    X11Connection(String),
-
-    #[error("X11 capture error: {0}")]
-    X11Capture(String),
+    #[error("Backend not available: {0}")]
+    BackendNotAvailable(String),
 
     #[error("Invalid configuration: {0}")]
     InvalidConfig(String),

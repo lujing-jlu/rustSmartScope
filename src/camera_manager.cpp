@@ -19,22 +19,15 @@ extern "C" {
     bool smartscope_video_get_invert();
 }
 
-// Rust FFI for video recorder
-extern "C" {
-    int smartscope_recorder_init_simple(const char* output_path,
-                                        uint32_t width,
-                                        uint32_t height,
-                                        uint32_t fps,
-                                        uint64_t bitrate);
-    int smartscope_recorder_start();
-    int smartscope_recorder_stop();
-    int smartscope_recorder_is_recording();
-    int smartscope_recorder_submit_rgb888(const uint8_t* data,
-                                          size_t data_len,
-                                          uint32_t width,
-                                          uint32_t height,
-                                          int64_t timestamp_us);
-}
+// Camera video recorder FFI (NOT screen recorder - currently disabled)
+// TODO: Re-implement camera video recording using frame submission
+// extern "C" {
+//     int smartscope_recorder_init_simple(...);
+//     int smartscope_recorder_start();
+//     int smartscope_recorder_stop();
+//     int smartscope_recorder_is_recording();
+//     int smartscope_recorder_submit_rgb888(...);
+// }
 
 CameraManager::CameraManager(QObject *parent)
     : QObject(parent)
@@ -109,52 +102,23 @@ bool CameraManager::stopCamera()
 
 bool CameraManager::startVideoRecording(const QString& outputPath)
 {
-    if (outputPath.isEmpty()) {
-        LOG_ERROR("CameraManager", "startVideoRecording: empty output path");
-        return false;
-    }
-
-    // Determine current frame size; prefer single/stereo-left processed frame
-    uint32_t w = 0, h = 0;
-    {
-        QMutexLocker locker(&m_frameMutex);
-        if (!m_singleFrame.isNull()) { w = m_singleFrame.width(); h = m_singleFrame.height(); }
-        else if (!m_leftFrame.isNull()) { w = m_leftFrame.width(); h = m_leftFrame.height(); }
-    }
-    if (w == 0 || h == 0) {
-        // Fallback to 1280x720
-        w = 1280; h = 720;
-    }
-
-    QByteArray path = outputPath.toUtf8();
-    int rc = smartscope_recorder_init_simple(path.constData(), w, h, 30, 4ull * 1000 * 1000);
-    if (rc != 0) {
-        LOG_ERROR("CameraManager", "Recorder init failed: ", rc);
-        return false;
-    }
-    rc = smartscope_recorder_start();
-    if (rc != 0) {
-        LOG_ERROR("CameraManager", "Recorder start failed: ", rc);
-        return false;
-    }
-    LOG_INFO("CameraManager", "Recording started: ", outputPath.toStdString());
-    return true;
+    // TODO: Re-implement camera video recording using frame submission
+    LOG_WARN("CameraManager", "Camera video recording not yet implemented (use screen recorder instead)");
+    (void)outputPath;
+    return false;
 }
 
 bool CameraManager::stopVideoRecording()
 {
-    int rc = smartscope_recorder_stop();
-    if (rc != 0) {
-        LOG_ERROR("CameraManager", "Recorder stop failed: ", rc);
-        return false;
-    }
-    LOG_INFO("CameraManager", "Recording stopped");
-    return true;
+    // TODO: Re-implement camera video recording
+    LOG_WARN("CameraManager", "Camera video recording not yet implemented");
+    return false;
 }
 
 bool CameraManager::isRecording() const
 {
-    return smartscope_recorder_is_recording() != 0;
+    // TODO: Re-implement camera video recording status
+    return false;
 }
 
 QImage CameraManager::leftFrame() const

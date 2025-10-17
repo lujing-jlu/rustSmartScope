@@ -1,22 +1,12 @@
-//! Video recording module with X11 screen capture support
+//! Screen recording module using external processes
 //!
-//! Provides non-blocking video recording functionality using FFmpeg
-//! and X11 screen capture on Linux systems.
+//! This module provides screen recording functionality by launching external
+//! processes (wf-recorder for Wayland, ffmpeg for X11), avoiding complex
+//! in-process encoding logic.
 
 pub mod error;
-pub mod types;
-pub mod capture;
-pub mod ffmpeg_wrapper;
-pub mod encoder_vfr_t3;
-pub mod mpp_encoder;
-pub mod service;
+pub mod recorder;
 pub mod ffi;
 
 pub use error::{RecorderError, Result};
-pub use types::{VideoFrame, RecorderConfig, RecorderStats, VideoPixelFormat, VideoCodec, HardwareAccelType};
-pub use capture::X11ScreenCapturer;
-pub use encoder_vfr_t3::FfmpegVfrEncoderT3;
-// Default VideoEncoder is in-process VFR encoder based on ffmpeg-the-third
-pub type VideoEncoder = encoder_vfr_t3::FfmpegVfrEncoderT3;
-pub use mpp_encoder::MppEncoder;
-pub use service::RecordingService;
+pub use recorder::ScreenRecorder;

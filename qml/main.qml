@@ -765,13 +765,14 @@ ApplicationWindow {
                 var dir = StorageManager.resolveVideoSessionPath("screen")
                 var ts = Qt.formatDateTime(new Date(), "yyyyMMdd_HHmmss")
                 var file = dir + "/screen_" + ts + ".mp4"
-                // 软件编码 720p 自适应帧率（fps=0表示自适应，名义输入r=15）
-                if (!ScreenRecorderManager.startScreenRecording(file, 0, 4000000)) {
+                // 固定为屏幕刷新率（不自适应）
+                var fps = Math.max(1, Math.round(Screen.refreshRate || 60))
+                if (!ScreenRecorderManager.startScreenRecording(file, fps, 4000000)) {
                     Logger.error("启动屏幕录制失败: " + file)
                     recordingTool.recording = false
                 }
             } else {
-                ScreenRecorderManager.stopScreenRecordingAsync()
+                ScreenRecorderManager.stopScreenRecording()
             }
         }
     }

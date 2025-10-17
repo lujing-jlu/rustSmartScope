@@ -9,15 +9,8 @@ lazy_static = "1.5.0"
 log = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 libc = "0.2"
-
-# X11 screen capture
-x11rb = { version = "0.13", features = ["all-extensions"] }
-
-# Queue channel for non-blocking service
-crossbeam-channel = "0.5"
-
-# In-process FFmpeg encoder bindings (to be used next)
-ffmpeg-the-third = "4"
+which = "6.0"  # For detecting available recording backends
+nix = { version = "0.30", features = ["signal", "process"] }  # For graceful process termination
 
 [dev-dependencies]
 env_logger = "0.11"
