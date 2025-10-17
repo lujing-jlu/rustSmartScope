@@ -168,6 +168,10 @@ run_app() {
     # Add RKNN and RGA runtime libs bundled with the repo
     export LD_LIBRARY_PATH="/opt/qt5.15.15/lib:$(pwd)/crates/rknn-inference/lib:$LD_LIBRARY_PATH"
 
+    # 固定软件编码
+    unset VR_HW
+    print_info "固定软件编码 720p（内部scale=1280x720）"
+
     # 运行应用程序
     cd "$(dirname "$0")"
     "$exe_path" "$@"

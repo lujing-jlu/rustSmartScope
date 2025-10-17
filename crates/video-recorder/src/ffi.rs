@@ -356,7 +356,8 @@ pub fn smartscope_screenrec_start(output_path: *const c_char, fps: u32, bitrate:
     let config = RecorderConfig {
         width: w,
         height: h,
-        fps: if fps == 0 { 30 } else { fps },
+        // 不强制帧率：传入0则采用自适应采样，名义值仍会以15作为输入r
+        fps: if fps == 0 { 15 } else { fps },
         bitrate: if bitrate == 0 { 4_000_000 } else { bitrate },
         codec: VideoCodec::H264,
         // Try HW if env says so; otherwise default None and auto-fallback inside ffmpeg wrapper
@@ -378,7 +379,9 @@ pub fn smartscope_screenrec_start(output_path: *const c_char, fps: u32, bitrate:
     // Spawn background capture loop
     let handle = thread::spawn(move || {
         let mut cap = capturer;
-        let interval = std::time::Duration::from_micros(1_000_000 / (fps.max(1)) as u64);
+        let base_interval = std::time::Duration::from_micros(1_000_000 / (fps.max(1)) as u64);
+        // 自适应采样间隔：根据队列占用率放慢采样，避免长期丢帧导致视频时长很短
+        let mut interval = base_interval;
         while SCREENREC_RUNNING.load(Ordering::SeqCst) {
             let start = std::time::Instant::now();
             match cap.capture_frame() {
@@ -388,6 +391,17 @@ pub fn smartscope_screenrec_start(output_path: *const c_char, fps: u32, bitrate:
                         if let Err(e) = service.submit_frame(frame) {
                             log::error!("submit_frame failed: {}", e);
                         }
+                        // 基于队列长度调整采样间隔
+                        let qlen = service.queue_size() as f64;
+                        let qmax = service.config().max_queue_size as f64;
+                        let occ = if qmax > 0.0 { qlen / qmax } else { 0.0 };
+                        let scale = if occ >= 0.7 { 3.0 } else if occ >= 0.5 { 2.0 } else if occ >= 0.3 { 1.5 } else { 1.0 };
+                        // 轻微平滑（避免跳变）：interval = 0.8*interval + 0.2*(base*scale)
+                        let target = base_interval.mul_f64(scale);
+                        let cur = interval.as_secs_f64();
+                        let tgt = target.as_secs_f64();
+                        let blended = cur * 0.8 + tgt * 0.2;
+                        interval = std::time::Duration::from_secs_f64(blended);
                     } else {
                         log::warn!("Recording service missing; stopping screen loop");
                         break;

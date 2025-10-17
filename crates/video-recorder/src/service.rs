@@ -1,7 +1,7 @@
 //! 非阻塞录制服务：使用 crossbeam-channel 队列 + 工作线程
 
 use crate::{RecorderConfig, RecorderError, RecorderStats, Result, VideoEncoder, VideoFrame};
-use crossbeam_channel::{bounded, select, Receiver, Sender};
+use crossbeam_channel::{bounded, select, Receiver, Sender, TryRecvError};
 use std::sync::{atomic::{AtomicBool, AtomicU64, Ordering}, Arc};
 use std::thread::{self, JoinHandle};
 
@@ -69,9 +69,11 @@ impl RecordingService {
                 return;
             }
 
+            // 主循环：等待帧或关闭信号
             loop {
                 select! {
                     recv(shutdown_rx) -> _ => {
+                        // 收到关闭信号，跳出循环进入排空阶段
                         break;
                     }
                     recv(rx) -> msg => {
@@ -84,11 +86,27 @@ impl RecordingService {
                                 }
                             }
                             Err(_) => {
-                                // Channel closed
+                                // 通道关闭
                                 break;
                             }
                         }
                     }
+                }
+            }
+
+            // 排空队列：尽可能编码剩余帧，避免文件时间过短
+            loop {
+                match rx.try_recv() {
+                    Ok(frame) => {
+                        if let Err(e) = encoder.encode_frame(&frame) {
+                            log::error!("Failed to encode frame during drain: {}", e);
+                            break;
+                        } else {
+                            total_encoded.fetch_add(1, Ordering::Relaxed);
+                        }
+                    }
+                    Err(TryRecvError::Empty) => break,
+                    Err(TryRecvError::Disconnected) => break,
                 }
             }
 

@@ -762,16 +762,16 @@ ApplicationWindow {
         onRecordingToggled: function(on) {
             Logger.info(on ? "开始录制" : "停止录制")
             if (on) {
-                var dir = StorageManager.resolveCaptureSessionPath("screen")
+                var dir = StorageManager.resolveVideoSessionPath("screen")
                 var ts = Qt.formatDateTime(new Date(), "yyyyMMdd_HHmmss")
                 var file = dir + "/screen_" + ts + ".mp4"
-                // 30fps, 4Mbps，Rust后台线程采集屏幕+编码，UI无阻塞
-                if (!ScreenRecorderManager.startScreenRecording(file, 30, 4000000)) {
+                // 软件编码 720p 自适应帧率（fps=0表示自适应，名义输入r=15）
+                if (!ScreenRecorderManager.startScreenRecording(file, 0, 4000000)) {
                     Logger.error("启动屏幕录制失败: " + file)
                     recordingTool.recording = false
                 }
             } else {
-                ScreenRecorderManager.stopScreenRecording()
+                ScreenRecorderManager.stopScreenRecordingAsync()
             }
         }
     }

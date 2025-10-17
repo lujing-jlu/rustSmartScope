@@ -29,6 +29,10 @@ public:
     // 返回目录: <base>/Pictures/YYYY-MM-DD/YYYY-MM-DD_HH-mm-ss_<displayMode>
     Q_INVOKABLE QString resolveCaptureSessionPath(const QString& displayMode);
 
+    // 解析当前存储配置并创建本次“视频录制”会话目录
+    // 返回目录: <base>/Videos/YYYY-MM-DD/YYYY-MM-DD_HH-mm-ss_<displayMode>
+    Q_INVOKABLE QString resolveVideoSessionPath(const QString& displayMode);
+
 signals:
     void storageListChanged(const QString& json);
     void storageConfigChanged(const QString& json);

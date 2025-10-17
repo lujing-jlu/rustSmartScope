@@ -30,38 +30,26 @@ impl FFmpegRecorder {
         }
 
         log::info!(
-            "Starting FFmpeg: {}x{} @ {}fps, codec={:?}, hw={:?}",
-            self.config.width, self.config.height, self.config.fps, self.config.codec, self.config.hardware_accel
+            "Starting FFmpeg (software x264): {}x{} -> 1280x720",
+            self.config.width, self.config.height
         );
 
-        // 尝试按配置硬件编码启动，失败则自动回退到软件编码
-        let try_spawn = |codec: VideoCodec, hw: HardwareAccelType| -> std::io::Result<Child> {
-            let args = build_ffmpeg_args(&self.config, codec, hw);
-            Command::new("ffmpeg")
-                .args(args.iter().map(|s| s.as_str()))
-                .stdin(Stdio::piped())
-                .stderr(Stdio::inherit())
-                .spawn()
-        };
+        // 仅使用软件编码（libx264），并在管线内缩放到720p
+        let args = build_ffmpeg_args_sw_720p(&self.config);
+        let mut child = Command::new("ffmpeg")
+            .args(args.iter().map(|s| s.as_str()))
+            .stdin(Stdio::piped())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .map_err(RecorderError::Io)?;
 
-        // 1) 优先使用配置的硬件编码
-        let mut child = match try_spawn(self.config.codec, self.config.hardware_accel) {
-            Ok(c) => c,
-            Err(e) => {
-                log::warn!("FFmpeg spawn failed with hw={:?}: {}. Falling back to software encoder.", self.config.hardware_accel, e);
-                // 2) 回退到软件编码
-                try_spawn(self.config.codec, HardwareAccelType::None)
-                    .map_err(RecorderError::Io)?
-            }
-        };
-
-        // 若 ffmpeg 很快退出（编码器不可用等），也做回退检测
+        // 若 ffmpeg 很快退出（参数错误等），报错
         if let Ok(Some(status)) = child.try_wait() {
             if !status.success() {
-                log::warn!("FFmpeg exited immediately (hw={:?}, status={:?}). Falling back to software encoder.", self.config.hardware_accel, status);
-                // 再尝试一次软件编码
-                child = try_spawn(self.config.codec, HardwareAccelType::None)
-                    .map_err(RecorderError::Io)?;
+                return Err(RecorderError::Io(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("FFmpeg exited immediately: {:?}", status)
+                )));
             }
         }
 
@@ -165,48 +153,30 @@ impl FFmpegRecorder {
     }
 }
 
-fn build_ffmpeg_args(cfg: &RecorderConfig, codec: VideoCodec, hw: HardwareAccelType) -> Vec<String> {
+fn build_ffmpeg_args_sw_720p(cfg: &RecorderConfig) -> Vec<String> {
     let mut args: Vec<String> = Vec::new();
-    // Input rawvideo over stdin
+    // Input rawvideo over stdin (rgb24)
     args.push("-y".into());
     args.push("-f".into()); args.push("rawvideo".into());
     args.push("-vcodec".into()); args.push("rawvideo".into());
     args.push("-pix_fmt".into()); args.push("rgb24".into());
     args.push("-s".into()); args.push(format!("{}x{}", cfg.width, cfg.height));
-    args.push("-r".into()); args.push(cfg.fps.to_string());
+    // 不强制固定输入帧率；为了兼容 rawvideo，需要给个合理的名义值，选 15
+    args.push("-r".into()); args.push("15".into());
     args.push("-i".into()); args.push("-".into());
 
-    match hw {
-        HardwareAccelType::VaApi => {
-            args.push("-vaapi_device".into());
-            args.push("/dev/dri/renderD128".into());
-            args.push("-vf".into());
-            args.push("format=nv12,hwupload".into());
-        }
-        HardwareAccelType::RkMpp => { /* no-op */ }
-        HardwareAccelType::None => {}
-    }
+    // 缩放到720p + 转换到 yuv420p（保持通用）
+    args.push("-vf".into()); args.push("scale=1280:720,format=yuv420p".into());
 
-    let (codec_name, add_sw_opts) = match (codec, hw) {
-        (VideoCodec::H264, HardwareAccelType::RkMpp) => ("h264_rkmpp", false),
-        (VideoCodec::H265, HardwareAccelType::RkMpp) => ("hevc_rkmpp", false),
-        (VideoCodec::H264, HardwareAccelType::VaApi) => ("h264_vaapi", false),
-        (VideoCodec::H265, HardwareAccelType::VaApi) => ("hevc_vaapi", false),
-        (VideoCodec::H264, HardwareAccelType::None) => ("libx264", true),
-        (VideoCodec::H265, HardwareAccelType::None) => ("libx265", true),
-        (VideoCodec::VP8,  _) => ("libvpx", true),
-        (VideoCodec::VP9,  _) => ("libvpx-vp9", true),
-    };
+    // 软件编码 libx264
+    args.push("-c:v".into()); args.push("libx264".into());
+    args.push("-preset".into()); args.push("superfast".into());
+    args.push("-tune".into()); args.push("zerolatency".into());
+    args.push("-pix_fmt".into()); args.push("yuv420p".into());
 
-    args.push("-c:v".into()); args.push(codec_name.into());
-
-    if add_sw_opts {
-        args.push("-preset".into()); args.push("superfast".into());
-        args.push("-tune".into()); args.push("zerolatency".into());
-        args.push("-pix_fmt".into()); args.push("yuv420p".into());
-    }
-
+    // 码率设置
     args.push("-b:v".into()); args.push(cfg.bitrate.to_string());
+
     args.push(cfg.output_path.clone());
     args
 }

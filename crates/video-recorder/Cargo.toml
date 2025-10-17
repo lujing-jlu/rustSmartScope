@@ -16,5 +16,8 @@ x11rb = { version = "0.13", features = ["all-extensions"] }
 # Queue channel for non-blocking service
 crossbeam-channel = "0.5"
 
+# In-process FFmpeg encoder bindings (to be used next)
+ffmpeg-the-third = "4"
+
 [dev-dependencies]
 env_logger = "0.11"
