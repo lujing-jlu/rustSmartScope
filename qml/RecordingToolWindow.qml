@@ -46,12 +46,10 @@ Window {
             // 取消蓝色高亮，使用白色作为激活色（影响边框/阴影）
             activeColor: "#FFFFFF"
             isActive: recording
-            enabled: !ScreenRecorderManager.finalizing
+            enabled: true
             // 控制图标区域尺寸
             customIconSize: Math.min(recordTool.panelHeight * 0.6, 64)
             onClicked: {
-                if (ScreenRecorderManager.finalizing)
-                    return
                 recordTool.recording = !recordTool.recording
                 recordTool.recordingToggled(recordTool.recording)
             }
@@ -109,15 +107,7 @@ Window {
             }
         }
 
-        // 停止收尾进度指示（不阻塞UI，仅提示）
-        BusyIndicator {
-            anchors.centerIn: parent
-            running: ScreenRecorderManager && ScreenRecorderManager.finalizing
-            visible: running
-            width: Math.round(recordButton.customIconSize * 0.6)
-            height: width
-        }
-
+        // BusyIndicator已移除(C++端没有finalizing属性)
         // 硬件编码菜单已移除：固定软件编码 720p
     }
 }

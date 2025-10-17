@@ -3,32 +3,50 @@
 
 #include <QObject>
 #include <QString>
+#include <QProcess>
+#include <QElapsedTimer>
+#include <QTimer>
 
 class ScreenRecorderManager : public QObject {
     Q_OBJECT
-    Q_PROPERTY(bool finalizing READ finalizing NOTIFY finalizingChanged)
+    Q_PROPERTY(bool isRecording READ isRecording NOTIFY recordingChanged)
+    Q_PROPERTY(QString elapsedTime READ elapsedTime NOTIFY elapsedTimeChanged)
+
 public:
     explicit ScreenRecorderManager(QObject* parent = nullptr);
+    ~ScreenRecorderManager();
 
-    Q_INVOKABLE bool startScreenRecording(const QString& outputPath, int fps = 30, qint64 bitrate = 4ll * 1000 * 1000);
-    // 同步停止（会阻塞UI，不推荐在QML直接使用）
-    Q_INVOKABLE bool stopScreenRecording();
-    // 异步停止：接受停止时的延迟，不阻塞UI
-    Q_INVOKABLE void stopScreenRecordingAsync();
+    Q_INVOKABLE bool startScreenRecording(const QString& rootDir = QString());
+    Q_INVOKABLE void stopScreenRecording();
 
-    Q_INVOKABLE bool isRecording() const;
-
-    // 硬件编码已移除，固定软件编码 720p
-
-    bool finalizing() const { return m_finalizing; }
+    bool isRecording() const { return m_isRecording; }
+    QString elapsedTime() const { return m_elapsedTimeStr; }
 
 signals:
-    void finalizingChanged();
-    void stopCompleted(bool ok);
+    void recordingChanged();
+    void elapsedTimeChanged();
+    void recordingStarted(const QString& filePath);
+    void recordingStopped(const QString& filePath, bool success);
+
+private slots:
+    void updateElapsedTime();
+    void handleProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void handleProcessError(QProcess::ProcessError error);
 
 private:
-    void setFinalizing(bool v);
-    bool m_finalizing = false;
+    QString ensureOutputDirectory(const QString& rootDir) const;
+    QString buildOutputFilePath(const QString& rootDir) const;
+    bool haveExecutable(const QString& name) const;
+    QStringList buildFfmpegArgs(const QString& filePath) const;
+    QStringList buildWfRecorderArgs(const QString& filePath) const;
+    bool launchRecorder(const QString& filePath);
+
+    QProcess* m_proc = nullptr;
+    QElapsedTimer m_elapsed;
+    QTimer* m_timer = nullptr;
+    bool m_isRecording = false;
+    QString m_outputPath;
+    QString m_elapsedTimeStr = "00:00";
 };
 
 #endif // SCREEN_RECORDER_MANAGER_H
