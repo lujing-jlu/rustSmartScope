@@ -761,7 +761,17 @@ ApplicationWindow {
         // 可在此连接录制开始/停止与后端桥接
         onRecordingToggled: function(on) {
             Logger.info(on ? "开始录制" : "停止录制")
-            // TODO: 调用后端开始/停止录制接口
+            if (on) {
+                var dir = StorageManager.resolveCaptureSessionPath("video")
+                var ts = Qt.formatDateTime(new Date(), "yyyyMMdd_HHmmss")
+                var file = dir + "/video_" + ts + ".mp4"
+                if (!CameraManager.startVideoRecording(file)) {
+                    Logger.error("启动录制失败: " + file)
+                    recordingTool.recording = false
+                }
+            } else {
+                CameraManager.stopVideoRecording()
+            }
         }
     }
 

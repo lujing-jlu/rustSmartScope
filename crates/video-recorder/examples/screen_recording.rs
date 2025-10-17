@@ -29,8 +29,8 @@ fn main() {
     let config = RecorderConfig {
         width: screen_width,
         height: screen_height,
-        fps: 10,  // Lower FPS for testing
-        bitrate: 2_000_000,  // 2 Mbps for testing
+        fps: 30,  // 提升到 30 FPS
+        bitrate: 4_000_000,  // 4 Mbps
         codec: VideoCodec::H264,
         hardware_accel: HardwareAccelType::RkMpp,
         max_queue_size: 60,
@@ -58,7 +58,7 @@ fn main() {
 
     let start_time = Instant::now();
     let duration = Duration::from_secs(10);
-    let frame_interval = Duration::from_millis(1000 / 30); // 30 FPS
+    let frame_interval = Duration::from_micros(1_000_000 / 30); // 30 FPS
 
     let mut frame_count = 0;
     let mut last_stats_time = Instant::now();

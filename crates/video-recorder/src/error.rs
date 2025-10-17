@@ -2,9 +2,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum RecorderError {
-    #[error("FFmpeg error: {0}")]
-    FFmpeg(#[from] ffmpeg_next::Error),
-
     #[error("X11 connection error: {0}")]
     X11Connection(String),
 

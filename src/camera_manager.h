@@ -69,6 +69,11 @@ public:
     Q_INVOKABLE void startCameraAsync();
     Q_INVOKABLE void stopCameraAsync();
 
+    // Video recording controls (Rust FFI-backed)
+    Q_INVOKABLE bool startVideoRecording(const QString& outputPath);
+    Q_INVOKABLE bool stopVideoRecording();
+    Q_INVOKABLE bool isRecording() const;
+
     QImage leftFrame() const;
     QImage rightFrame() const;
     QImage singleFrame() const;

@@ -6,6 +6,7 @@
 #include <QIODevice>
 #include <QMutexLocker>
 #include <QTransform>
+#include <QDateTime>
 #include <thread>
 
 // Rust FFI for video transforms
@@ -16,6 +17,23 @@ extern "C" {
     bool smartscope_video_get_flip_horizontal();
     bool smartscope_video_get_flip_vertical();
     bool smartscope_video_get_invert();
+}
+
+// Rust FFI for video recorder
+extern "C" {
+    int smartscope_recorder_init_simple(const char* output_path,
+                                        uint32_t width,
+                                        uint32_t height,
+                                        uint32_t fps,
+                                        uint64_t bitrate);
+    int smartscope_recorder_start();
+    int smartscope_recorder_stop();
+    int smartscope_recorder_is_recording();
+    int smartscope_recorder_submit_rgb888(const uint8_t* data,
+                                          size_t data_len,
+                                          uint32_t width,
+                                          uint32_t height,
+                                          int64_t timestamp_us);
 }
 
 CameraManager::CameraManager(QObject *parent)
@@ -87,6 +105,56 @@ bool CameraManager::stopCamera()
         LOG_ERROR("CameraManager", "Failed to stop camera system, error code: ", result);
         return false;
     }
+}
+
+bool CameraManager::startVideoRecording(const QString& outputPath)
+{
+    if (outputPath.isEmpty()) {
+        LOG_ERROR("CameraManager", "startVideoRecording: empty output path");
+        return false;
+    }
+
+    // Determine current frame size; prefer single/stereo-left processed frame
+    uint32_t w = 0, h = 0;
+    {
+        QMutexLocker locker(&m_frameMutex);
+        if (!m_singleFrame.isNull()) { w = m_singleFrame.width(); h = m_singleFrame.height(); }
+        else if (!m_leftFrame.isNull()) { w = m_leftFrame.width(); h = m_leftFrame.height(); }
+    }
+    if (w == 0 || h == 0) {
+        // Fallback to 1280x720
+        w = 1280; h = 720;
+    }
+
+    QByteArray path = outputPath.toUtf8();
+    int rc = smartscope_recorder_init_simple(path.constData(), w, h, 30, 4ull * 1000 * 1000);
+    if (rc != 0) {
+        LOG_ERROR("CameraManager", "Recorder init failed: ", rc);
+        return false;
+    }
+    rc = smartscope_recorder_start();
+    if (rc != 0) {
+        LOG_ERROR("CameraManager", "Recorder start failed: ", rc);
+        return false;
+    }
+    LOG_INFO("CameraManager", "Recording started: ", outputPath.toStdString());
+    return true;
+}
+
+bool CameraManager::stopVideoRecording()
+{
+    int rc = smartscope_recorder_stop();
+    if (rc != 0) {
+        LOG_ERROR("CameraManager", "Recorder stop failed: ", rc);
+        return false;
+    }
+    LOG_INFO("CameraManager", "Recording stopped");
+    return true;
+}
+
+bool CameraManager::isRecording() const
+{
+    return smartscope_recorder_is_recording() != 0;
 }
 
 QImage CameraManager::leftFrame() const
@@ -253,6 +321,26 @@ void CameraManager::updateFrames()
                 // 发送QPixmap信号给原生Widget（不需要锁，信号是异步的）
                 emit leftPixmapUpdated(newLeftPixmap);
 
+                // 如果在录制，提交帧（RGB打包为连续缓冲区）
+                if (isRecording()) {
+                    QImage rgb = newLeftImage;
+                    if (rgb.format() != QImage::Format_RGB888)
+                        rgb = rgb.convertToFormat(QImage::Format_RGB888);
+                    const int line = rgb.bytesPerLine();
+                    const int rowBytes = rgb.width() * 3;
+                    QByteArray packed;
+                    packed.resize(rgb.width() * rgb.height() * 3);
+                    for (int y = 0; y < rgb.height(); ++y) {
+                        memcpy(packed.data() + y * rowBytes, rgb.constBits() + y * line, rowBytes);
+                    }
+                    const qint64 ts_us = QDateTime::currentMSecsSinceEpoch() * 1000;
+                    smartscope_recorder_submit_rgb888(reinterpret_cast<const uint8_t*>(packed.constData()),
+                                                      static_cast<size_t>(packed.size()),
+                                                      static_cast<uint32_t>(rgb.width()),
+                                                      static_cast<uint32_t>(rgb.height()),
+                                                      static_cast<int64_t>(ts_us));
+                }
+
             }
         }
 
@@ -279,6 +367,25 @@ void CameraManager::updateFrames()
 
                 // 发送QPixmap信号给原生Widget
                 emit singlePixmapUpdated(newSinglePixmap);
+
+                if (isRecording()) {
+                    QImage rgb = newSingleImage;
+                    if (rgb.format() != QImage::Format_RGB888)
+                        rgb = rgb.convertToFormat(QImage::Format_RGB888);
+                    const int line = rgb.bytesPerLine();
+                    const int rowBytes = rgb.width() * 3;
+                    QByteArray packed;
+                    packed.resize(rgb.width() * rgb.height() * 3);
+                    for (int y = 0; y < rgb.height(); ++y) {
+                        memcpy(packed.data() + y * rowBytes, rgb.constBits() + y * line, rowBytes);
+                    }
+                    const qint64 ts_us = QDateTime::currentMSecsSinceEpoch() * 1000;
+                    smartscope_recorder_submit_rgb888(reinterpret_cast<const uint8_t*>(packed.constData()),
+                                                      static_cast<size_t>(packed.size()),
+                                                      static_cast<uint32_t>(rgb.width()),
+                                                      static_cast<uint32_t>(rgb.height()),
+                                                      static_cast<int64_t>(ts_us));
+                }
 
                 // PiP 缩略图改为前端直接缩放显示帧
             }

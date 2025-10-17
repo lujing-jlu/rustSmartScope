@@ -149,6 +149,35 @@ pub extern "C" fn smartscope_recorder_start() -> i32 {
     }
 }
 
+/// Convenience init without struct from C/C++
+#[no_mangle]
+pub extern "C" fn smartscope_recorder_init_simple(
+    output_path: *const c_char,
+    width: u32,
+    height: u32,
+    fps: u32,
+    bitrate: u64,
+) -> i32 {
+    if output_path.is_null() { return -1; }
+
+    let path = unsafe { CStr::from_ptr(output_path).to_string_lossy().into_owned() };
+
+    let config = RecorderConfig {
+        width,
+        height,
+        fps,
+        bitrate,
+        codec: VideoCodec::H264,
+        hardware_accel: HardwareAccelType::RkMpp,
+        max_queue_size: 60,
+        output_path: path,
+    };
+
+    let service = RecordingService::new(config);
+    *RECORDING_SERVICE.lock().unwrap() = Some(service);
+    0
+}
+
 /// Capture and submit a frame from screen
 #[no_mangle]
 pub extern "C" fn smartscope_recorder_capture_frame() -> i32 {
@@ -173,6 +202,45 @@ pub extern "C" fn smartscope_recorder_capture_frame() -> i32 {
         }
     } else {
         set_last_error("Capturer or service not initialized");
+        -1
+    }
+}
+
+/// Submit an RGB888 frame from external producer (e.g., camera path)
+#[no_mangle]
+pub extern "C" fn smartscope_recorder_submit_rgb888(
+    data: *const u8,
+    data_len: usize,
+    width: u32,
+    height: u32,
+    timestamp_us: i64,
+) -> i32 {
+    if data.is_null() { return -1; }
+    let guard = RECORDING_SERVICE.lock().unwrap();
+    if let Some(service) = guard.as_ref() {
+        // Copy into Vec<u8> (contiguous RGB24 expected: width*height*3)
+        let slice = unsafe { std::slice::from_raw_parts(data, data_len) };
+        let mut v = Vec::with_capacity((width as usize) * (height as usize) * 3);
+        v.extend_from_slice(slice);
+
+        let frame = crate::VideoFrame {
+            data: std::sync::Arc::new(v),
+            width,
+            height,
+            format: crate::VideoPixelFormat::RGB888,
+            timestamp_us,
+            frame_number: 0,
+        };
+
+        match service.submit_frame(frame) {
+            Ok(_) => 0,
+            Err(e) => {
+                set_last_error(&format!("Failed to submit frame: {}", e));
+                -1
+            }
+        }
+    } else {
+        set_last_error("Recording service not initialized");
         -1
     }
 }
