@@ -43,7 +43,6 @@ ApplicationWindow {
         anchors.left: parent.left
         anchors.right: parent.right
         height: statusBarHeight
-        z: 100
 
         currentTime: stdWin.currentTime
         currentDate: stdWin.currentDate
@@ -76,7 +75,6 @@ ApplicationWindow {
         border.color: borderPrimary
         border.width: 1
 
-        // 顶部分割线放在子项之后，确保不被覆盖
 
         RowLayout {
             anchors.fill: parent
@@ -143,14 +141,16 @@ ApplicationWindow {
             Item { Layout.fillWidth: true }
         }
 
-        // 明确绘制顶部1px分割线，置于最上层，避免被子项遮挡
-        Rectangle {
-            z: 1000
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: Math.max(1, Math.round(1 / Screen.devicePixelRatio))
-            color: Qt.rgba(1, 1, 1, 0.10) // 柔和的浅色分割线，贴近测量页风格
-        }
+    }
+
+    // 作为与 bottomBar 同级的分割线，位于其上方边界，避免子项层级遮挡
+    Rectangle {
+        id: bottomBarTopSeparator
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: bottomBar.top
+        height: Math.max(1, Math.round(1 / Screen.devicePixelRatio))
+        color: borderPrimary
+        opacity: 1.0
     }
 }
