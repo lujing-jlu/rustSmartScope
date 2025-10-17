@@ -110,9 +110,6 @@ Rectangle {
             iconSource: "qrc:/icons/3D.svg"
             isActive: activeTab === "measurement"
             visible: navigationBar.stereoAvailable
-            // 可选：在隐藏时避免占位
-            width: visible ? implicitWidth : 0
-            height: visible ? implicitHeight : 0
             onClicked: {
                 Logger.info("3D测量窗口打开")
                 navigationBar.measurementClicked()

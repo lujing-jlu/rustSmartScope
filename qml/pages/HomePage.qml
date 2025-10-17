@@ -22,6 +22,18 @@ Rectangle {
         id: videoDisplay
         anchors.fill: parent
         transformOrigin: Item.Center
+
+        // 轻量级AI检测覆盖层作为子项，随视频缩放同步缩放
+        DetectionsOverlay {
+            id: detectionsOverlay
+            anchors.fill: parent
+            videoItem: videoDisplay
+            z: 1
+            modelInputSize: videoDisplay.modelInputSize
+            // 提高叠加层刷新上限，视频与叠加层帧率解耦
+            maxFps: 60
+            clip: true
+        }
     }
 
     // 捏合缩放（双指触控）；桌面可配合左侧+/-按钮
@@ -194,11 +206,11 @@ Rectangle {
         function onFrameSizeChanged() { pipContainer.updatePipViewWindow() }
     }
 
-    // 连接AI检测结果，用于绘制覆盖层
+    // 连接AI检测结果，用于绘制覆盖层（分层）
     Connections {
         target: AiDetectionManager
         function onDetectionsUpdated(detections) {
-            videoDisplay.setDetections(detections)
+            detectionsOverlay.detections = detections
         }
     }
 

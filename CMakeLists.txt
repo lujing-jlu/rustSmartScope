@@ -38,6 +38,13 @@ set(CMAKE_PCH_INSTANTIATE_TEMPLATES ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+# 可选：从外部传入的 Qt 根目录（用于统一查找与RPATH设置）
+if(DEFINED QT_ROOT)
+    message(STATUS "QT_ROOT: ${QT_ROOT}")
+    # 优先在给定的 Qt 根下查找
+    list(PREPEND CMAKE_PREFIX_PATH "${QT_ROOT}/lib/cmake")
+endif()
+
 # 查找Qt5（Svg 设为可选）
 find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets Quick Qml)
 message(STATUS "Using Qt5.${Qt5Core_VERSION}")
@@ -143,6 +150,22 @@ target_link_libraries(rustsmartscope
 message(STATUS "Rust library: ${RUST_SMARTSCOPE_LIB}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Linking with RKNN libs from: ${RKNN_LIB_DIR}")
+
+# 运行时RPATH：优先所选 Qt 与 RKNN 库目录，避免多版本Qt混用
+set(_rpath_init "")
+if(DEFINED QT_ROOT)
+    list(APPEND _rpath_init "${QT_ROOT}/lib")
+endif()
+if(EXISTS "${RKNN_LIB_DIR}")
+    list(APPEND _rpath_init "${RKNN_LIB_DIR}")
+endif()
+list(REMOVE_DUPLICATES _rpath_init)
+if(_rpath_init)
+    message(STATUS "Setting RPATH: ${_rpath_init}")
+    set(CMAKE_BUILD_RPATH "${_rpath_init}")
+    set(CMAKE_INSTALL_RPATH "${_rpath_init}")
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif()
 
 # 安装规则
 install(TARGETS rustsmartscope

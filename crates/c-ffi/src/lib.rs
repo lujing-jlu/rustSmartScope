@@ -14,6 +14,7 @@ mod config_api;     // 配置加载/保存/热重载与工具函数
 mod logging_api;    // 日志 FFI
 mod camera_api;     // 相机启动/停止/取帧/状态
 mod ai_api;         // AI 推理接口
+mod ai_events_api;  // AI 结果推送回调
 mod video_api;      // 视频变换与畸变校正接口
 mod params_api;     // 相机参数 get/set/range/reset
 mod storage_api;    // 外置存储检测

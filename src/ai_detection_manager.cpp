@@ -4,18 +4,50 @@
 #include <QFile>
 #include <QVariantMap>
 #include <QVector>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QDateTime>
 
 // Query current invert state from Rust core
 extern "C" {
     bool smartscope_video_get_invert();
 }
 
+// AI result callback registration (Rust push)
+extern "C" {
+    typedef void (*smartscope_ai_result_cb)(void* ctx, const char* json);
+    void smartscope_ai_register_result_callback(void* ctx, smartscope_ai_result_cb cb, int max_fps);
+    void smartscope_ai_unregister_result_callback(void* ctx);
+}
+
+extern "C" void ai_result_trampoline(void* ctx, const char* json) {
+    AiDetectionManager* self = reinterpret_cast<AiDetectionManager*>(ctx);
+    if (!self) return;
+    QString s = json ? QString::fromUtf8(json) : QString();
+    QMetaObject::invokeMethod(self, "onAiResultJson", Qt::QueuedConnection,
+                              Q_ARG(QString, s));
+}
+
 AiDetectionManager::AiDetectionManager(QObject* parent)
     : QObject(parent)
 {
-    // 轮询AI结果，默认关闭
-    m_pollTimer.setInterval(30); // ~33 FPS
-    connect(&m_pollTimer, &QTimer::timeout, this, &AiDetectionManager::pollResults);
+    // 轮询接口保留兼容（默认不启用）；改用Rust主动推送结果
+    m_pollTimer.setInterval(30);
+
+    // 健康监控：超过2s未收到AI结果则判定为不活跃
+    m_aliveTimer.setInterval(1000);
+    connect(&m_aliveTimer, &QTimer::timeout, this, [this]() {
+        const qint64 now = QDateTime::currentMSecsSinceEpoch();
+        const bool alive = (m_lastDetectionsMs > 0) && ((now - m_lastDetectionsMs) <= 2000);
+        if (alive != m_aiPushAlive) {
+            m_aiPushAlive = alive;
+            emit statsChanged();
+            if (!alive && m_enabled) {
+                LOG_WARN("AiDetectionManager", "No AI results for >2s while enabled");
+            }
+        }
+    });
 }
 
 AiDetectionManager::~AiDetectionManager() {
@@ -38,6 +70,7 @@ bool AiDetectionManager::initialize(const QString& modelPath, int numWorkers) {
 void AiDetectionManager::shutdown() {
     smartscope_ai_shutdown();
     m_pollTimer.stop();
+    smartscope_ai_unregister_result_callback(this);
 }
 
 void AiDetectionManager::setEnabled(bool en) {
@@ -45,9 +78,13 @@ void AiDetectionManager::setEnabled(bool en) {
     m_enabled = en;
     smartscope_ai_set_enabled(en);
     if (en) {
-        m_pollTimer.start();
+        // 由Rust侧主动推送；max_fps=0 表示尽可能快（由Rust侧最小间隔1ms防止忙等）
+        smartscope_ai_register_result_callback(this, ai_result_trampoline, 0);
+        m_aliveTimer.start();
     } else {
+        smartscope_ai_unregister_result_callback(this);
         m_pollTimer.stop();
+        m_aliveTimer.stop();
         // 清空覆盖层
         emit detectionsUpdated(QVariantList{});
     }
@@ -115,6 +152,44 @@ void AiDetectionManager::pollResults() {
     }
 
     emit detectionsUpdated(list);
+}
+
+void AiDetectionManager::onAiResultJson(const QString& json) {
+    if (!m_enabled) return;
+    if (json.isEmpty()) {
+        // 不绘制：清空覆盖层
+        emit detectionsUpdated(QVariantList{});
+        m_lastDetectionsCount = 0;
+        m_lastDetectionsMs = QDateTime::currentMSecsSinceEpoch();
+        emit statsChanged();
+        return;
+    }
+    QJsonParseError err{};
+    QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &err);
+    if (err.error != QJsonParseError::NoError || !doc.isArray()) {
+        return;
+    }
+    QVariantList list;
+    auto arr = doc.array();
+    list.reserve(arr.size());
+    for (const auto& v : arr) {
+        QJsonObject o = v.toObject();
+        QVariantMap m;
+        m.insert("left", o.value("left").toInt());
+        m.insert("top", o.value("top").toInt());
+        m.insert("right", o.value("right").toInt());
+        m.insert("bottom", o.value("bottom").toInt());
+        m.insert("confidence", o.value("confidence").toDouble());
+        int cid = o.value("class_id").toInt();
+        m.insert("class_id", cid);
+        m.insert("label", className(cid));
+        list.push_back(m);
+    }
+    emit detectionsUpdated(list);
+    m_lastDetectionsCount = list.size();
+    m_lastDetectionsMs = QDateTime::currentMSecsSinceEpoch();
+    if (!m_aiPushAlive) { m_aiPushAlive = true; emit statsChanged(); }
+    else { emit statsChanged(); }
 }
 
 QString AiDetectionManager::className(int classId) const {

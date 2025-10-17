@@ -176,6 +176,11 @@ int smartscope_ai_submit_rgb888(int width, int height, const uint8_t* data, size
 /** 尝试获取最新推理结果；返回检测数量（>=0），错误返回-1 */
 int smartscope_ai_try_get_latest_result(smartscope_CDetection* results_out, int max_results);
 
+// ---- Active push of AI results ----
+typedef void (*smartscope_ai_result_cb)(void* ctx, const char* json);
+void smartscope_ai_register_result_callback(void* ctx, smartscope_ai_result_cb cb, int max_fps);
+void smartscope_ai_unregister_result_callback(void* ctx);
+
 // =========================
 // Capture (Save to Directory)
 // =========================
